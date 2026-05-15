@@ -66,7 +66,7 @@ export default function ProfessionalRolesPage() {
             <div className="p-12 space-y-6 flex-1">
               <h2 className="text-3xl font-headline font-bold">Priority Access Program</h2>
               <p className="text-muted-foreground">
-                Nodes with a Reputation Score > 90 will receive priority selection for the first batch of Enterprise roles. 
+                Nodes with a Reputation Score &gt; 90 will receive priority selection for the first batch of Enterprise roles. 
                 Complete more micro-tasks to boost your standing.
               </p>
               <div className="space-y-3">
