@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { Wallet, Briefcase, Zap, ShieldCheck, ArrowRight, Star, PlusCircle, LayoutGrid } from 'lucide-react';
+import { Wallet, Briefcase, Zap, ShieldCheck, ArrowRight, Star, PlusCircle, LayoutGrid, Rocket, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,36 +13,39 @@ import Link from 'next/link';
 export default function DashboardHome() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Quick Actions / Start Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-primary/30 via-primary/5 to-transparent border border-primary/20 relative overflow-hidden group">
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/20 blur-3xl rounded-full group-hover:bg-primary/30 transition-colors"></div>
-          <div className="relative z-10 space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/40">
-              <Zap className="w-8 h-8 text-white" />
+      {/* Welcome Banner */}
+      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-primary/20 via-secondary/20 to-card border border-white/5 p-12">
+        <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 blur-[100px] rounded-full animate-pulse"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="space-y-4 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-widest">
+              <Rocket className="w-3 h-3" /> Quick Start
             </div>
-            <div>
-              <h2 className="text-3xl font-headline font-bold mb-2">Find Work</h2>
-              <p className="text-muted-foreground mb-6 max-w-xs">Browse micro-gigs and start earning SATs instantly with AI-verified proofs.</p>
-              <Button asChild size="lg" className="rounded-xl bg-primary hover:brightness-110 px-8 neon-glow-primary font-bold">
-                <Link href="/market">Discover Gigs</Link>
+            <h1 className="text-4xl md:text-5xl font-headline font-bold leading-tight">
+              Ready to grow your <span className="text-gradient">Satoshi stack?</span>
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Explore micro-tasks that pay instantly or post a high-value project to find elite global talent.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-4">
+              <Button asChild size="lg" className="rounded-2xl bg-primary hover:brightness-110 px-8 neon-glow-primary font-bold h-14">
+                <Link href="/market">Find Work</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 px-8 font-bold h-14">
+                <Link href="/my-projects">Hire Talent</Link>
               </Button>
             </div>
           </div>
-        </div>
-
-        <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-secondary/30 via-secondary/5 to-transparent border border-secondary/20 relative overflow-hidden group">
-          <div className="absolute -top-12 -right-12 w-48 h-48 bg-secondary/20 blur-3xl rounded-full group-hover:bg-secondary/30 transition-colors"></div>
-          <div className="relative z-10 space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center shadow-2xl shadow-secondary/40">
-              <PlusCircle className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h2 className="text-3xl font-headline font-bold mb-2">Post a Job</h2>
-              <p className="text-muted-foreground mb-6 max-w-xs">Leverage global talent for your projects. Set milestones and pay only for results.</p>
-              <Button asChild size="lg" className="rounded-xl bg-secondary hover:brightness-110 px-8 neon-glow-secondary font-bold">
-                <Link href="/my-projects">Create Listing</Link>
-              </Button>
+          <div className="hidden lg:block p-8 bg-card/50 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-8">
+                <span className="text-muted-foreground text-sm">Network Activity</span>
+                <span className="text-emerald-400 text-sm font-bold">● High</span>
+              </div>
+              <div className="h-2 w-48 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-full w-2/3 bg-emerald-400"></div>
+              </div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Average payout: 120k SAT/hr</p>
             </div>
           </div>
         </div>
@@ -139,6 +142,18 @@ export default function DashboardHome() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="glass-card p-6 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
+            <Sparkles className="w-8 h-8 text-primary mx-auto relative z-10" />
+            <div className="relative z-10">
+              <h4 className="font-headline font-bold">AI Helper</h4>
+              <p className="text-xs text-muted-foreground mt-1">Struggling to describe your project? Use our AI assistant to draft a professional listing in seconds.</p>
+            </div>
+            <Button asChild variant="outline" className="w-full rounded-xl border-primary/20 hover:bg-primary/5 text-primary font-bold relative z-10">
+              <Link href="/my-projects">Try Draft Helper</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>
