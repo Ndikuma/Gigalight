@@ -1,4 +1,4 @@
-import { Profile, Wallet, Task, Project, TaskSubmission } from './types';
+import { Profile, Wallet, Task, Project, TaskSubmission, Notification } from './types';
 
 export const mockProfile: Profile = {
   id: 'user_1',
@@ -154,20 +154,6 @@ export const mockProjects: Project[] = [
         status: 'pending'
       }
     ]
-  },
-  {
-    id: 'p4',
-    creatorId: 'user_admin',
-    title: 'L2 DEX Liquidity Optimization',
-    budgetMin: 120000,
-    budgetMax: 200000,
-    budgetType: 'fixed',
-    experienceLevel: 'expert',
-    description: 'Optimize the routing algorithms for our internal L2 decentralized exchange. Goal is to minimize slippage for high-volume satoshi swaps.',
-    skills: ['Rust', 'Mathematics', 'Financial Engineering'],
-    status: 'open',
-    clientName: 'Nexus DEX',
-    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
   }
 ];
 
@@ -189,5 +175,47 @@ export const mockSubmissions: TaskSubmission[] = [
     status: 'pending',
     proofText: 'The multisig logic fails when one of the signatories has a zero balance. See attached snippet for the fix.',
     createdAt: new Date().toISOString(),
+  }
+];
+
+export const mockNotifications: Notification[] = [
+  {
+    id: 'n1',
+    userId: 'user_1',
+    title: 'Mission Yield Finalized',
+    description: 'Your contribution to "L2 Bridge Implementation" has been verified. 12,000 SAT added to your liquid balance.',
+    type: 'reward',
+    status: 'unread',
+    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+    link: '/wallet'
+  },
+  {
+    id: 'n2',
+    userId: 'user_1',
+    title: 'New Bid Propagated',
+    description: 'PixelPioneer has submitted a proposal for "High-Fidelity Wallet UI Redesign".',
+    type: 'bid',
+    status: 'unread',
+    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+    link: '/my-projects/p3'
+  },
+  {
+    id: 'n3',
+    userId: 'user_1',
+    title: 'Network Audit Required',
+    description: 'A critical proof submission for "Validate Multi-sig Escrow Logic" requires peer validation.',
+    type: 'audit',
+    status: 'read',
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    link: '/audits'
+  },
+  {
+    id: 'n4',
+    userId: 'user_1',
+    title: 'Protocol Upgrade Imminent',
+    description: 'L2 Settlement protocols will undergo high-intensity maintenance at 04:00 UTC.',
+    type: 'system',
+    status: 'unread',
+    createdAt: new Date(Date.now() - 1800000).toISOString(), // 30 mins ago
   }
 ];

@@ -81,3 +81,16 @@ export interface TaskSubmission {
     discrepancies: string[];
   };
 }
+
+export type NotificationType = 'reward' | 'audit' | 'bid' | 'system' | 'milestone';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  description: string;
+  type: NotificationType;
+  status: 'unread' | 'read';
+  createdAt: string;
+  link?: string;
+}

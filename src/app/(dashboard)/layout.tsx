@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { UserRole } from '@/lib/types';
+import { UserRole, Notification } from '@/lib/types';
 import { 
   Bell, 
   Search, 
@@ -19,7 +19,10 @@ import {
   PlusCircle,
   LogOut,
   Menu,
-  Network
+  Network,
+  Check,
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -31,6 +34,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger 
+} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -39,15 +47,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Badge } from '@/components/ui/badge';
+import { mockNotifications } from '@/lib/mock-data';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('standard');
   const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, status: 'read' })));
+  };
+
+  const markAsRead = (id: string) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, status: 'read' } : n));
+  };
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -202,10 +224,92 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 hidden sm:flex">
-            <Bell className="w-5 h-5 text-muted-foreground" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-card"></span>
-          </Button>
+          {/* Notification System */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 hidden sm:flex">
+                <Bell className="w-5 h-5 text-muted-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-card animate-in zoom-in-50">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 p-0 glass-card border-white/10 shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <h4 className="font-headline font-bold text-sm">Network Activity</h4>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10"
+                  onClick={markAllAsRead}
+                >
+                  Clear All
+                </Button>
+              </div>
+              <ScrollArea className="h-80">
+                {notifications.length > 0 ? (
+                  <div className="divide-y divide-white/5">
+                    {notifications.map((n) => (
+                      <div 
+                        key={n.id} 
+                        className={cn(
+                          "p-4 transition-colors relative group",
+                          n.status === 'unread' ? "bg-primary/5" : "hover:bg-white/5"
+                        )}
+                        onClick={() => markAsRead(n.id)}
+                      >
+                        <div className="flex gap-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                            n.type === 'reward' ? "bg-emerald-400/10 text-emerald-400" :
+                            n.type === 'audit' ? "bg-primary/10 text-primary" :
+                            n.type === 'bid' ? "bg-secondary/10 text-secondary" : "bg-white/5 text-muted-foreground"
+                          )}>
+                            {n.type === 'reward' ? <Check className="w-4 h-4" /> :
+                             n.type === 'audit' ? <ShieldCheck className="w-4 h-4" /> :
+                             n.type === 'bid' ? <Briefcase className="w-4 h-4" /> : <Network className="w-4 h-4" />}
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-bold leading-none">{n.title}</p>
+                              {n.status === 'unread' && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">{n.description}</p>
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {n.link && (
+                                <Link 
+                                  href={n.link} 
+                                  className="text-[9px] font-bold text-primary flex items-center gap-0.5 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  VIEW <ExternalLink className="w-2.5 h-2.5" />
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-2">
+                    <Bell className="w-8 h-8 text-muted-foreground/20" />
+                    <p className="text-xs font-bold text-muted-foreground">All signals clear</p>
+                  </div>
+                )}
+              </ScrollArea>
+              <div className="p-3 border-t border-white/5 bg-white/5">
+                <Button asChild variant="ghost" className="w-full h-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <Link href="/notifications">View Protocol Logs</Link>
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* User Profile */}
           <DropdownMenu>
