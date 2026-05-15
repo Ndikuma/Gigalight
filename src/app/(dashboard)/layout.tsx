@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole } from '@/lib/types';
 import { 
   Bell, 
@@ -42,7 +42,12 @@ import {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('standard');
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -59,6 +64,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const currentRole = roleConfigs[role] || roleConfigs.standard;
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="h-16 border-b border-white/5 bg-card/50 px-4 md:px-6 flex items-center justify-between" />
+        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

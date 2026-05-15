@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Filter, MoreHorizontal } from 'lucide-react';
@@ -14,6 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function AuditsPage() {
   const [isAuditing, setIsAuditing] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function runAiAudit(submissionId: string) {
     setIsAuditing(submissionId);
@@ -95,7 +100,10 @@ export default function AuditsPage() {
                           {sub.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground font-medium">Contributor: <span className="text-foreground">{sub.userName || sub.userId}</span> • {new Date(sub.createdAt).toLocaleDateString()}</p>
+                      <p className="text-sm text-muted-foreground font-medium">
+                        Contributor: <span className="text-foreground">{sub.userName || sub.userId}</span> 
+                        {mounted && <span> • {new Date(sub.createdAt).toLocaleDateString()}</span>}
+                      </p>
                       
                       <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
                         <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proofText}"</p>
