@@ -80,7 +80,15 @@ export default function OpportunityDetailPage() {
   }
 
   const isTask = opportunity.type === 'task';
-  const signalFee = isTask ? 50 : 250;
+  
+  // Dynamic Signal Fee Logic based on Node Tier
+  const getSignalFee = () => {
+    if (mockProfile.membershipTier === 'elite') return 0;
+    if (mockProfile.membershipTier === 'pro') return isTask ? 25 : 125;
+    return isTask ? 50 : 250;
+  };
+
+  const signalFee = getSignalFee();
   const boostFee = isBoosted ? 500 : 0;
   const totalUpfront = signalFee + boostFee;
 
@@ -168,6 +176,9 @@ export default function OpportunityDetailPage() {
         <div className="flex items-center gap-2">
           <Badge className="bg-emerald-500/10 text-emerald-400 border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
             <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Protocol Verified
+          </Badge>
+          <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <Trophy className="w-3.5 h-3.5 mr-2" /> {mockProfile.membershipTier} Tier
           </Badge>
         </div>
       </div>
@@ -328,8 +339,13 @@ export default function OpportunityDetailPage() {
 
                 <div className="bg-muted/10 p-6 rounded-2xl border border-white/5 space-y-3">
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground">Network Signal Fee</span>
-                    <span>{signalFee.toLocaleString()} SAT</span>
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      Network Signal Fee 
+                      {mockProfile.membershipTier === 'elite' && <Badge className="bg-emerald-500/10 text-emerald-400 border-none h-4 text-[8px]">Elite Waiver</Badge>}
+                    </span>
+                    <span className={cn(signalFee === 0 && "text-emerald-400")}>
+                      {signalFee === 0 ? '0 SAT' : `${signalFee.toLocaleString()} SAT`}
+                    </span>
                   </div>
                   {isBoosted && (
                     <div className="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest">
@@ -418,7 +434,7 @@ export default function OpportunityDetailPage() {
               <CardTitle className="text-xs font-headline uppercase tracking-widest text-muted-foreground">L2 Protocol Governance</CardTitle>
             </CardHeader>
             <CardContent className="p-8 text-xs text-muted-foreground space-y-4 leading-relaxed font-medium">
-              <p>Missions require a non-refundable <strong>{signalFee} SAT</strong> Signal Fee to maintain high-density network integrity.</p>
+              <p>Missions require a non-refundable Signal Fee to maintain high-density network integrity. <strong>{mockProfile.membershipTier} nodes</strong> pay {signalFee} SAT.</p>
               <p>Budget settlement is secured via a decentralized 2-of-3 multi-sig escrow node before objective execution.</p>
               <p className="text-[10px] italic border-t border-white/5 pt-4">GigaLight Protocol v2.1.0 • Satoshi Standard</p>
             </CardContent>

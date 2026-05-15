@@ -30,7 +30,8 @@ import {
   Check,
   Zap,
   X,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { mockProfile, mockWallet } from '@/lib/mock-data';
 import { toast } from '@/hooks/use-toast';
@@ -52,6 +53,7 @@ export default function SettingsPage() {
   const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
   
   const [profile, setProfile] = useState(mockProfile);
+  const [balance, setBalance] = useState(mockWallet.availableBalance);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
 
@@ -81,12 +83,24 @@ export default function SettingsPage() {
     });
   }
 
-  function handleUpgrade(tier: 'basic' | 'pro' | 'elite') {
+  function handleUpgrade(tier: 'basic' | 'pro' | 'elite', cost: number) {
+    if (balance < cost) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Liquidity",
+        description: `Upgrade requires ${cost.toLocaleString()} SAT. Please deposit funds.`,
+      });
+      setIsDepositOpen(true);
+      return;
+    }
+
+    setBalance(prev => prev - cost);
+    setProfile(prev => ({ ...prev, membershipTier: tier }));
+    
     toast({
       title: `${tier.toUpperCase()} Node Activated`,
-      description: `Protocol fee adjusted. Reputation bonus applied.`,
+      description: `Protocol fee adjusted. ${cost.toLocaleString()} SAT settled via L2.`,
     });
-    setProfile(prev => ({ ...prev, membershipTier: tier }));
   }
 
   // Wallet Mock Handlers
@@ -95,6 +109,18 @@ export default function SettingsPage() {
     await new Promise(r => setTimeout(r, 1500));
     setInvoice(`lnbc${depositAmount}n1p3uxls...v${Math.random().toString(36).substring(7)}`);
     setIsGeneratingInvoice(false);
+  }
+
+  // Finalize Deposit (Simulated)
+  function handleSimulateDeposit() {
+    const amount = parseInt(depositAmount) || 0;
+    setBalance(prev => prev + amount);
+    setInvoice(null);
+    setIsDepositOpen(false);
+    toast({
+      title: "SATs Propagated",
+      description: `${amount.toLocaleString()} SAT added to your liquid balance.`,
+    });
   }
 
   async function handleDecodeInvoice(manualValue?: string) {
@@ -122,8 +148,15 @@ export default function SettingsPage() {
   }
 
   function handleConfirmWithdraw() {
+    if (!decodedData) return;
+    if (balance < decodedData.amount) {
+      toast({ variant: "destructive", title: "Insufficient Funds", description: "Your liquid balance is too low for this withdrawal." });
+      return;
+    }
+
     setIsProcessingWithdraw(true);
     setTimeout(() => {
+      setBalance(prev => prev - decodedData!.amount);
       setIsProcessingWithdraw(false);
       setIsWithdrawOpen(false);
       setWithdrawInvoice('');
@@ -190,7 +223,12 @@ export default function SettingsPage() {
                     </button>
                   </div>
                   <div className="space-y-3 flex-1 text-center sm:text-left">
-                    <h4 className="font-bold">Protocol Avatar</h4>
+                    <div className="flex items-center gap-2 justify-center sm:justify-start">
+                      <h4 className="font-bold">Protocol Avatar</h4>
+                      <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] font-bold tracking-widest">
+                        {profile.membershipTier} Node
+                      </Badge>
+                    </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
                       Use a professional identifier. Avatars are propagated across all technical missions and strategic proposals.
                     </p>
@@ -238,7 +276,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatCard 
                   label="Liquid Balance" 
-                  value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
+                  value={`${balance.toLocaleString()} SAT`} 
                   icon={WalletIcon} 
                   subValue="Settled and available for release"
                   color="primary"
@@ -318,9 +356,9 @@ export default function SettingsPage() {
               <CardContent className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {[
-                    { id: 'basic', name: 'Basic Node', fee: 'Free', color: 'bg-muted', perks: ['Standard Yield', 'Public Discovery'] },
-                    { id: 'pro', name: 'Pro Node', fee: '50k SAT/yr', color: 'bg-primary', perks: ['Reduced Signal Fees', 'Priority Discovery', 'Pro Badge'] },
-                    { id: 'elite', name: 'Elite Node', fee: '250k SAT/yr', color: 'bg-amber-500', perks: ['Zero Signal Fees', 'Expert Only Gigs', 'Enterprise Tier'] }
+                    { id: 'basic', name: 'Basic Node', fee: 'Free', rawFee: 0, color: 'bg-muted', perks: ['Standard Yield', 'Public Discovery'] },
+                    { id: 'pro', name: 'Pro Node', fee: '50k SAT/yr', rawFee: 50000, color: 'bg-primary', perks: ['Reduced Signal Fees', 'Priority Discovery', 'Pro Badge'] },
+                    { id: 'elite', name: 'Elite Node', fee: '250k SAT/yr', rawFee: 250000, color: 'bg-amber-500', perks: ['Zero Signal Fees', 'Expert Only Gigs', 'Enterprise Tier'] }
                   ].map((tier) => (
                     <div key={tier.id} className={cn(
                       "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-[300px] relative overflow-hidden group",
@@ -354,7 +392,7 @@ export default function SettingsPage() {
                       ) : (
                         <Button 
                           className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10"
-                          onClick={() => handleUpgrade(tier.id as any)}
+                          onClick={() => handleUpgrade(tier.id as any, tier.rawFee)}
                         >
                           Select Tier
                         </Button>
@@ -490,6 +528,12 @@ export default function SettingsPage() {
                     {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl h-12"
+                  onClick={handleSimulateDeposit}
+                >
+                  Confirm Simulation Payment
+                </Button>
               </div>
               <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => setInvoice(null)}>
                 Modify Parameters
