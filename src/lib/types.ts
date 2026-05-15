@@ -27,6 +27,8 @@ export interface Wallet {
   totalRewarded: number;
 }
 
+export type ProofMethod = 'image' | 'video' | 'text' | 'link' | 'file' | 'code_snippet' | 'gps' | 'qr_scan';
+
 export interface Task {
   id: string;
   creatorId: string;
@@ -34,10 +36,15 @@ export interface Task {
   rewardAmount: number;
   difficulty: 'easy' | 'medium' | 'hard';
   shortDescription: string;
-  proofMethod: 'screenshot' | 'text' | 'link' | 'code_snippet';
+  instructions: string;
+  proofMethod: ProofMethod;
   category: string;
   status: 'active' | 'completed' | 'paused';
   submissionsCount: number;
+  externalUrl?: string;
+  externalUrlLabel?: string;
+  validatorGuidelines?: string;
+  targetCompletions?: number;
 }
 
 export interface Bid {
@@ -80,6 +87,7 @@ export interface TaskSubmission {
   status: 'pending' | 'approved' | 'rejected';
   proofText?: string;
   proofImageUri?: string;
+  proofLink?: string;
   createdAt: string;
   aiAuditResult?: {
     suggestedStatus: string;

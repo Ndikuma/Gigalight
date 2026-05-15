@@ -4,13 +4,21 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Filter, MoreHorizontal } from 'lucide-react';
+import { ShieldCheck, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Filter, MoreHorizontal, BookOpen } from 'lucide-react';
 import { mockSubmissions, mockTasks } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { aiSubmissionAuditor } from '@/ai/flows/ai-submission-auditor';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription
+} from "@/components/ui/dialog";
 
 export default function AuditsPage() {
   const [isAuditing, setIsAuditing] = useState<string | null>(null);
@@ -29,8 +37,8 @@ export default function AuditsPage() {
       if (!sub || !task) return;
 
       const result = await aiSubmissionAuditor({
-        taskInstructions: task.shortDescription,
-        proofRequirements: task.proofMethod,
+        taskInstructions: task.instructions || task.shortDescription,
+        proofRequirements: task.validatorGuidelines || "Verify proof meets task intent.",
         proofText: sub.proofText,
         proofDescription: "Peer audit requested via validator network."
       });
@@ -105,6 +113,34 @@ export default function AuditsPage() {
                         {mounted && <span> • {new Date(sub.createdAt).toLocaleDateString()}</span>}
                       </p>
                       
+                      <div className="flex items-center gap-3 mt-3">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="rounded-lg gap-2 text-[10px] font-bold uppercase tracking-widest border-white/5 h-8">
+                              <BookOpen className="w-3.5 h-3.5" /> View Guidelines
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="glass-card border-white/10">
+                            <DialogHeader>
+                              <DialogTitle className="font-headline">Audit Guidelines</DialogTitle>
+                              <DialogDescription>Protocol criteria for "{task?.title}"</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 mt-4">
+                              <div className="space-y-2">
+                                <h5 className="text-xs font-bold text-primary uppercase">Task Instructions</h5>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{task?.instructions || task?.shortDescription}</p>
+                              </div>
+                              <div className="space-y-2">
+                                <h5 className="text-xs font-bold text-emerald-400 uppercase">Validator decision Rules</h5>
+                                <p className="text-sm text-muted-foreground leading-relaxed bg-emerald-400/5 p-4 rounded-xl border border-emerald-400/10 italic">
+                                  {task?.validatorGuidelines || "Verify proof aligns with technical intent."}
+                                </p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
                       <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
                         <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proofText}"</p>
                         <div className="absolute right-2 top-2 opacity-0 group-hover/proof:opacity-100 transition-opacity">

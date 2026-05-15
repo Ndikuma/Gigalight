@@ -21,7 +21,8 @@ import {
   Plus, 
   X,
   Target,
-  BadgeDollarSign
+  BadgeDollarSign,
+  Link as LinkIcon
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
@@ -40,6 +41,8 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    instructions: '',
+    validatorGuidelines: '',
     category: '',
     reward: '',
     budgetMin: '',
@@ -47,6 +50,9 @@ export default function CreateListingPage() {
     difficulty: 'medium',
     experienceLevel: 'intermediate',
     proofMethod: 'text',
+    externalUrl: '',
+    externalUrlLabel: '',
+    targetCompletions: '',
     skills: [] as string[],
     newSkill: ''
   });
@@ -64,7 +70,9 @@ export default function CreateListingPage() {
       setFormData(prev => ({
         ...prev,
         title: genResult.title,
-        description: `${genResult.description}\n\nKey Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}\n\nSpecific Requirements:\n${genResult.requirements.map(r => `• ${r}`).join('\n')}`,
+        description: genResult.description,
+        instructions: `Key Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}\n\nSpecific Requirements:\n${genResult.requirements.map(r => `• ${r}`).join('\n')}`,
+        validatorGuidelines: "Ensure all requirements are explicitly met in the submitted proof.",
         skills: [...new Set([...prev.skills, ...skillResult.suggestedSkills])],
         category: skillResult.suggestedCategories[0] || prev.category
       }));
@@ -185,15 +193,38 @@ export default function CreateListingPage() {
                 </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Detailed Description</Label>
-                <Textarea 
-                  placeholder="Describe the scope, deliverables, and expectations..."
-                  className="min-h-[250px] bg-background/50 border-white/5 leading-relaxed"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Detailed Description</Label>
+                  <Textarea 
+                    placeholder="Describe the scope and deliverables..."
+                    className="min-h-[150px] bg-background/50 border-white/5"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Execution Instructions</Label>
+                  <Textarea 
+                    placeholder="Step-by-step instructions for nodes..."
+                    className="min-h-[150px] bg-background/50 border-white/5"
+                    value={formData.instructions}
+                    onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+                  />
+                </div>
               </div>
+
+              {listingType === 'task' && (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Validator Audit Guidelines</Label>
+                  <Textarea 
+                    placeholder="What should validators check for in the proof?"
+                    className="bg-background/50 border-white/5"
+                    value={formData.validatorGuidelines}
+                    onChange={(e) => setFormData({...formData, validatorGuidelines: e.target.value})}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -242,7 +273,7 @@ export default function CreateListingPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {step === '3' || step === 3 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
               <h3 className="text-2xl font-headline font-bold">3. Financials & Release</h3>
 
@@ -259,15 +290,27 @@ export default function CreateListingPage() {
                   </div>
                   
                   {listingType === 'task' ? (
-                    <div className="space-y-2">
-                      <Label>Standard Reward (SAT)</Label>
-                      <Input 
-                        type="number" 
-                        placeholder="e.g. 5000" 
-                        className="h-12 bg-background border-white/5 text-xl font-bold"
-                        value={formData.reward}
-                        onChange={(e) => setFormData({...formData, reward: e.target.value})}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Reward (SAT)</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="5000" 
+                          className="h-12 bg-background border-white/5 font-bold"
+                          value={formData.reward}
+                          onChange={(e) => setFormData({...formData, reward: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Target Slots</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="100" 
+                          className="h-12 bg-background border-white/5"
+                          value={formData.targetCompletions}
+                          onChange={(e) => setFormData({...formData, targetCompletions: e.target.value})}
+                        />
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
@@ -301,29 +344,44 @@ export default function CreateListingPage() {
                       <ShieldCheck className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="font-bold">Validation Protocol</h4>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Method</p>
+                      <h4 className="font-bold">Protocol Signal</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Config</p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>{listingType === 'task' ? "Proof Required" : "Timeline Expectation"}</Label>
-                    {listingType === 'task' ? (
-                      <Select value={formData.proofMethod} onValueChange={(val) => setFormData({...formData, proofMethod: val})}>
-                        <SelectTrigger className="bg-background border-white/5 h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Narrative Proof</SelectItem>
-                          <SelectItem value="screenshot">Media/Screenshot</SelectItem>
-                          <SelectItem value="code_snippet">Code Proof</SelectItem>
-                          <SelectItem value="link">URL Verification</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
+                  {listingType === 'task' ? (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Proof Method</Label>
+                        <Select value={formData.proofMethod} onValueChange={(val) => setFormData({...formData, proofMethod: val})}>
+                          <SelectTrigger className="bg-background border-white/5 h-12">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Narrative Response</SelectItem>
+                            <SelectItem value="code_snippet">Code Snippet</SelectItem>
+                            <SelectItem value="link">URL Verification</SelectItem>
+                            <SelectItem value="file">Technical File</SelectItem>
+                            <SelectItem value="qr_scan">QR Scan Signal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">External Mission URL <LinkIcon className="w-3 h-3" /></Label>
+                        <Input 
+                          placeholder="https://..." 
+                          className="h-10 bg-background border-white/5"
+                          value={formData.externalUrl}
+                          onChange={(e) => setFormData({...formData, externalUrl: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Timeline Expectation</Label>
                       <Input placeholder="e.g. 4 Weeks" className="h-12 bg-background border-white/5" />
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </Card>
               </div>
 
@@ -333,7 +391,7 @@ export default function CreateListingPage() {
                   <h4 className="font-bold text-sm">Review Protocol</h4>
                   <p className="text-xs text-muted-foreground">
                     By releasing this objective, you agree to lock the specified compensation in the network's multi-sig escrow. 
-                    {listingType === 'task' ? " Submissions will be audited by the AI agent and peer validators." : " You will review candidate proposals manually before selecting a node."}
+                    {listingType === 'task' ? " Submissions will be audited by the AI agent and peer validators based on your guidelines." : " You will review candidate proposals manually before selecting a node."}
                   </p>
                 </div>
               </div>

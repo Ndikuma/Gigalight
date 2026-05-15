@@ -33,11 +33,15 @@ export const mockTasks: Task[] = [
     title: 'Audit L2 Bridge Documentation',
     rewardAmount: 1500,
     difficulty: 'medium',
-    shortDescription: 'Meticulously review the latest technical specification for the Satoshi-Bridge protocol. Identify logical inconsistencies in the settlement flow.',
+    shortDescription: 'Meticulously review the technical specification for the Satoshi-Bridge protocol.',
+    instructions: '1. Access the whitepaper at the external link. 2. Verify Section 4.2 logic regarding channel closure. 3. Submit a brief text summary identifying any logical gaps.',
     proofMethod: 'text',
     category: 'Security',
     status: 'active',
     submissionsCount: 8,
+    validatorGuidelines: 'Ensure the response identifies the missing edge case in the multi-sig release delay.',
+    externalUrl: 'https://example.com/whitepaper',
+    externalUrlLabel: 'Access Whitepaper'
   },
   {
     id: 't2',
@@ -45,11 +49,13 @@ export const mockTasks: Task[] = [
     title: 'Validate Multi-sig Escrow Logic',
     rewardAmount: 7500,
     difficulty: 'hard',
-    shortDescription: 'Formal verification of the L2 multisig contract logic. Focus on edge cases during partial release scenarios.',
+    shortDescription: 'Formal verification of the L2 multisig contract logic.',
+    instructions: 'Examine the provided code snippet for re-entrancy vulnerabilities during partial SAT release. Provide a fixed version or proof of safety.',
     proofMethod: 'code_snippet',
     category: 'Engineering',
     status: 'active',
     submissionsCount: 2,
+    validatorGuidelines: 'Check for standard re-entrancy guards and LND specific timeout handling.'
   }
 ];
 

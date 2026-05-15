@@ -17,7 +17,8 @@ import {
   DollarSign,
   AlertCircle,
   Trophy,
-  Rocket
+  Rocket,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -177,8 +178,29 @@ export default function OpportunityDetailPage() {
               <CardTitle className="font-headline">Objective Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="text-muted-foreground leading-relaxed">
-                {isTask ? (opportunity as any).shortDescription : (opportunity as any).description}
+              <div className="space-y-4">
+                <p className="text-muted-foreground leading-relaxed">
+                  {isTask ? (opportunity as any).shortDescription : (opportunity as any).description}
+                </p>
+                {isTask && (opportunity as any).instructions && (
+                  <div className="bg-white/5 p-6 rounded-2xl border border-white/5 space-y-3">
+                    <h4 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Send className="w-4 h-4" /> Instructions
+                    </h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {(opportunity as any).instructions}
+                    </p>
+                    {(opportunity as any).externalUrl && (
+                      <div className="pt-2">
+                        <Button asChild size="sm" className="rounded-xl gap-2 font-bold">
+                          <a href={(opportunity as any).externalUrl} target="_blank" rel="noopener noreferrer">
+                            {(opportunity as any).externalUrlLabel || 'Open Mission Link'} <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {!isTask && (
@@ -210,7 +232,7 @@ export default function OpportunityDetailPage() {
                     <div className="space-y-2">
                       <Label>Proof Documentation</Label>
                       <Textarea 
-                        placeholder="Detail your methodology or provide the required technical output..."
+                        placeholder={opportunity.proofMethod === 'code_snippet' ? "Paste verified code snippet here..." : "Detail your methodology or provide the required technical output..."}
                         className="min-h-[150px] bg-background/50"
                         value={proofText}
                         onChange={(e) => setProofText(e.target.value)}
