@@ -56,6 +56,34 @@ export const mockTasks: Task[] = [
     status: 'active',
     submissionsCount: 2,
     validatorGuidelines: 'Check for standard re-entrancy guards and LND specific timeout handling.'
+  },
+  {
+    id: 't3',
+    creatorId: 'user_2',
+    title: 'UI Protocol Audit (Next.js)',
+    rewardAmount: 2500,
+    difficulty: 'medium',
+    shortDescription: 'Audit the frontend architecture of the Lightning node dashboard.',
+    instructions: 'Review components for hydration mismatches and accessibility standards. Submit report.',
+    proofMethod: 'text',
+    category: 'Design',
+    status: 'active',
+    submissionsCount: 15,
+    validatorGuidelines: 'Ensure all hydration issues are correctly identified.'
+  },
+  {
+    id: 't4',
+    creatorId: 'user_3',
+    title: 'Satoshi-Network Node Config',
+    rewardAmount: 5000,
+    difficulty: 'easy',
+    shortDescription: 'Verify and optimize the peer-to-peer configuration of network nodes.',
+    instructions: 'Provide a screenshot of your node status page showing healthy peer connections.',
+    proofMethod: 'image',
+    category: 'Engineering',
+    status: 'active',
+    submissionsCount: 124,
+    validatorGuidelines: 'Check for minimum of 5 peer connections.'
   }
 ];
 
@@ -108,6 +136,38 @@ export const mockProjects: Project[] = [
         status: 'pending'
       }
     ]
+  },
+  {
+    id: 'p2',
+    creatorId: 'user_4',
+    title: 'DEX Liquidity Optimization Node',
+    budgetMin: 50000,
+    budgetMax: 120000,
+    budgetType: 'hourly',
+    experienceLevel: 'intermediate',
+    description: 'Development of an automated liquidity rebalancing node for an L2-based decentralized exchange.',
+    requirements: '• Experience with automated trading bots\n• Knowledge of L2 liquidity protocols\n• Python/TypeScript expertise',
+    skills: ['Python', 'L2 Protocols', 'Automation'],
+    status: 'open',
+    clientName: 'Liquid-X Protocol',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    bids: []
+  },
+  {
+    id: 'p3',
+    creatorId: 'user_5',
+    title: 'Cross-Chain Bridge Security Audit',
+    budgetMin: 300000,
+    budgetMax: 800000,
+    budgetType: 'fixed',
+    experienceLevel: 'expert',
+    description: 'Comprehensive security audit for a high-volume cross-chain bridge between Bitcoin L2s.',
+    requirements: '• Deep security audit experience\n• Understanding of bridge protocols\n• Formal verification experience',
+    skills: ['Security', 'Auditing', 'Solidity', 'Rust'],
+    status: 'open',
+    clientName: 'BridgeGuard',
+    createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    bids: []
   }
 ];
 
