@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { User, Shield, Wallet, Bell, Moon, Globe, Zap, Sparkles, MapPin, ExternalLink, Trophy, Rocket } from 'lucide-react';
+import { User, Shield, Wallet, Bell, Moon, Globe, Zap, Sparkles, MapPin, ExternalLink, Trophy, Rocket, CheckCircle } from 'lucide-react';
 import { mockProfile } from '@/lib/mock-data';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
