@@ -1,0 +1,93 @@
+
+'use client';
+
+/**
+ * @fileOverview Base API client for communicating with the GigaLight Django Backend.
+ * Handles authentication headers, base URL configuration, and standardized error responses.
+ */
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+export type ApiResponse<T> = {
+  data: T | null;
+  error: string | null;
+  status: number;
+};
+
+class ApiClient {
+  private getHeaders(): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('gigalight_token');
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+    }
+
+    return headers;
+  }
+
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    const url = `${BASE_URL}${endpoint}`;
+    const headers = { ...this.getHeaders(), ...options.headers };
+
+    try {
+      const response = await fetch(url, { ...options, headers });
+      
+      if (response.status === 401) {
+        // Handle unauthorized access (e.g., redirect to login)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('gigalight_token');
+        }
+      }
+
+      let data = null;
+      if (response.status !== 204) {
+        data = await response.json();
+      }
+
+      if (!response.ok) {
+        return {
+          data: null,
+          error: data?.message || data?.detail || `Error: ${response.status}`,
+          status: response.status,
+        };
+      }
+
+      return { data, error: null, status: response.status };
+    } catch (err) {
+      return {
+        data: null,
+        error: 'Network connection failed. Interface timeout.',
+        status: 500,
+      };
+    }
+  }
+
+  get<T>(endpoint: string) {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
+
+  post<T>(endpoint: string, body: any) {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  put<T>(endpoint: string, body: any) {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  delete<T>(endpoint: string) {
+    return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+}
+
+export const api = new ApiClient();
