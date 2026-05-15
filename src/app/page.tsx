@@ -38,13 +38,13 @@ export default function LandingPage() {
         </h1>
         
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Gigalight connects global talent with micro-tasks and high-value projects, settled instantly in Satoshis. No borders. No delays.
+          Gigalight connects global talent with professional opportunities and high-value projects, settled instantly in Satoshis. No borders. No delays.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
           <Button asChild size="lg" className="rounded-2xl bg-primary text-lg font-bold px-10 h-16 neon-glow-primary group">
             <Link href="/dashboard" className="flex items-center gap-2">
-              Start Earning <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Find Opportunities <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-2xl border-white/10 bg-white/5 text-lg font-bold px-10 h-16 hover:bg-white/10 transition-all">
@@ -80,14 +80,14 @@ export default function LandingPage() {
               <Zap className="w-6 h-6" />
             </div>
             <h3 className="text-2xl font-headline font-bold">Micro Gigs</h3>
-            <p className="text-muted-foreground">Complete simple tasks in minutes. Get paid in Satoshis immediately upon verification.</p>
+            <p className="text-muted-foreground">Complete technical tasks in minutes. Receive Satoshi yields immediately upon verification.</p>
           </div>
           <div className="glass-card p-10 rounded-3xl space-y-4 hover:border-secondary/40 transition-colors">
             <div className="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary">
               <Briefcase className="w-6 h-6" />
             </div>
             <h3 className="text-2xl font-headline font-bold">Pro Projects</h3>
-            <p className="text-muted-foreground">High-value freelance opportunities for developers, designers, and specialists.</p>
+            <p className="text-muted-foreground">High-value professional opportunities for developers, designers, and specialists.</p>
           </div>
           <div className="glass-card p-10 rounded-3xl space-y-4 hover:border-emerald-400/40 transition-colors">
             <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 flex items-center justify-center text-emerald-400">

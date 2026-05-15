@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -30,11 +31,11 @@ export default function AuditsPage() {
       });
 
       toast({
-        title: `AI Result: ${result.suggestedStatus.toUpperCase()}`,
+        title: `AI Analysis: ${result.suggestedStatus.toUpperCase()}`,
         description: result.rationale,
       });
     } catch (e) {
-      toast({ variant: "destructive", title: "Audit failed", description: "AI auditor encountered an error." });
+      toast({ variant: "destructive", title: "Audit Error", description: "The AI node encountered an interface timeout." });
     } finally {
       setIsAuditing(null);
     }
@@ -43,7 +44,7 @@ export default function AuditsPage() {
   function handleAction(id: string, action: 'Approve' | 'Reject') {
     toast({
       title: `Submission ${action}d`,
-      description: `Validator credit has been assigned to your node.`,
+      description: `Validation yield has been credited to your node.`,
     });
   }
 
@@ -56,24 +57,24 @@ export default function AuditsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="rounded-xl bg-card border-white/5 gap-2">
-            <Filter className="w-4 h-4" /> Filter
+            <Filter className="w-4 h-4" /> Parameters
           </Button>
           <Button className="rounded-xl bg-emerald-500 hover:bg-emerald-600 gap-2 font-bold px-6">
-            <ShieldCheck className="w-4 h-4" /> Active Mode
+            <ShieldCheck className="w-4 h-4" /> High Intensity
           </Button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Network Reputation" value="Level 8" icon={ShieldCheck} color="emerald" />
-        <StatCard label="Pending Audits" value={`${mockSubmissions.length} Tasks`} icon={Clock} color="primary" />
-        <StatCard label="Yield Earned" value="2,450 SAT" icon={Sparkles} color="secondary" />
+        <StatCard label="Network Reputation" value="Tier 8" icon={ShieldCheck} color="emerald" />
+        <StatCard label="Pending Audits" value={`${mockSubmissions.length} Documents`} icon={Clock} color="primary" />
+        <StatCard label="Validation Yield" value="2,450 SAT" icon={Sparkles} color="secondary" />
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl font-headline font-bold">Unverified Submissions</h2>
-          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Showing {mockSubmissions.length} Items</span>
+          <h2 className="text-xl font-headline font-bold">Awaiting Verification</h2>
+          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Queue Density: {mockSubmissions.length} Items</span>
         </div>
         
         {mockSubmissions.map((sub) => {
@@ -89,12 +90,12 @@ export default function AuditsPage() {
                     </Avatar>
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-lg">{task?.title || 'Unknown Task'}</h4>
+                        <h4 className="font-bold text-lg">{task?.title || 'Unknown Objective'}</h4>
                         <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
                           {sub.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground font-medium">Worker: <span className="text-foreground">{sub.userName || sub.userId}</span> • {new Date(sub.createdAt).toLocaleDateString()}</p>
+                      <p className="text-sm text-muted-foreground font-medium">Contributor: <span className="text-foreground">{sub.userName || sub.userId}</span> • {new Date(sub.createdAt).toLocaleDateString()}</p>
                       
                       <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
                         <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proofText}"</p>
@@ -114,7 +115,7 @@ export default function AuditsPage() {
                         onClick={() => runAiAudit(sub.id)}
                         disabled={isAuditing === sub.id}
                       >
-                        <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Analyzing...' : 'AI Audit'}
+                        <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Analyzing...' : 'AI Validation'}
                       </Button>
                       <div className="flex gap-2">
                         <Button 

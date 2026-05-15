@@ -37,18 +37,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Gigs Market', icon: SearchIcon, href: '/market' },
-    { name: 'My Listings', icon: Briefcase, href: '/my-projects' },
+    { name: 'Market', icon: SearchIcon, href: '/market' },
+    { name: 'Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Wallet', icon: WalletIcon, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
 
   const roleConfigs = {
-    standard: { label: 'Standard Mode', color: 'text-primary', icon: Sparkles, desc: 'Earn & Hire' },
-    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit' },
+    standard: { label: 'Professional Mode', color: 'text-primary', icon: Sparkles, desc: 'Work & Hire' },
+    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit Network' },
   };
 
-  const currentRole = roleConfigs[role];
+  const currentRole = roleConfigs[role] || roleConfigs.standard;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Search className="w-3.5 h-3.5 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Search anything..." 
+              placeholder="Search marketplace..." 
               className="bg-transparent text-xs outline-none w-full placeholder:text-muted-foreground"
             />
           </div>
@@ -115,15 +115,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <DropdownMenuItem onClick={() => setRole('standard')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-primary/20 cursor-pointer">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <div>
-                  <p className="font-bold text-sm">Standard Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Earn SATs & Hire Talent</p>
+                  <p className="font-bold text-sm">Professional Mode</p>
+                  <p className="text-[10px] text-muted-foreground">Work Gigs & Hire Talent</p>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRole('validator')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-emerald-400/20 cursor-pointer">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <div>
                   <p className="font-bold text-sm">Validator Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Audit & Verify Proof</p>
+                  <p className="text-[10px] text-muted-foreground">Audit & Verify Yield</p>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -156,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <DropdownMenuSeparator className="bg-white/5" />
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
-                  <User className="w-4 h-4" /> Profile Settings
+                  <User className="w-4 h-4" /> Identity Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -167,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <DropdownMenuSeparator className="bg-white/5" />
               <DropdownMenuItem asChild className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
                 <Link href="/" className="flex items-center gap-2 p-2 rounded-lg">
-                  <LogOut className="w-4 h-4" /> Exit App
+                  <LogOut className="w-4 h-4" /> Exit Session
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
