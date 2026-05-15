@@ -1,0 +1,116 @@
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  Briefcase, 
+  Search, 
+  Wallet, 
+  Settings, 
+  ShieldCheck, 
+  Users,
+  Zap,
+  LogOut,
+  ChevronDown
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { UserRole } from '@/lib/types';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+interface SidebarProps {
+  role: UserRole;
+  onRoleChange: (role: UserRole) => void;
+}
+
+export function Sidebar({ role, onRoleChange }: SidebarProps) {
+  const pathname = usePathname();
+
+  const menuItems = [
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
+    { name: 'Market', icon: Search, href: '/market' },
+    { name: 'Wallet', icon: Wallet, href: '/wallet' },
+    ...(role === 'business' ? [{ name: 'My Projects', icon: Briefcase, href: '/my-projects' }] : []),
+    ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
+    { name: 'Settings', icon: Settings, href: '/settings' },
+  ];
+
+  const roleConfigs = {
+    worker: { label: 'Worker', color: 'text-[#8457F1]', icon: Zap },
+    business: { label: 'Business', color: 'text-[#3C62FF]', icon: Briefcase },
+    validator: { label: 'Validator', color: 'text-emerald-400', icon: ShieldCheck },
+  };
+
+  const currentRole = roleConfigs[role];
+
+  return (
+    <aside className="w-64 border-r border-white/5 bg-card flex flex-col h-screen sticky top-0">
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center neon-glow-primary">
+            <Zap className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-headline font-bold text-xl tracking-tight">Giga<span className="text-primary">light</span></span>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger className="w-full text-left p-3 rounded-xl border border-white/5 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between group outline-none">
+            <div className="flex items-center gap-3">
+              <div className={cn("p-1.5 rounded-lg bg-background", currentRole.color)}>
+                <currentRole.icon className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Active Role</p>
+                <p className="text-sm font-semibold">{currentRole.label}</p>
+              </div>
+            </div>
+            <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 bg-card border-white/5 p-2">
+            <DropdownMenuItem onClick={() => onRoleChange('worker')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+              <Zap className="w-4 h-4 text-[#8457F1]" /> Worker Mode
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onRoleChange('business')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+              <Briefcase className="w-4 h-4 text-[#3C62FF]" /> Business Mode
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Validator Mode
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <nav className="flex-1 px-4 space-y-1">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group",
+                isActive 
+                  ? "bg-primary/10 text-primary border border-primary/20" 
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              )}
+            >
+              <item.icon className={cn("w-5 h-5 transition-colors", isActive ? "text-primary" : "group-hover:text-foreground")} />
+              {item.name}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-4 mt-auto border-t border-white/5">
+        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all">
+          <LogOut className="w-5 h-5" />
+          Log Out
+        </button>
+      </div>
+    </aside>
+  );
+}
