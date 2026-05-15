@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -6,7 +7,7 @@ import { UserRole } from '@/lib/types';
 import { Bell, Search, User, Globe } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [role, setRole] = useState<UserRole>('user');
+  const [role, setRole] = useState<UserRole>('standard');
 
   return (
     <div className="flex min-h-screen bg-background">

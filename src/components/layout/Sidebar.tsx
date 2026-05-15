@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -48,7 +49,8 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
     validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit Network' },
   };
 
-  const currentRole = roleConfigs[role];
+  // Fallback to standard if role is invalid or missing
+  const currentRole = roleConfigs[role] || roleConfigs.standard;
 
   return (
     <aside className="w-64 border-r border-white/5 bg-card flex flex-col h-screen sticky top-0">
