@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'validator';
+export type UserRole = 'standard' | 'validator';
 
 export interface Profile {
   id: string;
@@ -6,6 +6,16 @@ export interface Profile {
   isValidator: boolean;
   avatarUrl?: string;
   activeRole: UserRole;
+  bio?: string;
+  skills: string[];
+  location?: string;
+  reputation: number; // 0-100
+  stats: {
+    tasksCompleted: number;
+    projectsHired: number;
+    totalEarned: number;
+    totalSpent: number;
+  };
 }
 
 export interface Wallet {
@@ -20,7 +30,7 @@ export interface Task {
   rewardAmount: number;
   difficulty: 'easy' | 'medium' | 'hard';
   shortDescription: string;
-  proofMethod: string;
+  proofMethod: 'screenshot' | 'text' | 'link' | 'code_snippet';
   category: string;
   status: 'active' | 'completed';
 }
@@ -36,6 +46,7 @@ export interface Project {
   skills: string[];
   status: 'open' | 'in_progress' | 'completed';
   clientName: string;
+  createdAt: string;
 }
 
 export interface TaskSubmission {
@@ -46,4 +57,8 @@ export interface TaskSubmission {
   proofText?: string;
   proofImageUri?: string;
   createdAt: string;
+  aiAuditResult?: {
+    status: string;
+    rationale: string;
+  };
 }

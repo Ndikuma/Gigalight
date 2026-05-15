@@ -13,7 +13,8 @@ import {
   Zap,
   LogOut,
   ChevronDown,
-  PlusCircle
+  PlusCircle,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
@@ -43,8 +44,8 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
   ];
 
   const roleConfigs = {
-    user: { label: 'User Mode', color: 'text-primary', icon: Zap },
-    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck },
+    standard: { label: 'Standard Mode', color: 'text-primary', icon: Sparkles, desc: 'Earn & Hire' },
+    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit Network' },
   };
 
   const currentRole = roleConfigs[role];
@@ -66,15 +67,15 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
                 <currentRole.icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Role</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{currentRole.desc}</p>
                 <p className="text-sm font-semibold">{currentRole.label}</p>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-card border-white/5 p-2">
-            <DropdownMenuItem onClick={() => onRoleChange('user')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
-              <Zap className="w-4 h-4 text-primary" /> User Mode
+            <DropdownMenuItem onClick={() => onRoleChange('standard')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
+              <Sparkles className="w-4 h-4 text-primary" /> Standard Mode
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-emerald-400/20">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Validator Mode
@@ -105,9 +106,9 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
       </nav>
 
       <div className="p-4 mt-auto border-t border-white/5 space-y-3">
-        <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2">
+        <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2 neon-glow-secondary">
           <Link href="/my-projects">
-            <PlusCircle className="w-4 h-4" /> Post a Gig
+            <PlusCircle className="w-4 h-4" /> Post a Listing
           </Link>
         </Button>
         <Button variant="ghost" asChild className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all justify-start">

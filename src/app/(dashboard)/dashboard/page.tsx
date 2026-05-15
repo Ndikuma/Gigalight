@@ -1,106 +1,122 @@
-
 "use client"
 
 import React from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { Wallet, Briefcase, Zap, ShieldCheck, ArrowRight, PlusCircle, Rocket, Sparkles, UserPlus } from 'lucide-react';
+import { 
+  Wallet, 
+  Briefcase, 
+  Zap, 
+  ShieldCheck, 
+  ArrowRight, 
+  PlusCircle, 
+  Rocket, 
+  Sparkles, 
+  Trophy,
+  Activity,
+  UserCheck
+} from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockTasks, mockWallet } from '@/lib/mock-data';
+import { mockTasks, mockWallet, mockProfile } from '@/lib/mock-data';
 import Link from 'next/link';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardHome() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Welcome Banner */}
-      <section className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/10 via-card to-secondary/10 border border-white/5 p-12">
-        <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/10 blur-[100px] rounded-full"></div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="space-y-6 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-bold uppercase tracking-widest">
-              <Sparkles className="w-3 h-3" /> Unified Platform
+      {/* Profile Overview */}
+      <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <Card className="lg:col-span-3 glass-card border-none bg-gradient-to-br from-primary/10 via-card to-secondary/10 p-8 flex flex-col md:flex-row items-center gap-8">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-secondary p-1">
+              <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
+                <img src={mockProfile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-headline font-bold leading-[1.1]">
-              Empowering the <span className="text-gradient">Gig Economy.</span>
-            </h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">
-              Find instant micro-tasks to earn Satoshis, or hire elite talent for your next big project. All in one place.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Button asChild size="lg" className="rounded-2xl bg-primary hover:brightness-110 px-8 neon-glow-primary font-bold h-14">
-                <Link href="/market" className="flex items-center gap-2">
-                  <Zap className="w-5 h-5" /> Browse Jobs
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 px-8 font-bold h-14">
-                <Link href="/my-projects" className="flex items-center gap-2">
-                  <PlusCircle className="w-5 h-5" /> Hire Talent
-                </Link>
-              </Button>
+            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-1.5 border-4 border-card">
+              <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          
-          <div className="hidden lg:grid grid-cols-2 gap-4 w-full max-w-sm">
-            <div className="glass-card p-6 rounded-3xl space-y-2 border-primary/20">
-              <Zap className="w-8 h-8 text-primary" />
-              <h4 className="font-bold">Earn</h4>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">342 New Tasks</p>
+          <div className="flex-1 space-y-4 text-center md:text-left">
+            <div>
+              <h2 className="text-3xl font-headline font-bold">{mockProfile.fullName}</h2>
+              <p className="text-muted-foreground text-sm max-w-xl">{mockProfile.bio}</p>
             </div>
-            <div className="glass-card p-6 rounded-3xl space-y-2 border-secondary/20">
-              <Briefcase className="w-8 h-8 text-secondary" />
-              <h4 className="font-bold">Hire</h4>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">12 Active Leads</p>
+            <div className="flex flex-wrap justify-center md:justify-start gap-4">
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
+                <Trophy className="w-3.5 h-3.5 text-primary" /> Rep: {mockProfile.reputation}/100
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
+                <Activity className="w-3.5 h-3.5 text-secondary" /> {mockProfile.stats.tasksCompleted} Tasks Done
+              </div>
             </div>
           </div>
-        </div>
+          <div className="hidden xl:block w-48 space-y-2">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+              <span>Next Level Progress</span>
+              <span className="text-primary">75%</span>
+            </div>
+            <Progress value={75} className="h-2 bg-white/5" />
+          </div>
+        </Card>
+        
+        <Card className="glass-card border-none flex flex-col justify-center items-center text-center p-6 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <h4 className="font-headline font-bold">Start Listing</h4>
+          <p className="text-xs text-muted-foreground">Need help? Post your project and find global talent today.</p>
+          <Button asChild size="sm" className="w-full rounded-xl bg-primary neon-glow-primary">
+            <Link href="/my-projects">Create Now</Link>
+          </Button>
+        </Card>
       </section>
 
-      {/* Stats Overview */}
-      <section>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard 
-            label="Wallet Balance" 
-            value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
-            icon={Wallet} 
-            subValue="≈ $18.42 USD"
-            color="primary"
-          />
-          <StatCard 
-            label="Pending Audit" 
-            value={`${mockWallet.pendingBalance.toLocaleString()} SAT`} 
-            icon={ShieldCheck} 
-            color="emerald"
-          />
-          <StatCard 
-            label="Total Earnings" 
-            value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
-            icon={Zap} 
-            subValue="Lifetime Achievement"
-            color="secondary"
-          />
-          <StatCard 
-            label="Network Status" 
-            value="Active" 
-            icon={Rocket} 
-            subValue="High Throughput"
-            color="primary"
-          />
-        </div>
+      {/* Stats Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          label="Wallet Balance" 
+          value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
+          icon={Wallet} 
+          subValue="≈ $18.42 USD"
+          color="primary"
+        />
+        <StatCard 
+          label="Pending Audit" 
+          value={`${mockWallet.pendingBalance.toLocaleString()} SAT`} 
+          icon={ShieldCheck} 
+          color="emerald"
+        />
+        <StatCard 
+          label="Total Earned" 
+          value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
+          icon={Zap} 
+          subValue="Lifetime Career"
+          color="secondary"
+        />
+        <StatCard 
+          label="Reputation Score" 
+          value={`${mockProfile.reputation}%`} 
+          icon={Trophy} 
+          subValue="Network Trust Index"
+          color="primary"
+        />
       </section>
 
+      {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card className="glass-card border-none">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-headline text-lg">Top Opportunities</CardTitle>
-              <Link href="/market" className="text-sm text-primary hover:underline flex items-center gap-1">
-                Explore Market <ArrowRight className="w-4 h-4" />
+              <CardTitle className="font-headline text-lg">Recommended for You</CardTitle>
+              <Link href="/market" className="text-xs text-primary hover:underline flex items-center gap-1 font-bold">
+                VIEW ALL <ArrowRight className="w-4 h-4" />
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockTasks.slice(0, 3).map((task) => (
+              {mockTasks.map((task) => (
                 <Link key={task.id} href={`/market/${task.id}`}>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group mb-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group mb-2">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center">
                         <Zap className="w-5 h-5 text-primary" />
@@ -112,7 +128,7 @@ export default function DashboardHome() {
                     </div>
                     <div className="text-right">
                       <p className="font-headline font-bold text-emerald-400">+{task.rewardAmount} SAT</p>
-                      <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Micro Gig</p>
+                      <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Payout Ready</p>
                     </div>
                   </div>
                 </Link>
@@ -122,33 +138,43 @@ export default function DashboardHome() {
         </div>
 
         <div className="space-y-6">
-          <Card className="glass-card border-none overflow-hidden bg-emerald-400/5">
+          <Card className="glass-card border-none overflow-hidden">
             <CardHeader>
               <CardTitle className="font-headline text-lg flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                Validator Alerts
+                <Activity className="w-5 h-5 text-secondary" />
+                Your Activity
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-xl bg-background/40 border border-emerald-400/10">
-                <p className="text-[10px] text-emerald-400 mb-1 uppercase tracking-widest font-bold">New Audit Task</p>
-                <p className="text-xs font-medium">Verify submission for "Smart Contract Audit".</p>
-                <Button asChild variant="ghost" className="w-full mt-3 h-8 text-[10px] uppercase font-bold tracking-widest text-emerald-400 hover:bg-emerald-400/10">
-                  <Link href="/audits">Go to Queue</Link>
-                </Button>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Active Listings</span>
+                  <span className="font-bold">2</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">In Progress Gigs</span>
+                  <span className="font-bold">1</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Resolved Claims</span>
+                  <span className="font-bold text-emerald-400">12</span>
+                </div>
               </div>
+              <Button asChild variant="outline" className="w-full rounded-xl border-white/10 text-xs font-bold uppercase tracking-widest h-10">
+                <Link href="/my-projects">Manage Listings</Link>
+              </Button>
             </CardContent>
           </Card>
 
           <div className="glass-card p-6 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden group">
             <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
-            <UserPlus className="w-8 h-8 text-primary mx-auto relative z-10" />
+            <Rocket className="w-8 h-8 text-primary mx-auto relative z-10" />
             <div className="relative z-10">
-              <h4 className="font-headline font-bold">Hiring?</h4>
-              <p className="text-xs text-muted-foreground mt-1">Need something specific? Post your project and set your own budget in SATs.</p>
+              <h4 className="font-headline font-bold">Refer a Node</h4>
+              <p className="text-xs text-muted-foreground mt-1">Earn 10% of referral validation fees for the first 3 months.</p>
             </div>
-            <Button asChild className="w-full rounded-xl bg-primary hover:brightness-110 font-bold relative z-10">
-              <Link href="/my-projects">Create New Listing</Link>
+            <Button variant="ghost" className="w-full rounded-xl border border-white/10 font-bold relative z-10 h-10 text-xs">
+              Copy Invite Code
             </Button>
           </div>
         </div>
