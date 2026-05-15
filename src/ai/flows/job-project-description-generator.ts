@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow that generates a comprehensive job/project description,
@@ -34,9 +35,6 @@ const jobProjectDescriptionPrompt = ai.definePrompt({
   output: {schema: JobProjectDescriptionGeneratorOutputSchema},
   prompt: `You are an AI assistant that helps create high-quality job postings and project listings.
 Based on the user's prompt, generate a comprehensive job/project title, description, key responsibilities, and specific requirements.
-
-Your output must be a JSON object matching the following schema:
-${JSON.stringify(JobProjectDescriptionGeneratorOutputSchema.parse({}), null, 2)}
 
 User prompt: {{{prompt}}}`,
 });

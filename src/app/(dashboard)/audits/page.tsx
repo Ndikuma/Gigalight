@@ -16,7 +16,6 @@ export default function AuditsPage() {
   async function runAiAudit(submissionId: string) {
     setIsAuditing(submissionId);
     try {
-      // Find submission and task for context
       const sub = mockSubmissions.find(s => s.id === submissionId);
       const task = mockTasks.find(t => t.id === sub?.taskId);
 
@@ -42,6 +41,13 @@ export default function AuditsPage() {
     } finally {
       setIsAuditing(null);
     }
+  }
+
+  function handleAction(id: string, action: 'Approve' | 'Reject') {
+    toast({
+      title: `Submission ${action}d`,
+      description: `Submission ${id} has been processed successfully.`,
+    });
   }
 
   return (
@@ -132,10 +138,19 @@ export default function AuditsPage() {
                     >
                       <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Auditing...' : 'AI Audit'}
                     </Button>
-                    <Button variant="ghost" size="sm" className="rounded-xl text-destructive hover:bg-destructive/10">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="rounded-xl text-destructive hover:bg-destructive/10"
+                      onClick={() => handleAction(sub.id, 'Reject')}
+                    >
                       <XCircle className="w-4 h-4 mr-2" /> Reject
                     </Button>
-                    <Button size="sm" className="rounded-xl bg-emerald-500 hover:bg-emerald-600">
+                    <Button 
+                      size="sm" 
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-600"
+                      onClick={() => handleAction(sub.id, 'Approve')}
+                    >
                       <CheckCircle className="w-4 h-4 mr-2" /> Approve
                     </Button>
                   </div>
