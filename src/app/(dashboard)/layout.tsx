@@ -18,7 +18,8 @@ import {
   Search as SearchIcon,
   PlusCircle,
   LogOut,
-  Menu
+  Menu,
+  Network
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -46,14 +47,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Market', icon: SearchIcon, href: '/market' },
+    { name: 'Roles', icon: Globe, href: '/jobs' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
-    { name: 'Wallet', icon: WalletIcon, href: '/wallet' },
+    { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
 
   const roleConfigs = {
-    standard: { label: 'Professional Mode', color: 'text-primary', icon: Sparkles, desc: 'Work & Hire' },
-    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit Network' },
+    standard: { label: 'Professional Mode', color: 'text-primary', icon: Sparkles, desc: 'Strategy & Ops' },
+    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Network Audit' },
   };
 
   const currentRole = roleConfigs[role] || roleConfigs.standard;
@@ -102,7 +104,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="pt-4 mt-4 border-t border-white/5">
                      <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 gap-2 h-12 font-bold shadow-lg shadow-secondary/20">
                       <Link href="/my-projects/create">
-                        <PlusCircle className="w-4 h-4" /> Post a Listing
+                        <PlusCircle className="w-4 h-4" /> Initiate Objective
                       </Link>
                     </Button>
                   </div>
@@ -141,7 +143,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          {/* Search Bar - Hidden on Mobile */}
           <div className="hidden md:flex items-center gap-3 bg-muted/30 border border-white/5 rounded-full px-4 py-1.5 w-48 lg:w-64 focus-within:w-80 transition-all focus-within:ring-1 focus-within:ring-primary/40">
             <Search className="w-3.5 h-3.5 text-muted-foreground" />
             <input 
@@ -172,14 +173,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Sparkles className="w-4 h-4 text-primary" />
                 <div>
                   <p className="font-bold text-sm">Professional Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Work Gigs & Hire Talent</p>
+                  <p className="text-[10px] text-muted-foreground">Strategy & Management</p>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRole('validator')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-emerald-400/20 cursor-pointer">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
                 <div>
                   <p className="font-bold text-sm">Validator Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Audit & Verify Yield</p>
+                  <p className="text-[10px] text-muted-foreground">Audit & Integrity</p>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -217,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/wallet" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
-                  <WalletIcon className="w-4 h-4" /> Wallet Manager
+                  <WalletIcon className="w-4 h-4" /> Financials
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />

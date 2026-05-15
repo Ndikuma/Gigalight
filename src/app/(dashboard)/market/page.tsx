@@ -4,7 +4,7 @@
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { mockTasks, mockProjects } from '@/lib/mock-data';
-import { Search, Filter, Zap, Briefcase, Globe, Clock, Shield } from 'lucide-react';
+import { Search, Filter, Zap, Briefcase, Globe, Clock, Shield, Sparkles, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -13,8 +13,8 @@ export default function MarketPage() {
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <header className="space-y-2">
-        <h1 className="text-4xl font-headline font-bold">Gig Discovery</h1>
-        <p className="text-muted-foreground">Explore thousands of micro-tasks and high-value freelance projects.</p>
+        <h1 className="text-4xl font-headline font-bold">Discovery Interface</h1>
+        <p className="text-muted-foreground">Explore professional micro-tasks and high-value strategic projects.</p>
       </header>
 
       <Tabs defaultValue="tasks" className="w-full">
@@ -33,7 +33,7 @@ export default function MarketPage() {
               <Filter className="w-4 h-4" /> Filters
             </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              Sort: <span className="text-foreground font-semibold">Newest</span>
+              Sort: <span className="text-foreground font-semibold">Newest Propagated</span>
             </div>
           </div>
         </div>
@@ -48,30 +48,39 @@ export default function MarketPage() {
                   </Badge>
                   <div className="text-right">
                     <p className="font-headline font-bold text-xl text-emerald-400">{task.rewardAmount} SAT</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Instant Payout</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Instant Settlement</p>
                   </div>
                 </div>
 
                 <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{task.title}</h3>
-                <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-6">
+                <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-6 leading-relaxed">
                   {task.shortDescription}
                 </p>
 
                 <div className="space-y-4 border-t border-white/5 pt-4 mt-auto">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-muted-foreground font-bold">
                       <Shield className="w-3.5 h-3.5" /> {task.difficulty}
                     </span>
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-muted-foreground font-bold">
                       <Clock className="w-3.5 h-3.5" /> ~15 min
                     </span>
                   </div>
                   <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-xl transition-all font-bold">
-                    <Link href={`/market/${task.id}`}>View Details</Link>
+                    <Link href={`/market/${task.id}`}>Review Details</Link>
                   </Button>
                 </div>
               </div>
             ))}
+            
+            {/* Marketplace Placeholder for Next Tier */}
+            <div className="glass-card p-6 rounded-2xl border-dashed border-white/10 flex flex-col justify-center items-center text-center opacity-60">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <Sparkles className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <h4 className="font-bold text-sm">More Opportunities Loading</h4>
+              <p className="text-[10px] text-muted-foreground mt-1">The network is currently propagating 42 more objectives.</p>
+            </div>
           </div>
         </TabsContent>
 
@@ -94,12 +103,12 @@ export default function MarketPage() {
                     
                     <div>
                       <h3 className="text-2xl font-headline font-bold mb-2 group-hover:text-secondary transition-colors">{project.title}</h3>
-                      <p className="text-muted-foreground max-w-2xl">{project.description}</p>
+                      <p className="text-muted-foreground max-w-2xl leading-relaxed">{project.description}</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                       {project.skills.map(skill => (
-                        <span key={skill} className="text-xs px-2 py-1 bg-white/5 rounded-md text-muted-foreground">
+                        <span key={skill} className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white/5 rounded-md text-muted-foreground border border-white/5">
                           {skill}
                         </span>
                       ))}
@@ -108,19 +117,35 @@ export default function MarketPage() {
 
                   <div className="lg:w-64 space-y-4 p-6 rounded-2xl bg-white/5 border border-white/5">
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground mb-1">Proposed Budget</p>
+                      <p className="text-sm text-muted-foreground mb-1 uppercase font-bold text-[10px] tracking-widest">Target Budget</p>
                       <p className="text-2xl font-headline font-bold text-secondary">
                         {project.budgetMin.toLocaleString()} - {project.budgetMax.toLocaleString()}
                       </p>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">SATOSHIS</p>
                     </div>
                     <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-xl transition-all font-bold neon-glow-secondary">
-                      <Link href={`/market/${project.id}`}>Place Bid</Link>
+                      <Link href={`/market/${project.id}`}>Initiate Proposal</Link>
                     </Button>
                   </div>
                 </div>
               </div>
             ))}
+
+            {/* Coming Soon Teaser for Enterprise Gigs */}
+            <div className="p-12 border-2 border-dashed border-white/5 rounded-3xl text-center space-y-4 bg-white/[0.02]">
+               <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                <Globe className="w-6 h-6" />
+               </div>
+               <div>
+                <h3 className="text-xl font-headline font-bold">Looking for long-term roles?</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Our Career Node network is launching soon with Enterprise-tier integration and automated payroll.
+                </p>
+               </div>
+               <Button asChild variant="outline" className="rounded-xl border-white/10 gap-2 h-10 px-6 font-bold">
+                <Link href="/jobs">Learn about Career Nodes <ArrowRight className="w-4 h-4" /></Link>
+               </Button>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

@@ -14,7 +14,9 @@ import {
   Sparkles, 
   Trophy,
   Activity,
-  UserCheck
+  UserCheck,
+  Globe,
+  Lock
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,7 +50,7 @@ export default function DashboardHome() {
                 <Trophy className="w-3.5 h-3.5 text-primary" /> Reputation: {mockProfile.reputation}/100
               </div>
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
-                <Activity className="w-3.5 h-3.5 text-secondary" /> {mockProfile.stats.tasksCompleted} Projects Finalized
+                <Activity className="w-3.5 h-3.5 text-secondary" /> {mockProfile.stats.tasksCompleted} Objectives Finalized
               </div>
             </div>
           </div>
@@ -61,14 +63,17 @@ export default function DashboardHome() {
           </div>
         </Card>
         
-        <Card className="glass-card border-none flex flex-col justify-center items-center text-center p-6 space-y-4">
+        <Card className="glass-card border-none flex flex-col justify-center items-center text-center p-6 space-y-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-2">
+            <Lock className="w-3 h-3 text-muted-foreground/30" />
+          </div>
           <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h4 className="font-headline font-bold">Initiate Project</h4>
-          <p className="text-xs text-muted-foreground">Secure professional talent for your next venture.</p>
+          <h4 className="font-headline font-bold">Initiate Objective</h4>
+          <p className="text-xs text-muted-foreground">Secure professional talent for your next project.</p>
           <Button asChild size="sm" className="w-full rounded-xl bg-primary neon-glow-primary">
-            <Link href="/my-projects">Post Now</Link>
+            <Link href="/my-projects/create">Deploy Now</Link>
           </Button>
         </Card>
       </section>
@@ -83,7 +88,7 @@ export default function DashboardHome() {
           color="primary"
         />
         <StatCard 
-          label="Pending Validation" 
+          label="Pending Verification" 
           value={`${mockWallet.pendingBalance.toLocaleString()} SAT`} 
           icon={ShieldCheck} 
           color="emerald"
@@ -92,14 +97,14 @@ export default function DashboardHome() {
           label="Lifetime Revenue" 
           value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
           icon={Zap} 
-          subValue="Platform Rewards"
+          subValue="Platform Yield"
           color="secondary"
         />
         <StatCard 
           label="Network Trust Index" 
           value={`${mockProfile.reputation}%`} 
           icon={Trophy} 
-          subValue="Validated Reputation"
+          subValue="Validated Standing"
           color="primary"
         />
       </section>
@@ -111,7 +116,7 @@ export default function DashboardHome() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline text-lg">Curated Opportunities</CardTitle>
               <Link href="/market" className="text-xs text-primary hover:underline flex items-center gap-1 font-bold">
-                MARKETPLACE <ArrowRight className="w-4 h-4" />
+                VIEW MARKETPLACE <ArrowRight className="w-4 h-4" />
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -139,31 +144,36 @@ export default function DashboardHome() {
         </div>
 
         <div className="space-y-6">
-          <Card className="glass-card border-none overflow-hidden">
+          <Card className="glass-card border-none overflow-hidden border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
             <CardHeader>
               <CardTitle className="font-headline text-lg flex items-center gap-2">
-                <Activity className="w-5 h-5 text-secondary" />
-                Network Activity
+                <Globe className="w-5 h-5 text-secondary" />
+                Network Roadmap
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Active Listings</span>
-                  <span className="font-bold">2</span>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3 relative group">
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">In Progress Contracts</span>
-                  <span className="font-bold">1</span>
+                <h5 className="text-xs font-bold uppercase tracking-widest text-secondary">Upcoming: Career Nodes</h5>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  We are integrating long-term career opportunities with borderless L2 payroll systems.
+                </p>
+                <Button asChild variant="ghost" className="w-full text-[10px] h-7 font-bold text-primary gap-1">
+                  <Link href="/jobs">LEARN MORE <ArrowRight className="w-3 h-3" /></Link>
+                </Button>
+              </div>
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                <div className="flex justify-between text-[10px] font-bold uppercase">
+                  <span className="text-muted-foreground">Active Nodes</span>
+                  <span className="text-emerald-400">12,450</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Resolved Settlements</span>
-                  <span className="font-bold text-emerald-400">12</span>
+                <div className="flex justify-between text-[10px] font-bold uppercase">
+                  <span className="text-muted-foreground">Total Settlement</span>
+                  <span className="text-primary">124.5 BTC</span>
                 </div>
               </div>
-              <Button asChild variant="outline" className="w-full rounded-xl border-white/10 text-xs font-bold uppercase tracking-widest h-10">
-                <Link href="/my-projects">Manage Portfolio</Link>
-              </Button>
             </CardContent>
           </Card>
 
@@ -171,7 +181,7 @@ export default function DashboardHome() {
             <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
             <Rocket className="w-8 h-8 text-primary mx-auto relative z-10" />
             <div className="relative z-10">
-              <h4 className="font-headline font-bold">Expand the Network</h4>
+              <h4 className="font-headline font-bold">Node Expansion</h4>
               <p className="text-xs text-muted-foreground mt-1">Receive 10% yield on referral validation fees for the first quarter.</p>
             </div>
             <Button variant="ghost" className="w-full rounded-xl border border-white/10 font-bold relative z-10 h-10 text-xs">
