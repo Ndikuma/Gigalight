@@ -27,7 +27,22 @@ export interface Wallet {
   totalRewarded: number;
 }
 
-export type ProofMethod = 'image' | 'video' | 'text' | 'link' | 'file' | 'code_snippet' | 'gps' | 'qr_scan';
+export type ProofMethod = 
+  | 'image' 
+  | 'screenshot'
+  | 'video' 
+  | 'text' 
+  | 'response'
+  | 'link' 
+  | 'social_link'
+  | 'file' 
+  | 'confirm'
+  | 'account_action'
+  | 'app_install'
+  | 'email_confirm'
+  | 'qr_scan'
+  | 'gps'
+  | 'code_snippet';
 
 export interface Task {
   id: string;

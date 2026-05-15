@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,12 +22,16 @@ import {
   X,
   Target,
   BadgeDollarSign,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Calculator,
+  Lock,
+  Wallet
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { ProofMethod } from '@/lib/types';
 
 type ListingType = 'task' | 'project';
 
@@ -44,18 +48,25 @@ export default function CreateListingPage() {
     instructions: '',
     validatorGuidelines: '',
     category: '',
-    reward: '',
-    budgetMin: '',
-    budgetMax: '',
+    reward: '500',
+    budgetMin: '50000',
+    budgetMax: '150000',
     difficulty: 'medium',
     experienceLevel: 'intermediate',
-    proofMethod: 'text',
+    proofMethod: 'text' as ProofMethod,
     externalUrl: '',
     externalUrlLabel: '',
-    targetCompletions: '',
+    targetCompletions: '10',
     skills: [] as string[],
     newSkill: ''
   });
+
+  const totalEscrow = useMemo(() => {
+    if (listingType === 'project') return 0;
+    const reward = parseInt(formData.reward) || 0;
+    const slots = parseInt(formData.targetCompletions) || 0;
+    return reward * slots;
+  }, [formData.reward, formData.targetCompletions, listingType]);
 
   async function handleAIAssist() {
     if (!formData.title && !formData.description) {
@@ -273,7 +284,7 @@ export default function CreateListingPage() {
             </div>
           )}
 
-          {step === '3' || step === 3 && (
+          {step === 3 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
               <h3 className="text-2xl font-headline font-bold">3. Financials & Release</h3>
 
@@ -290,26 +301,37 @@ export default function CreateListingPage() {
                   </div>
                   
                   {listingType === 'task' ? (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Reward (SAT)</Label>
-                        <Input 
-                          type="number" 
-                          placeholder="5000" 
-                          className="h-12 bg-background border-white/5 font-bold"
-                          value={formData.reward}
-                          onChange={(e) => setFormData({...formData, reward: e.target.value})}
-                        />
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Reward (SAT)</Label>
+                          <Input 
+                            type="number" 
+                            className="h-12 bg-background border-white/5 font-bold"
+                            value={formData.reward}
+                            onChange={(e) => setFormData({...formData, reward: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Target Slots</Label>
+                          <Input 
+                            type="number" 
+                            className="h-12 bg-background border-white/5"
+                            value={formData.targetCompletions}
+                            onChange={(e) => setFormData({...formData, targetCompletions: e.target.value})}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Target Slots</Label>
-                        <Input 
-                          type="number" 
-                          placeholder="100" 
-                          className="h-12 bg-background border-white/5"
-                          value={formData.targetCompletions}
-                          onChange={(e) => setFormData({...formData, targetCompletions: e.target.value})}
-                        />
+                      
+                      <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+                          <span className="flex items-center gap-1.5"><Calculator className="w-3 h-3" /> Escrow Calculation</span>
+                          <span>{formData.reward} × {formData.targetCompletions}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-emerald-500" /> Total Multi-sig Deposit</span>
+                          <span className="text-xl font-headline font-bold text-emerald-400">{totalEscrow.toLocaleString()} SAT</span>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -353,16 +375,23 @@ export default function CreateListingPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Proof Method</Label>
-                        <Select value={formData.proofMethod} onValueChange={(val) => setFormData({...formData, proofMethod: val})}>
+                        <Select value={formData.proofMethod} onValueChange={(val: ProofMethod) => setFormData({...formData, proofMethod: val})}>
                           <SelectTrigger className="bg-background border-white/5 h-12">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="text">Narrative Response</SelectItem>
-                            <SelectItem value="code_snippet">Code Snippet</SelectItem>
-                            <SelectItem value="link">URL Verification</SelectItem>
-                            <SelectItem value="file">Technical File</SelectItem>
-                            <SelectItem value="qr_scan">QR Scan Signal</SelectItem>
+                            <SelectItem value="text">Narrative Keywords</SelectItem>
+                            <SelectItem value="response">Detailed Response</SelectItem>
+                            <SelectItem value="code_snippet">Code Snippet Verification</SelectItem>
+                            <SelectItem value="link">URL / Link Verification</SelectItem>
+                            <SelectItem value="social_link">Social Media Handle</SelectItem>
+                            <SelectItem value="file">Technical File Upload</SelectItem>
+                            <SelectItem value="image">Image / Screenshot</SelectItem>
+                            <SelectItem value="video">Video Documentation</SelectItem>
+                            <SelectItem value="qr_scan">QR Code Signal</SelectItem>
+                            <SelectItem value="gps">GPS / Location Proof</SelectItem>
+                            <SelectItem value="confirm">Protocol Confirmation</SelectItem>
+                            <SelectItem value="app_install">App Installation Proof</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -386,12 +415,11 @@ export default function CreateListingPage() {
               </div>
 
               <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 flex items-start gap-4">
-                <Target className="w-6 h-6 text-primary shrink-0" />
+                <Wallet className="w-6 h-6 text-primary shrink-0" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm">Review Protocol</h4>
+                  <h4 className="font-bold text-sm">Escrow Authorization</h4>
                   <p className="text-xs text-muted-foreground">
-                    By releasing this objective, you agree to lock the specified compensation in the network's multi-sig escrow. 
-                    {listingType === 'task' ? " Submissions will be audited by the AI agent and peer validators based on your guidelines." : " You will review candidate proposals manually before selecting a node."}
+                    By deploying this objective, you authorize the protocol to debit <strong>{listingType === 'task' ? totalEscrow.toLocaleString() : 'the selected budget'} SAT</strong> from your available liquidity to fund the secure multi-sig escrow.
                   </p>
                 </div>
               </div>
@@ -399,7 +427,7 @@ export default function CreateListingPage() {
               <div className="flex justify-between pt-6 border-t border-white/5">
                 <Button variant="ghost" onClick={() => setStep(2)}>Previous</Button>
                 <Button className="rounded-xl h-14 px-12 font-bold bg-primary neon-glow-primary" onClick={handleSubmit}>
-                  Deploy Listing
+                  Deploy & Fund Listing
                 </Button>
               </div>
             </div>
