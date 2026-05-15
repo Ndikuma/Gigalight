@@ -1,3 +1,6 @@
+
+"use client"
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -8,7 +11,6 @@ import {
   Wallet, 
   Settings, 
   ShieldCheck, 
-  Users,
   Zap,
   LogOut,
   ChevronDown
@@ -31,7 +33,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
   const pathname = usePathname();
 
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/' },
+    { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Market', icon: Search, href: '/market' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'business' ? [{ name: 'My Projects', icon: Briefcase, href: '/my-projects' }] : []),
@@ -50,12 +52,12 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
   return (
     <aside className="w-64 border-r border-white/5 bg-card flex flex-col h-screen sticky top-0">
       <div className="p-6">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center neon-glow-primary">
+        <Link href="/" className="flex items-center gap-2 mb-8 group">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center neon-glow-primary group-hover:scale-110 transition-transform">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-headline font-bold text-xl tracking-tight">Giga<span className="text-primary">light</span></span>
-        </div>
+        </Link>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="w-full text-left p-3 rounded-xl border border-white/5 bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between group outline-none">
@@ -71,13 +73,13 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
             <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-card border-white/5 p-2">
-            <DropdownMenuItem onClick={() => onRoleChange('worker')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+            <DropdownMenuItem onClick={() => onRoleChange('worker')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
               <Zap className="w-4 h-4 text-[#8457F1]" /> Worker Mode
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange('business')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+            <DropdownMenuItem onClick={() => onRoleChange('business')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-secondary/20">
               <Briefcase className="w-4 h-4 text-[#3C62FF]" /> Business Mode
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2">
+            <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-emerald-400/20">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Validator Mode
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -106,10 +108,12 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
       </nav>
 
       <div className="p-4 mt-auto border-t border-white/5">
-        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all">
-          <LogOut className="w-5 h-5" />
-          Log Out
-        </button>
+        <Button variant="ghost" asChild className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all justify-start">
+          <Link href="/">
+            <LogOut className="w-5 h-5" />
+            Exit App
+          </Link>
+        </Button>
       </div>
     </aside>
   );
