@@ -78,6 +78,15 @@ export interface Bid {
   status: 'pending' | 'accepted' | 'rejected';
 }
 
+export interface ProjectMilestone {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: 'pending' | 'active' | 'submitted' | 'approved' | 'paid';
+  dueDate?: string;
+}
+
 export interface Project {
   id: string;
   creatorId: string;
@@ -87,11 +96,14 @@ export interface Project {
   budgetType: 'fixed' | 'hourly';
   experienceLevel: 'entry' | 'intermediate' | 'expert';
   description: string;
+  requirements?: string;
   skills: string[];
-  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'open' | 'in_progress' | 'under_review' | 'completed' | 'cancelled' | 'disputed';
   clientName: string;
   createdAt: string;
+  deadline?: string;
   bids?: Bid[];
+  milestones?: ProjectMilestone[];
 }
 
 export interface TaskSubmission {

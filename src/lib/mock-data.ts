@@ -69,10 +69,15 @@ export const mockProjects: Project[] = [
     budgetType: 'fixed',
     experienceLevel: 'expert',
     description: 'We are architecting a borderless payroll system for enterprise-grade remote workforces. Requires deep expertise in Lightning Network channel management and automated multi-sig release protocols.',
+    requirements: '• Rust/LND expertise required\n• Experience with non-custodial wallet architecture\n• Proven track record in Satoshi-denominated settlement systems',
     skills: ['Rust', 'LND', 'Distributed Systems', 'Cryptography'],
     status: 'open',
     clientName: 'Satoshi Core Labs',
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    milestones: [
+      { id: 'm1', title: 'Technical Architecture Review', description: 'Complete system design audit and channel strategy.', amount: 50000, status: 'pending' },
+      { id: 'm2', title: 'Alpha Integration', description: 'Core multi-sig contract deployment on testnet.', amount: 100000, status: 'pending' }
+    ],
     bids: [
       {
         id: 'bid_1',

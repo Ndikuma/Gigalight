@@ -25,7 +25,9 @@ import {
   Link as LinkIcon,
   Calculator,
   Lock,
-  Wallet
+  Wallet,
+  Settings,
+  FileText
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
@@ -45,12 +47,14 @@ export default function CreateListingPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    requirements: '',
     instructions: '',
     validatorGuidelines: '',
     category: '',
     reward: '500',
     budgetMin: '50000',
     budgetMax: '150000',
+    budgetType: 'fixed' as 'fixed' | 'hourly',
     difficulty: 'medium',
     experienceLevel: 'intermediate',
     proofMethod: 'text' as ProofMethod,
@@ -82,8 +86,9 @@ export default function CreateListingPage() {
         ...prev,
         title: genResult.title,
         description: genResult.description,
-        instructions: `Key Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}\n\nSpecific Requirements:\n${genResult.requirements.map(r => `• ${r}`).join('\n')}`,
-        validatorGuidelines: "Ensure all requirements are explicitly met in the submitted proof.",
+        requirements: genResult.requirements.map(r => `• ${r}`).join('\n'),
+        instructions: `Key Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}`,
+        validatorGuidelines: "Ensure all technical requirements are explicitly met in the submitted proof.",
         skills: [...new Set([...prev.skills, ...skillResult.suggestedSkills])],
         category: skillResult.suggestedCategories[0] || prev.category
       }));
@@ -149,7 +154,7 @@ export default function CreateListingPage() {
                   <button 
                     onClick={() => setListingType('task')}
                     className={cn(
-                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden",
+                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden h-40",
                       listingType === 'task' ? "border-primary bg-primary/5" : "border-white/5 bg-white/5 hover:border-white/10"
                     )}
                   >
@@ -161,7 +166,7 @@ export default function CreateListingPage() {
                   <button 
                     onClick={() => setListingType('project')}
                     className={cn(
-                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden",
+                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden h-40",
                       listingType === 'project' ? "border-secondary bg-secondary/5" : "border-white/5 bg-white/5 hover:border-white/10"
                     )}
                   >
@@ -174,9 +179,9 @@ export default function CreateListingPage() {
               </div>
 
               <div className="space-y-4">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Initial Identity</Label>
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Objective Title</Label>
                 <Input 
-                  placeholder="Target title (e.g. Audit L2 Bridge Architecture)"
+                  placeholder="e.g. Audit L2 Bridge Architecture"
                   className="h-14 bg-background/50 border-white/5 text-lg"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -192,11 +197,11 @@ export default function CreateListingPage() {
           {step === 2 && (
             <div className="space-y-6 animate-in slide-in-from-right-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-headline font-bold">2. Configuration & Strategy</h3>
+                <h3 className="text-2xl font-headline font-bold">2. Technical Configuration</h3>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="text-primary gap-2 hover:bg-primary/10"
+                  className="text-primary gap-2 hover:bg-primary/10 h-8"
                   onClick={handleAIAssist}
                   disabled={isGenerating}
                 >
@@ -204,42 +209,40 @@ export default function CreateListingPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Detailed Description</Label>
-                  <Textarea 
-                    placeholder="Describe the scope and deliverables..."
-                    className="min-h-[150px] bg-background/50 border-white/5"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Execution Instructions</Label>
-                  <Textarea 
-                    placeholder="Step-by-step instructions for nodes..."
-                    className="min-h-[150px] bg-background/50 border-white/5"
-                    value={formData.instructions}
-                    onChange={(e) => setFormData({...formData, instructions: e.target.value})}
-                  />
-                </div>
+              <div className="space-y-4">
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Technical Scope & Description</Label>
+                <Textarea 
+                  placeholder="Describe the scope, deliverables, and technical requirements..."
+                  className="min-h-[120px] bg-background/50 border-white/5"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
               </div>
 
-              {listingType === 'task' && (
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Validator Audit Guidelines</Label>
+              {listingType === 'project' && (
+                <div className="space-y-4">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Technical Requirements (One per line)</Label>
                   <Textarea 
-                    placeholder="What should validators check for in the proof?"
-                    className="bg-background/50 border-white/5"
-                    value={formData.validatorGuidelines}
-                    onChange={(e) => setFormData({...formData, validatorGuidelines: e.target.value})}
+                    placeholder="• Rust/LND expertise required..."
+                    className="min-h-[100px] bg-background/50 border-white/5 italic"
+                    value={formData.requirements}
+                    onChange={(e) => setFormData({...formData, requirements: e.target.value})}
                   />
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Skills Required</Label>
+                <div className="space-y-4">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Execution Instructions</Label>
+                  <Textarea 
+                    placeholder="Step-by-step instructions for nodes..."
+                    className="min-h-[100px] bg-background/50 border-white/5"
+                    value={formData.instructions}
+                    onChange={(e) => setFormData({...formData, instructions: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Skill Nodes Required</Label>
                   <div className="flex gap-2">
                     <Input 
                       placeholder="e.g. React" 
@@ -248,7 +251,7 @@ export default function CreateListingPage() {
                       onChange={(e) => setFormData({...formData, newSkill: e.target.value})}
                       onKeyDown={(e) => e.key === 'Enter' && addSkill()}
                     />
-                    <Button variant="outline" size="icon" onClick={addSkill}><Plus className="w-4 h-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={addSkill} className="rounded-lg"><Plus className="w-4 h-4" /></Button>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.skills.map(skill => (
@@ -259,19 +262,34 @@ export default function CreateListingPage() {
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Network Difficulty</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                 <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Experience Class</Label>
                   <Select value={listingType === 'task' ? formData.difficulty : formData.experienceLevel} onValueChange={(val) => {
                     if (listingType === 'task') setFormData({...formData, difficulty: val});
                     else setFormData({...formData, experienceLevel: val});
                   }}>
-                    <SelectTrigger className="bg-background/50 border-white/5 h-10">
+                    <SelectTrigger className="bg-background/50 border-white/5 h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="easy">Level 1 (Entry)</SelectItem>
-                      <SelectItem value="medium">Level 2 (Intermediate)</SelectItem>
-                      <SelectItem value="hard">Level 3 (Senior/Expert)</SelectItem>
+                      <SelectItem value="entry">Entry Level</SelectItem>
+                      <SelectItem value="intermediate">Intermediate Node</SelectItem>
+                      <SelectItem value="expert">Expert / Senior Node</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Compensation Model</Label>
+                  <Select value={formData.budgetType} onValueChange={(val: any) => setFormData({...formData, budgetType: val})}>
+                    <SelectTrigger className="bg-background/50 border-white/5 h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Fixed Price Project</SelectItem>
+                      <SelectItem value="hourly">Hourly Strategic Node</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -286,7 +304,7 @@ export default function CreateListingPage() {
 
           {step === 3 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
-              <h3 className="text-2xl font-headline font-bold">3. Financials & Release</h3>
+              <h3 className="text-2xl font-headline font-bold">3. Financials & Protocol Signal</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <Card className="bg-white/5 border-white/5 p-6 space-y-4">
@@ -304,7 +322,7 @@ export default function CreateListingPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label>Reward (SAT)</Label>
+                          <Label className="text-xs">Reward (SAT)</Label>
                           <Input 
                             type="number" 
                             className="h-12 bg-background border-white/5 font-bold"
@@ -313,7 +331,7 @@ export default function CreateListingPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Target Slots</Label>
+                          <Label className="text-xs">Target Slots</Label>
                           <Input 
                             type="number" 
                             className="h-12 bg-background border-white/5"
@@ -324,12 +342,12 @@ export default function CreateListingPage() {
                       </div>
                       
                       <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
-                          <span className="flex items-center gap-1.5"><Calculator className="w-3 h-3" /> Escrow Calculation</span>
+                        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+                          <span className="flex items-center gap-1.5 uppercase tracking-widest"><Calculator className="w-3 h-3" /> Escrow Formula</span>
                           <span>{formData.reward} × {formData.targetCompletions}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-emerald-500" /> Total Multi-sig Deposit</span>
+                          <span className="text-sm font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-emerald-500" /> Multi-sig Funding</span>
                           <span className="text-xl font-headline font-bold text-emerald-400">{totalEscrow.toLocaleString()} SAT</span>
                         </div>
                       </div>
@@ -337,7 +355,7 @@ export default function CreateListingPage() {
                   ) : (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Min Budget (SAT)</Label>
+                        <Label className="text-xs">Min Budget (SAT)</Label>
                         <Input 
                           type="number" 
                           placeholder="50000" 
@@ -347,7 +365,7 @@ export default function CreateListingPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Max Budget (SAT)</Label>
+                        <Label className="text-xs">Max Budget (SAT)</Label>
                         <Input 
                           type="number" 
                           placeholder="150000" 
@@ -367,36 +385,32 @@ export default function CreateListingPage() {
                     </div>
                     <div>
                       <h4 className="font-bold">Protocol Signal</h4>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Config</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Model</p>
                     </div>
                   </div>
 
                   {listingType === 'task' ? (
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Proof Method</Label>
+                        <Label className="text-xs">Verification Signal Method</Label>
                         <Select value={formData.proofMethod} onValueChange={(val: ProofMethod) => setFormData({...formData, proofMethod: val})}>
                           <SelectTrigger className="bg-background border-white/5 h-12">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="text">Narrative Keywords</SelectItem>
-                            <SelectItem value="response">Detailed Response</SelectItem>
-                            <SelectItem value="code_snippet">Code Snippet Verification</SelectItem>
-                            <SelectItem value="link">URL / Link Verification</SelectItem>
-                            <SelectItem value="social_link">Social Media Handle</SelectItem>
-                            <SelectItem value="file">Technical File Upload</SelectItem>
-                            <SelectItem value="image">Image / Screenshot</SelectItem>
+                            <SelectItem value="code_snippet">Code Snippet Audit</SelectItem>
+                            <SelectItem value="file">Technical File Verification</SelectItem>
+                            <SelectItem value="link">URL Propagation</SelectItem>
+                            <SelectItem value="qr_scan">QR Protocol Scan</SelectItem>
+                            <SelectItem value="gps">GPS Location Signal</SelectItem>
+                            <SelectItem value="image">Visual Proof (Screenshot)</SelectItem>
                             <SelectItem value="video">Video Documentation</SelectItem>
-                            <SelectItem value="qr_scan">QR Code Signal</SelectItem>
-                            <SelectItem value="gps">GPS / Location Proof</SelectItem>
-                            <SelectItem value="confirm">Protocol Confirmation</SelectItem>
-                            <SelectItem value="app_install">App Installation Proof</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-2">External Mission URL <LinkIcon className="w-3 h-3" /></Label>
+                        <Label className="text-xs flex items-center gap-2">External Mission Node <LinkIcon className="w-3 h-3" /></Label>
                         <Input 
                           placeholder="https://..." 
                           className="h-10 bg-background border-white/5"
@@ -406,20 +420,27 @@ export default function CreateListingPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <Label>Timeline Expectation</Label>
-                      <Input placeholder="e.g. 4 Weeks" className="h-12 bg-background border-white/5" />
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Expected Timeline</Label>
+                        <Input placeholder="e.g. 4 Protocol Weeks" className="h-12 bg-background border-white/5" />
+                      </div>
+                      <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                        <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+                          Milestone-based release is enabled by default for professional projects.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </Card>
               </div>
 
-              <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 flex items-start gap-4">
-                <Wallet className="w-6 h-6 text-primary shrink-0" />
+              <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2">
+                <Wallet className="w-6 h-6 text-primary shrink-0 mt-1" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm">Escrow Authorization</h4>
-                  <p className="text-xs text-muted-foreground">
-                    By deploying this objective, you authorize the protocol to debit <strong>{listingType === 'task' ? totalEscrow.toLocaleString() : 'the selected budget'} SAT</strong> from your available liquidity to fund the secure multi-sig escrow.
+                  <h4 className="font-bold text-sm">Escrow Authorization Required</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    By initiating this objective, you authorize the GigaLight Protocol to debit <strong>{listingType === 'task' ? totalEscrow.toLocaleString() : 'the final accepted budget'} SAT</strong> from your available liquidity to fund the secure multi-sig escrow node.
                   </p>
                 </div>
               </div>
@@ -427,7 +448,7 @@ export default function CreateListingPage() {
               <div className="flex justify-between pt-6 border-t border-white/5">
                 <Button variant="ghost" onClick={() => setStep(2)}>Previous</Button>
                 <Button className="rounded-xl h-14 px-12 font-bold bg-primary neon-glow-primary" onClick={handleSubmit}>
-                  Deploy & Fund Listing
+                  Deploy & Fund Objective
                 </Button>
               </div>
             </div>

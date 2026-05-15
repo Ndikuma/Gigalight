@@ -22,7 +22,9 @@ import {
   MoreVertical,
   FileText,
   Rocket,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,18 +63,16 @@ export default function ProjectWorkspacePage() {
     );
   }
 
-  const milestones = [
-    { id: 1, title: 'UI Wireframes & Architecture', status: 'completed', amount: '15,000 SAT' },
-    { id: 2, title: 'Core API Integration', status: 'in_progress', amount: '25,000 SAT' },
-    { id: 3, title: 'Final QA & Deployment', status: 'locked', amount: '10,000 SAT' },
-  ];
-
   function handleHire(candidateName: string) {
     toast({
       title: "Node Selected",
       description: `${candidateName} has been commissioned. Payout locked in escrow.`,
     });
   }
+
+  const totalMilestoneAmount = project.milestones?.reduce((acc, m) => acc + m.amount, 0) || 0;
+  const completedMilestoneAmount = project.milestones?.filter(m => m.status === 'paid').reduce((acc, m) => acc + m.amount, 0) || 0;
+  const progressPercent = totalMilestoneAmount > 0 ? (completedMilestoneAmount / totalMilestoneAmount) * 100 : 0;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -85,11 +85,17 @@ export default function ProjectWorkspacePage() {
             <h1 className="text-4xl font-headline font-bold">{project.title}</h1>
             <Badge className={cn(
               "border-none uppercase text-[10px] tracking-widest font-bold",
-              project.status === 'in_progress' ? "bg-emerald-400/10 text-emerald-400" : "bg-secondary/20 text-secondary"
+              project.status === 'in_progress' ? "bg-emerald-400/10 text-emerald-400" : 
+              project.status === 'open' ? "bg-primary/10 text-primary" : "bg-secondary/20 text-secondary"
             )}>
               {project.status.replace('_', ' ')}
             </Badge>
           </div>
+        </div>
+        <div className="flex gap-2">
+           <Button variant="outline" className="rounded-xl border-white/5 gap-2 h-11 font-bold">
+            <Settings2 className="w-4 h-4" /> Management
+          </Button>
         </div>
       </header>
 
@@ -109,73 +115,80 @@ export default function ProjectWorkspacePage() {
             </TabsList>
 
             <TabsContent value="applicants" className="space-y-4 mt-0">
-              {project.bids?.sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0)).map((bid) => (
-                <Card key={bid.id} className={cn(
-                  "glass-card border-none transition-all relative overflow-hidden",
-                  bid.isBoosted ? "ring-2 ring-secondary/30" : "hover:border-secondary/20"
-                )}>
-                  {bid.isBoosted && (
-                    <div className="absolute top-0 right-0">
-                      <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl flex items-center gap-1">
-                        <Rocket className="w-2.5 h-2.5" /> BOOSTED PROPOSAL
-                      </div>
-                    </div>
-                  )}
-                  <CardContent className="p-6 space-y-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex gap-4">
-                        <Avatar className="w-12 h-12 border-2 border-white/10">
-                          <AvatarImage src={`https://picsum.photos/seed/${bid.userId}/100/100`} />
-                          <AvatarFallback>{bid.userName[0]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-lg">{bid.userName}</h4>
-                            <Badge className={cn(
-                              "text-[9px] font-bold uppercase",
-                              bid.membershipTier === 'elite' ? "bg-amber-500/10 text-amber-500" :
-                              bid.membershipTier === 'pro' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                            )}>
-                              {bid.membershipTier} Node
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-3 mt-1">
-                             <div className="flex items-center gap-1 text-[10px] font-bold text-primary">
-                              <Trophy className="w-3 h-3" /> {bid.userReputation} REP
-                            </div>
-                            <p className="text-[10px] text-muted-foreground font-bold">Bid: <span className="text-secondary">{bid.amount.toLocaleString()} SAT</span></p>
-                            <p className="text-[10px] text-muted-foreground font-bold">Delivery: {bid.timeline}</p>
-                          </div>
+              {project.bids?.length ? (
+                project.bids?.sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0)).map((bid) => (
+                  <Card key={bid.id} className={cn(
+                    "glass-card border-none transition-all relative overflow-hidden",
+                    bid.isBoosted ? "ring-2 ring-secondary/30 shadow-[0_0_20px_rgba(60,98,255,0.15)]" : "hover:border-secondary/20"
+                  )}>
+                    {bid.isBoosted && (
+                      <div className="absolute top-0 right-0">
+                        <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl flex items-center gap-1 uppercase tracking-widest">
+                          <Rocket className="w-2.5 h-2.5" /> Boosted Proposal
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="rounded-lg h-9 border-white/5">
-                          <MessageSquare className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="rounded-lg bg-emerald-500 hover:bg-emerald-600 h-9 font-bold"
-                          onClick={() => handleHire(bid.userName)}
-                        >
-                          Commission Node
-                        </Button>
+                    )}
+                    <CardContent className="p-6 space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex gap-4">
+                          <Avatar className="w-14 h-14 border-2 border-white/10 rounded-2xl">
+                            <AvatarImage src={`https://picsum.photos/seed/${bid.userId}/100/100`} />
+                            <AvatarFallback>{bid.userName[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-lg">{bid.userName}</h4>
+                              <Badge className={cn(
+                                "text-[9px] font-bold uppercase px-2",
+                                bid.membershipTier === 'elite' ? "bg-amber-500/10 text-amber-500" :
+                                bid.membershipTier === 'pro' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                              )}>
+                                {bid.membershipTier} Node
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                               <div className="flex items-center gap-1 text-[10px] font-bold text-primary">
+                                <Trophy className="w-3 h-3" /> {bid.userReputation} REP
+                              </div>
+                              <p className="text-[10px] text-muted-foreground font-bold">Bid: <span className="text-secondary">{bid.amount.toLocaleString()} SAT</span></p>
+                              <p className="text-[10px] text-muted-foreground font-bold">Delivery: {bid.timeline}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button variant="outline" size="sm" className="rounded-xl h-10 border-white/5 font-bold gap-2">
+                            <MessageSquare className="w-4 h-4" /> Message
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="rounded-xl bg-emerald-500 hover:bg-emerald-600 h-10 px-6 font-bold"
+                            onClick={() => handleHire(bid.userName)}
+                          >
+                            Commission Node
+                          </Button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="bg-black/20 rounded-xl p-4 border border-white/5 relative">
-                      <p className="text-sm text-muted-foreground italic leading-relaxed">
-                        "{bid.proposalText}"
-                      </p>
-                    </div>
+                      <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative group">
+                        <p className="text-sm text-muted-foreground italic leading-relaxed">
+                          "{bid.proposalText}"
+                        </p>
+                      </div>
 
-                    <div className="flex items-center gap-6 text-[9px] font-bold uppercase tracking-widest text-muted-foreground border-t border-white/5 pt-4">
-                      <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-emerald-400" /> Identity Verified</span>
-                      <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-secondary" /> L2 Settlement</span>
-                      <span className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-primary" /> Premium Signal</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex items-center gap-6 text-[9px] font-bold uppercase tracking-widest text-muted-foreground border-t border-white/5 pt-4">
+                        <span className="flex items-center gap-1.5"><Shield className="w-3 h-3 text-emerald-400" /> Identity Verified</span>
+                        <span className="flex items-center gap-1.5"><Zap className="w-3 h-3 text-secondary" /> L2 Settlement Ready</span>
+                        <span className="flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-primary" /> Premium Signal</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="py-20 text-center glass-card rounded-3xl border-dashed">
+                  <Users className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+                  <p className="text-muted-foreground font-bold">No proposal signals detected yet.</p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="workspace" className="space-y-6">
@@ -186,15 +199,15 @@ export default function ProjectWorkspacePage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold text-emerald-400">40,000 SAT</h3>
+                      <h3 className="text-2xl font-bold text-emerald-400">{project.budgetMin.toLocaleString()} SAT</h3>
                       <Badge variant="outline" className="border-emerald-400/20 text-emerald-400">FUNDED</Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs font-bold">
                         <span>Milestone Progress</span>
-                        <span className="text-emerald-400">33%</span>
+                        <span className="text-emerald-400">{Math.round(progressPercent)}%</span>
                       </div>
-                      <Progress value={33} className="h-2 bg-white/5" />
+                      <Progress value={progressPercent} className="h-2 bg-white/5" />
                     </div>
                   </CardContent>
                 </Card>
@@ -204,7 +217,7 @@ export default function ProjectWorkspacePage() {
                     <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Active Node</CardTitle>
                   </CardHeader>
                   <CardContent className="flex items-center gap-4">
-                    <Avatar className="w-12 h-12">
+                    <Avatar className="w-12 h-12 rounded-xl">
                       <AvatarImage src={`https://picsum.photos/seed/hired/100/100`} />
                       <AvatarFallback>W</AvatarFallback>
                     </Avatar>
@@ -212,10 +225,83 @@ export default function ProjectWorkspacePage() {
                       <h4 className="font-bold">JungleNode</h4>
                       <Badge className="text-[9px] bg-primary/10 text-primary">Pro Node</Badge>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg"><MessageSquare className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5"><MessageSquare className="w-4 h-4" /></Button>
                   </CardContent>
                 </Card>
               </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-headline font-bold">Mission Milestones</h3>
+                  <Button variant="ghost" size="sm" className="text-primary font-bold gap-2">
+                    <Plus className="w-4 h-4" /> Add Milestone
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {project.milestones?.map((m, i) => (
+                    <div key={m.id} className="flex items-center justify-between p-5 glass-card rounded-2xl border-white/5 group">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs",
+                          m.status === 'paid' ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-muted-foreground"
+                        )}>
+                          {m.status === 'paid' ? <CheckCircle className="w-5 h-5" /> : i + 1}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">{m.title}</h4>
+                          <p className="text-[10px] text-muted-foreground line-clamp-1">{m.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-sm">{m.amount.toLocaleString()} SAT</p>
+                        <Badge variant="ghost" className={cn(
+                          "text-[9px] uppercase font-bold px-0",
+                          m.status === 'paid' ? "text-emerald-400" : "text-muted-foreground"
+                        )}>
+                          {m.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="details" className="space-y-6">
+              <Card className="glass-card border-none p-8">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-headline font-bold flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" /> Technical Description
+                    </h3>
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                      {project.description}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-headline font-bold flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-emerald-400" /> Protocol Requirements
+                    </h3>
+                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap italic">
+                      {project.requirements || "No specific technical requirements documented."}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-headline font-bold flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-secondary" /> Expertise Required
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {project.skills.map(skill => (
+                        <Badge key={skill} className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1.5 font-bold uppercase tracking-widest text-[10px]">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
@@ -227,13 +313,13 @@ export default function ProjectWorkspacePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Total Signals</p>
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Signal Density</p>
                   <p className="text-2xl font-bold">{project.bids?.length || 0}</p>
                 </div>
-                <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Reputation Pool</p>
-                  <p className="text-2xl font-bold">Avg 92</p>
+                  <p className="text-2xl font-bold">Avg 94</p>
                 </div>
               </div>
 
@@ -243,14 +329,55 @@ export default function ProjectWorkspacePage() {
                   <span className="font-bold text-secondary">{project.budgetMin.toLocaleString()} SAT</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-2 font-bold"><Shield className="w-4 h-4" /> Network Status</span>
-                  <Badge variant="outline" className="border-emerald-400/20 text-emerald-400 text-[9px] font-bold">SECURE</Badge>
+                  <span className="text-muted-foreground flex items-center gap-2 font-bold"><Briefcase className="w-4 h-4" /> Budget Class</span>
+                  <span className="font-bold capitalize">{project.budgetType} Price</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-2 font-bold"><Trophy className="w-4 h-4" /> Expert Class</span>
+                  <span className="font-bold capitalize">{project.experienceLevel}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <div className="glass-card p-8 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
+            <Lock className="w-10 h-10 text-emerald-400 mx-auto relative z-10" />
+            <div className="relative z-10">
+              <h4 className="font-headline font-bold text-lg">Multi-sig Secure</h4>
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                Project funds are held in a 2-of-3 multi-sig L2 escrow. Releases are triggered automatically upon milestone approval.
+              </p>
+            </div>
+            <Button variant="outline" className="w-full rounded-xl border-white/10 font-bold relative z-10 h-12 text-xs uppercase tracking-widest">
+              Review Protocol Rules
+            </Button>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Minimal placeholder component for missing icon
+function Settings2(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 7h-9" />
+      <path d="M14 17H5" />
+      <circle cx="17" cy="17" r="3" />
+      <circle cx="7" cy="7" r="3" />
+    </svg>
   );
 }
