@@ -1,6 +1,8 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,23 +22,60 @@ import {
   Smartphone,
   ShieldCheck,
   LogOut,
-  Camera
+  Camera,
+  Wallet as WalletIcon,
+  ArrowDownLeft,
+  ArrowUpRight,
+  History,
+  QrCode,
+  Copy,
+  Check,
+  AlertCircle,
+  Scan,
+  Maximize,
+  X,
+  Loader2
 } from 'lucide-react';
-import { mockProfile } from '@/lib/mock-data';
+import { mockProfile, mockWallet } from '@/lib/mock-data';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription
+} from '@/components/ui/dialog';
 
-type SettingsSection = 'identity' | 'tiers' | 'security';
+type SettingsSection = 'identity' | 'wallet' | 'tiers' | 'security';
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
+  
   const [profile, setProfile] = useState(mockProfile);
   const [mounted, setMounted] = useState(false);
-  const [activeSection, setActiveSection] = useState<SettingsSection>('identity');
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
+
+  // Wallet State
+  const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('10000');
+  const [invoice, setInvoice] = useState<string | null>(null);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+  const [withdrawInvoice, setWithdrawInvoice] = useState('');
+  const [isDecoding, setIsDecoding] = useState(false);
+  const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
+  const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (initialTab) setActiveSection(initialTab);
+  }, [initialTab]);
 
   if (!mounted) return null;
 
@@ -55,8 +94,62 @@ export default function SettingsPage() {
     setProfile(prev => ({ ...prev, membershipTier: tier }));
   }
 
+  // Wallet Mock Handlers
+  async function handleGenerateInvoice() {
+    setIsGeneratingInvoice(true);
+    await new Promise(r => setTimeout(r, 1500));
+    setInvoice(`lnbc${depositAmount}n1p3uxls...v${Math.random().toString(36).substring(7)}`);
+    setIsGeneratingInvoice(false);
+  }
+
+  async function handleSimulateScan() {
+    setIsScanning(true);
+    await new Promise(r => setTimeout(r, 2000));
+    const mockInvoice = `lnbc25000n1p3uxls...scan${Math.random().toString(36).substring(5)}`;
+    setWithdrawInvoice(mockInvoice);
+    setIsScanning(false);
+    toast({ title: "QR Captured", description: "LND invoice has been parsed successfully." });
+    handleDecodeInvoice(mockInvoice);
+  }
+
+  async function handleDecodeInvoice(manualValue?: string) {
+    const val = manualValue || withdrawInvoice;
+    if (!val.startsWith('lnbc')) {
+      toast({ variant: "destructive", title: "Invalid Invoice", description: "Please provide a valid Lightning Network (BOLT11) invoice." });
+      return;
+    }
+    setIsDecoding(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setDecodedData({
+      amount: Math.floor(Math.random() * 50000) + 1000,
+      description: "External Strategic Settlement"
+    });
+    setIsDecoding(false);
+  }
+
+  function handleCopy() {
+    if (invoice) {
+      navigator.clipboard.writeText(invoice);
+      setHasCopied(true);
+      toast({ title: "Invoice Copied", description: "Ready to be pasted in your external wallet." });
+      setTimeout(() => setHasCopied(false), 2000);
+    }
+  }
+
+  function handleConfirmWithdraw() {
+    setIsProcessingWithdraw(true);
+    setTimeout(() => {
+      setIsProcessingWithdraw(false);
+      setIsWithdrawOpen(false);
+      setWithdrawInvoice('');
+      setDecodedData(null);
+      toast({ title: "Withdrawal Propagated", description: "SATs are settling across the GigaLight protocol." });
+    }, 2000);
+  }
+
   const navItems = [
     { id: 'identity', label: 'Identity', icon: User, desc: 'Profile & Bio' },
+    { id: 'wallet', label: 'Financials', icon: WalletIcon, desc: 'Yield & Escrow' },
     { id: 'tiers', label: 'Node Tiers', icon: Trophy, desc: 'Signal & Rewards' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Access Control' },
   ];
@@ -155,6 +248,75 @@ export default function SettingsPage() {
             </Card>
           )}
 
+          {activeSection === 'wallet' && (
+            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatCard 
+                  label="Liquid Balance" 
+                  value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
+                  icon={WalletIcon} 
+                  subValue="Settled and available for release"
+                  color="primary"
+                />
+                <StatCard 
+                  label="Platform Yield" 
+                  value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
+                  icon={History} 
+                  subValue="Total revenue finalized on-chain"
+                  color="emerald"
+                />
+              </div>
+
+              <Card className="glass-card border-none">
+                <CardHeader className="p-8 pb-0 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="font-headline text-2xl">Ledger Activity</CardTitle>
+                    <CardDescription>Comprehensive record of technical yields and settlements.</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="rounded-xl h-10 border-white/5" onClick={() => setIsWithdrawOpen(true)}>Withdraw</Button>
+                    <Button className="rounded-xl h-10 bg-primary" onClick={() => setIsDepositOpen(true)}>Deposit</Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="space-y-1">
+                    {[
+                      { type: 'income', label: 'Technical Architecture Audit Yield', amount: 12000, date: 'Today, 2:30 PM', status: 'finalized' },
+                      { type: 'expense', label: 'Withdrawal to External Node', amount: 50000, date: 'Yesterday, 11:15 AM', status: 'finalized' },
+                      { type: 'income', label: 'Node Validator Tier Reward', amount: 500, date: 'Oct 24, 2023', status: 'finalized' },
+                      { type: 'pending', label: 'Escrow Lock: L2 Bridge Implementation', amount: 25000, date: 'Awaiting Milestone', status: 'pending' },
+                    ].map((tx, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all group">
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center",
+                            tx.type === 'income' ? "bg-emerald-400/10 text-emerald-400" : 
+                            tx.type === 'expense' ? "bg-primary/10 text-primary" : "bg-yellow-400/10 text-yellow-400"
+                          )}>
+                            {tx.type === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : 
+                             tx.type === 'expense' ? <ArrowUpRight className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">{tx.label}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{tx.date}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={cn(
+                            "font-headline font-bold text-lg",
+                            tx.type === 'income' ? "text-emerald-400" : "text-foreground"
+                          )}>
+                            {tx.type === 'expense' ? '-' : '+'}{tx.amount.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {activeSection === 'tiers' && (
             <Card className="glass-card border-none bg-gradient-to-br from-secondary/10 via-transparent to-transparent animate-in slide-in-from-right-4 duration-500">
               <CardHeader className="p-8 pb-0">
@@ -202,7 +364,7 @@ export default function SettingsPage() {
                       
                       {profile.membershipTier === tier.id ? (
                         <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                          Active Protocol Level
+                          <CheckCircle className="w-3 h-3" /> Active Protocol Level
                         </div>
                       ) : (
                         <Button 
@@ -214,13 +376,6 @@ export default function SettingsPage() {
                       )}
                     </div>
                   ))}
-                </div>
-
-                <div className="bg-white/5 border border-white/5 p-6 rounded-2xl flex items-start gap-4">
-                  <Globe className="w-5 h-5 text-secondary shrink-0 mt-1" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Tiers are renewed annually using the L2 Satoshi settlement. Moving to a higher tier instantly updates your Reputation Index.
-                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -284,9 +439,6 @@ export default function SettingsPage() {
                       </div>
                       <Badge variant="outline" className="border-emerald-500/20 text-emerald-400 text-[9px] font-bold">STABLE</Badge>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-destructive gap-2 font-bold text-[10px] uppercase tracking-widest hover:bg-destructive/10">
-                      <LogOut className="w-3.5 h-3.5" /> Terminate All External Sessions
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -294,6 +446,177 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Deposit Modal */}
+      <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
+              <Zap className="w-5 h-5 text-secondary" /> Deposit SATs
+            </DialogTitle>
+            <DialogDescription>
+              Generate a Lightning Network invoice to fund your project escrow.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!invoice ? (
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Amount (SAT)</Label>
+                <div className="relative">
+                  <Input 
+                    type="number" 
+                    value={depositAmount} 
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="h-14 bg-white/5 border-white/5 text-xl font-bold pl-4"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">SATOSHIS</div>
+                </div>
+              </div>
+              <Button 
+                className="w-full h-14 rounded-xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary"
+                onClick={handleGenerateInvoice}
+                disabled={isGeneratingInvoice}
+              >
+                {isGeneratingInvoice ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : 'Generate Invoice'}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-8 py-6 text-center animate-in zoom-in-95 duration-300">
+              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20">
+                <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  <QrCode className="w-40 h-40 text-black opacity-90" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-4 overflow-hidden">
+                  <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 text-left">{invoice}</p>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 hover:bg-white/10 shrink-0"
+                    onClick={handleCopy}
+                  >
+                    {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => setInvoice(null)}>
+                Modify Parameters
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw Modal */}
+      <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
+              <ArrowUpRight className="w-5 h-5 text-primary" /> Professional Withdrawal
+            </DialogTitle>
+            <DialogDescription>
+              Payout your platform yield to an external Lightning Network node.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isScanning ? (
+            <div className="space-y-6 py-12 text-center animate-in fade-in zoom-in-95">
+              <div className="relative mx-auto w-48 h-48 border-2 border-primary/50 rounded-3xl flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 bg-primary/5">
+                  <div className="w-full h-1 bg-primary/50 absolute animate-[bounce_2s_infinite]" />
+                </div>
+                <Scan className="w-20 h-20 text-primary opacity-30" />
+                <div className="absolute top-2 left-2"><Maximize className="w-4 h-4 text-primary" /></div>
+                <div className="absolute top-2 right-2 rotate-90"><Maximize className="w-4 h-4 text-primary" /></div>
+                <div className="absolute bottom-2 left-2 -rotate-90"><Maximize className="w-4 h-4 text-primary" /></div>
+                <div className="absolute bottom-2 right-2 rotate-180"><Maximize className="w-4 h-4 text-primary" /></div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-bold animate-pulse">Position QR code within frame</p>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setIsScanning(false)}>Cancel Scan</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] font-bold gap-1 text-primary hover:bg-primary/10"
+                    onClick={handleSimulateScan}
+                  >
+                    <Scan className="w-3 h-3" /> Scan QR
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Input 
+                    placeholder="lnbc1..." 
+                    value={withdrawInvoice}
+                    onChange={(e) => setWithdrawInvoice(e.target.value)}
+                    className="h-14 bg-white/5 border-white/5 text-sm font-mono pr-24"
+                  />
+                  {!decodedData && (
+                    <Button 
+                      size="sm" 
+                      className="absolute right-2 top-2 h-10 rounded-lg font-bold"
+                      onClick={() => handleDecodeInvoice()}
+                      disabled={isDecoding || !withdrawInvoice}
+                    >
+                      {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
+                    </Button>
+                  )}
+                  {decodedData && (
+                    <button 
+                      className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-white"
+                      onClick={() => {
+                        setWithdrawInvoice('');
+                        setDecodedData(null);
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {decodedData && (
+                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
+                    <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Description</span>
+                    <span className="text-xs font-bold">{decodedData.description}</span>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                className="w-full h-14 rounded-xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary"
+                disabled={!decodedData || isProcessingWithdraw}
+                onClick={handleConfirmWithdraw}
+              >
+                {isProcessingWithdraw ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Processing Yield...
+                  </>
+                ) : 'Confirm Withdrawal'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

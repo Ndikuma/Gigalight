@@ -47,7 +47,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Badge } from '@/components/ui/badge';
 import { mockNotifications } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -76,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Market', icon: SearchIcon, href: '/market' },
     { name: 'Roles', icon: Globe, href: '/jobs' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
-    { name: 'Financials', icon: WalletIcon, href: '/wallet' },
+    { name: 'Financials', icon: WalletIcon, href: '/settings?tab=wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
 
@@ -122,7 +121,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SheetHeader>
                 <div className="p-4 space-y-2">
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                    const isActive = pathname === item.href || (item.href === '/settings?tab=wallet' && pathname === '/settings');
                     return (
                       <Link
                         key={item.name}
@@ -160,7 +159,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <nav className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isActive = pathname === item.href || (item.href === '/settings?tab=wallet' && pathname === '/settings');
               return (
                 <Link
                   key={item.name}
@@ -181,14 +180,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-3 bg-muted/30 border border-white/5 rounded-full px-4 py-1.5 w-48 lg:w-64 focus-within:w-80 transition-all focus-within:ring-1 focus-within:ring-primary/40">
+          <div className="hidden md:flex items-center gap-3 bg-muted/30 border border-white/5 rounded-full px-4 py-1.5 w-40 lg:w-48 focus-within:w-64 transition-all focus-within:ring-1 focus-within:ring-primary/40">
             <Search className="w-3.5 h-3.5 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="Search marketplace..." 
+              placeholder="Search..." 
               className="bg-transparent text-xs outline-none w-full placeholder:text-muted-foreground"
             />
           </div>
+
+          <Button asChild variant="outline" size="sm" className="hidden lg:flex rounded-xl border-primary/20 text-primary hover:bg-primary/5 h-9 font-bold gap-2">
+            <Link href="/my-projects/create">
+              <PlusCircle className="w-4 h-4" /> Post Listing
+            </Link>
+          </Button>
 
           <div className="h-8 w-px bg-white/5 hidden sm:block mx-1 md:mx-2"></div>
 
@@ -337,7 +342,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/wallet" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
+                <Link href="/settings?tab=wallet" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
                   <WalletIcon className="w-4 h-4" /> Financials
                 </Link>
               </DropdownMenuItem>
