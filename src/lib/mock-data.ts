@@ -27,6 +27,7 @@ export const mockWallet: Wallet = {
 export const mockTasks: Task[] = [
   {
     id: 't1',
+    creatorId: 'user_admin',
     title: 'Download & Review Gigalight App',
     rewardAmount: 500,
     difficulty: 'easy',
@@ -34,9 +35,11 @@ export const mockTasks: Task[] = [
     proofMethod: 'screenshot',
     category: 'Marketing',
     status: 'active',
+    submissionsCount: 12,
   },
   {
     id: 't2',
+    creatorId: 'user_1', // Owned by current user
     title: 'Verify Smart Contract Integrity',
     rewardAmount: 5000,
     difficulty: 'hard',
@@ -44,9 +47,11 @@ export const mockTasks: Task[] = [
     proofMethod: 'code_snippet',
     category: 'Security',
     status: 'active',
+    submissionsCount: 3,
   },
   {
     id: 't3',
+    creatorId: 'user_admin',
     title: 'Translate UX Microcopy to French',
     rewardAmount: 1200,
     difficulty: 'medium',
@@ -54,12 +59,14 @@ export const mockTasks: Task[] = [
     proofMethod: 'text',
     category: 'Translation',
     status: 'active',
+    submissionsCount: 8,
   },
 ];
 
 export const mockProjects: Project[] = [
   {
     id: 'p1',
+    creatorId: 'user_1', // Owned by current user
     title: 'Next.js SaaS Boilerplate Development',
     budgetMin: 50000,
     budgetMax: 150000,
@@ -70,9 +77,34 @@ export const mockProjects: Project[] = [
     status: 'open',
     clientName: 'Future Labs',
     createdAt: new Date().toISOString(),
+    bids: [
+      {
+        id: 'bid_1',
+        userId: 'user_99',
+        userName: 'Satoshi Nakamoto',
+        userReputation: 99,
+        amount: 120000,
+        timeline: '3 weeks',
+        proposalText: 'I have built over 20 SaaS apps with Next.js. I can deliver a pixel-perfect boilerplate with modular components.',
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      },
+      {
+        id: 'bid_2',
+        userId: 'user_101',
+        userName: 'Hal Finney',
+        userReputation: 95,
+        amount: 80000,
+        timeline: '2 weeks',
+        proposalText: 'Fast delivery, clean code. Check my portfolio for similar projects.',
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      }
+    ]
   },
   {
     id: 'p2',
+    creatorId: 'user_admin',
     title: 'Bitcoin L2 Integration Specialist',
     budgetMin: 5000,
     budgetMax: 8000,
@@ -91,8 +123,18 @@ export const mockSubmissions: TaskSubmission[] = [
     id: 'sub_1',
     taskId: 't1',
     userId: 'user_99',
+    userName: 'JungleNode',
     status: 'pending',
     proofText: 'Done! Review submitted as "CryptoEnthusiast" on the mobile store.',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'sub_2',
+    taskId: 't2',
+    userId: 'user_102',
+    userName: 'CipherPunk',
+    status: 'pending',
+    proofText: 'Found a potential issue in line 42 with the reentrancy guard order.',
     createdAt: new Date().toISOString(),
   }
 ];
