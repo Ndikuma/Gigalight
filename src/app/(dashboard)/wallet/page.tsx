@@ -16,8 +16,6 @@ import {
   QrCode, 
   AlertCircle,
   Loader2,
-  Scan,
-  Maximize,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,8 +25,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
-  DialogFooter
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,7 +47,6 @@ export default function WalletPage() {
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
 
   // Mock Invoice Generation
   async function handleGenerateInvoice() {
@@ -58,17 +54,6 @@ export default function WalletPage() {
     await new Promise(r => setTimeout(r, 1500));
     setInvoice(`lnbc${depositAmount}n1p3uxls...v${Math.random().toString(36).substring(7)}`);
     setIsGeneratingInvoice(false);
-  }
-
-  // Mock QR Scanning
-  async function handleSimulateScan() {
-    setIsScanning(true);
-    await new Promise(r => setTimeout(r, 2000)); // Simulate searching for QR
-    const mockInvoice = `lnbc25000n1p3uxls...scan${Math.random().toString(36).substring(5)}`;
-    setWithdrawInvoice(mockInvoice);
-    setIsScanning(false);
-    toast({ title: "QR Captured", description: "LND invoice has been parsed successfully." });
-    handleDecodeInvoice(mockInvoice);
   }
 
   // Mock Invoice Decoding
@@ -286,11 +271,6 @@ export default function WalletPage() {
               <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20">
                 <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
                   <QrCode className="w-40 h-40 text-black opacity-90" />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 hover:opacity-100 transition-opacity">
-                    <Button size="sm" variant="secondary" className="gap-2 rounded-xl">
-                      <Scan className="w-4 h-4" /> Scan App
-                    </Button>
-                  </div>
                 </div>
               </div>
 
@@ -332,103 +312,72 @@ export default function WalletPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {isScanning ? (
-            <div className="space-y-6 py-12 text-center animate-in fade-in zoom-in-95">
-              <div className="relative mx-auto w-48 h-48 border-2 border-primary/50 rounded-3xl flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-primary/5">
-                  <div className="w-full h-1 bg-primary/50 absolute animate-[bounce_2s_infinite]" />
-                </div>
-                <Scan className="w-20 h-20 text-primary opacity-30" />
-                <div className="absolute top-2 left-2"><Maximize className="w-4 h-4 text-primary" /></div>
-                <div className="absolute top-2 right-2 rotate-90"><Maximize className="w-4 h-4 text-primary" /></div>
-                <div className="absolute bottom-2 left-2 -rotate-90"><Maximize className="w-4 h-4 text-primary" /></div>
-                <div className="absolute bottom-2 right-2 rotate-180"><Maximize className="w-4 h-4 text-primary" /></div>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-bold animate-pulse">Position QR code within frame</p>
-                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setIsScanning(false)}>Cancel Scan</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6 py-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
+              <div className="relative">
+                <Input 
+                  placeholder="lnbc1..." 
+                  value={withdrawInvoice}
+                  onChange={(e) => setWithdrawInvoice(e.target.value)}
+                  className="h-14 bg-white/5 border-white/5 text-sm font-mono pr-24"
+                />
+                {!decodedData && (
                   <Button 
-                    variant="ghost" 
                     size="sm" 
-                    className="h-7 text-[10px] font-bold gap-1 text-primary hover:bg-primary/10"
-                    onClick={handleSimulateScan}
+                    className="absolute right-2 top-2 h-10 rounded-lg font-bold"
+                    onClick={() => handleDecodeInvoice()}
+                    disabled={isDecoding || !withdrawInvoice}
                   >
-                    <Scan className="w-3 h-3" /> Scan QR
+                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
                   </Button>
+                )}
+                {decodedData && (
+                  <button 
+                    className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-white"
+                    onClick={() => {
+                      setWithdrawInvoice('');
+                      setDecodedData(null);
+                    }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {decodedData && (
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
+                  <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
                 </div>
-                <div className="relative">
-                  <Input 
-                    placeholder="lnbc1..." 
-                    value={withdrawInvoice}
-                    onChange={(e) => setWithdrawInvoice(e.target.value)}
-                    className="h-14 bg-white/5 border-white/5 text-sm font-mono pr-24"
-                  />
-                  {!decodedData && (
-                    <Button 
-                      size="sm" 
-                      className="absolute right-2 top-2 h-10 rounded-lg font-bold"
-                      onClick={() => handleDecodeInvoice()}
-                      disabled={isDecoding || !withdrawInvoice}
-                    >
-                      {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
-                    </Button>
-                  )}
-                  {decodedData && (
-                    <button 
-                      className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-white"
-                      onClick={() => {
-                        setWithdrawInvoice('');
-                        setDecodedData(null);
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Description</span>
+                  <span className="text-xs font-bold">{decodedData.description}</span>
                 </div>
               </div>
+            )}
 
-              {decodedData && (
-                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
-                    <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
-                  </div>
-                  <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Description</span>
-                    <span className="text-xs font-bold">{decodedData.description}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">L2 Network Fee</span>
-                    <span className="text-xs font-bold text-emerald-400">~ 1 SAT</span>
-                  </div>
-                </div>
-              )}
+            <Button 
+              className="w-full h-14 rounded-xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary"
+              disabled={!decodedData || isProcessingWithdraw}
+              onClick={handleConfirmWithdraw}
+            >
+              {isProcessingWithdraw ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Processing Yield...
+                </>
+              ) : 'Confirm Withdrawal'}
+            </Button>
 
-              <Button 
-                className="w-full h-14 rounded-xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary"
-                disabled={!decodedData || isProcessingWithdraw}
-                onClick={handleConfirmWithdraw}
-              >
-                {isProcessingWithdraw ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Processing Yield...
-                  </>
-                ) : 'Confirm Withdrawal'}
-              </Button>
-
-              <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
-                Instant Settlement via GigaLight L2 Protocol
-              </p>
-            </div>
-          )}
+            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
+              Instant Settlement via GigaLight L2 Protocol
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
