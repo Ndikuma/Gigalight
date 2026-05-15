@@ -1,11 +1,12 @@
+
 "use client"
 
 import React from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { Wallet, Briefcase, Zap, ShieldCheck, ArrowRight, Star, PlusCircle, LayoutGrid, Rocket, Sparkles, UserPlus } from 'lucide-react';
+import { Wallet, Briefcase, Zap, ShieldCheck, ArrowRight, PlusCircle, Rocket, Sparkles, UserPlus } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockTasks, mockProjects, mockWallet } from '@/lib/mock-data';
+import { mockTasks, mockWallet } from '@/lib/mock-data';
 import Link from 'next/link';
 
 export default function DashboardHome() {
@@ -98,21 +99,23 @@ export default function DashboardHome() {
             </CardHeader>
             <CardContent className="space-y-4">
               {mockTasks.slice(0, 3).map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-primary" />
+                <Link key={task.id} href={`/market/${task.id}`}>
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{task.title}</h4>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{task.category} • {task.difficulty}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{task.title}</h4>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{task.category} • {task.difficulty}</p>
+                    <div className="text-right">
+                      <p className="font-headline font-bold text-emerald-400">+{task.rewardAmount} SAT</p>
+                      <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Micro Gig</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-headline font-bold text-emerald-400">+{task.rewardAmount} SAT</p>
-                    <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Micro Gig</p>
-                  </div>
-                </div>
+                </Link>
               ))}
             </CardContent>
           </Card>

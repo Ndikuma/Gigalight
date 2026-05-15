@@ -7,23 +7,9 @@ import { mockTasks, mockProjects } from '@/lib/mock-data';
 import { Search, Filter, Zap, Briefcase, Globe, Clock, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function MarketPage() {
-  function handleStartGig(title: string) {
-    toast({
-      title: "Gig Started!",
-      description: `You are now working on: ${title}. Head to your active tasks to submit proof.`,
-    });
-  }
-
-  function handlePlaceBid(title: string) {
-    toast({
-      title: "Bid Placed!",
-      description: `Your proposal for "${title}" has been sent to the client.`,
-    });
-  }
-
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <header className="space-y-2">
@@ -80,11 +66,8 @@ export default function MarketPage() {
                       <Clock className="w-3.5 h-3.5" /> ~15 min
                     </span>
                   </div>
-                  <Button 
-                    className="w-full bg-white/5 hover:bg-primary rounded-xl transition-all font-bold"
-                    onClick={() => handleStartGig(task.title)}
-                  >
-                    Start Gig
+                  <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-xl transition-all font-bold">
+                    <Link href={`/market/${task.id}`}>View Details</Link>
                   </Button>
                 </div>
               </div>
@@ -101,7 +84,7 @@ export default function MarketPage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                   <div className="space-y-4 flex-1">
                     <div className="flex flex-wrap gap-2">
-                      <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none px-3">
+                      <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none px-3 capitalize">
                         {project.experienceLevel}
                       </Badge>
                       <Badge className="bg-white/5 text-muted-foreground border-none px-3">
@@ -131,11 +114,8 @@ export default function MarketPage() {
                       </p>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">SATOSHIS</p>
                     </div>
-                    <Button 
-                      className="w-full bg-secondary hover:brightness-110 rounded-xl transition-all font-bold neon-glow-secondary"
-                      onClick={() => handlePlaceBid(project.title)}
-                    >
-                      Place Bid
+                    <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-xl transition-all font-bold neon-glow-secondary">
+                      <Link href={`/market/${project.id}`}>Place Bid</Link>
                     </Button>
                   </div>
                 </div>
