@@ -66,7 +66,7 @@ export const mockTasks: Task[] = [
 export const mockProjects: Project[] = [
   {
     id: 'p1',
-    creatorId: 'user_1', // Owned by current user
+    creatorId: 'user_1', // User is hiring for this
     title: 'Next.js SaaS Boilerplate Development',
     budgetMin: 50000,
     budgetMax: 150000,
@@ -112,10 +112,24 @@ export const mockProjects: Project[] = [
     experienceLevel: 'expert',
     description: 'Help us integrate Lightning Network payments into our existing e-commerce site using LND.',
     skills: ['Lightning Network', 'LND', 'Rust'],
-    status: 'open',
+    status: 'in_progress', // User is working on this
     clientName: 'SatsPay',
     createdAt: new Date().toISOString(),
   },
+  {
+    id: 'p3',
+    creatorId: 'user_admin',
+    title: 'UI Design for Wallet Interface',
+    budgetMin: 12000,
+    budgetMax: 18000,
+    budgetType: 'fixed',
+    experienceLevel: 'intermediate',
+    description: 'Looking for a designer to create a dark-themed wallet UI with custom icons.',
+    skills: ['Figma', 'UI Design', 'Icons'],
+    status: 'open',
+    clientName: 'Zebedee Inc',
+    createdAt: new Date().toISOString(),
+  }
 ];
 
 export const mockSubmissions: TaskSubmission[] = [

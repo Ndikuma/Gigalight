@@ -15,7 +15,8 @@ import {
   Zap,
   CheckCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Filter
 } from 'lucide-react';
 import { mockProjects, mockTasks, mockProfile } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
@@ -64,133 +65,132 @@ export default function ManagementHubPage() {
     }
   }
 
-  // Filter items created by the current user
-  const myPostedProjects = mockProjects.filter(p => p.creatorId === mockProfile.id);
-  const myPostedTasks = mockTasks.filter(t => t.creatorId === mockProfile.id);
+  // Hiring: Listings created by me
+  const myHiringProjects = mockProjects.filter(p => p.creatorId === mockProfile.id);
+  const myHiringTasks = mockTasks.filter(t => t.creatorId === mockProfile.id);
 
-  // Filter items the user is working on (mock logic)
-  const myActiveWorking = [
-    { ...mockProjects[1], role: 'worker', status: 'In Progress' },
-    { ...mockTasks[0], role: 'worker', status: 'Submitted' }
-  ];
+  // Working: Projects I'm involved in as a worker/contractor
+  const myWorkingProjects = mockProjects.filter(p => p.status === 'in_progress' && p.creatorId !== mockProfile.id);
+  // (In a real app, we'd check if my userId is in the project.assignedWorkerId field)
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Management Hub</h1>
-          <p className="text-muted-foreground">Oversee everything you've hired for and the work you're currently doing.</p>
+          <p className="text-muted-foreground">Complete oversight of your global gig operations.</p>
         </div>
         <Button 
-          className="rounded-xl bg-secondary hover:brightness-110 gap-2 neon-glow-secondary font-bold h-12 px-6"
+          className="rounded-xl bg-secondary hover:brightness-110 gap-2 neon-glow-secondary font-bold h-12 px-6 shadow-lg shadow-secondary/20"
           onClick={() => setIsCreateModalOpen(true)}
         >
-          <PlusCircle className="w-4 h-4" /> New Listing
+          <PlusCircle className="w-4 h-4" /> Post a Listing
         </Button>
       </header>
 
       <Tabs defaultValue="hiring" className="w-full">
-        <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit mb-8">
-          <TabsTrigger value="hiring" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-secondary">
-            <Layers className="w-4 h-4 mr-2" /> Hiring
-          </TabsTrigger>
-          <TabsTrigger value="working" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary">
-            <Briefcase className="w-4 h-4 mr-2" /> Working
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit">
+            <TabsTrigger value="hiring" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-secondary transition-all">
+              <Layers className="w-4 h-4 mr-2" /> Hiring ({myHiringProjects.length + myHiringTasks.length})
+            </TabsTrigger>
+            <TabsTrigger value="working" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary transition-all">
+              <Briefcase className="w-4 h-4 mr-2" /> Working ({myWorkingProjects.length})
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Hiring Tab Content */}
-        <TabsContent value="hiring" className="space-y-6 mt-0">
-          <div className="flex items-center gap-4 bg-card border border-white/5 rounded-2xl p-2 px-4 max-w-md">
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search your listings..." 
-              className="bg-transparent text-sm outline-none w-full"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex items-center gap-4 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input 
+                type="text" 
+                placeholder="Filter your projects..." 
+                className="w-full bg-white/5 border border-white/5 rounded-2xl py-2 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" size="icon" className="rounded-xl border-white/5 bg-white/5"><Filter className="w-4 h-4" /></Button>
           </div>
+        </div>
 
+        <TabsContent value="hiring" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 gap-4">
-            {/* Projects Section */}
-            {myPostedProjects.map((project) => (
+            {myHiringProjects.map((project) => (
               <ProjectManagementCard key={project.id} item={project} type="project" />
             ))}
-
-            {/* Tasks Section */}
-            {myPostedTasks.map((task) => (
+            {myHiringTasks.map((task) => (
               <ProjectManagementCard key={task.id} item={task} type="task" />
             ))}
-
-            {myPostedProjects.length === 0 && myPostedTasks.length === 0 && (
-              <div className="text-center py-20 glass-card rounded-3xl border-dashed">
-                <AlertCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <h3 className="text-xl font-bold">No hiring listings</h3>
-                <p className="text-muted-foreground">You haven't posted any jobs or micro-tasks yet.</p>
-              </div>
+            {myHiringProjects.length === 0 && myHiringTasks.length === 0 && (
+              <EmptyState title="No active listings" desc="You haven't posted any jobs or micro-tasks yet." />
             )}
           </div>
         </TabsContent>
 
-        {/* Working Tab Content */}
         <TabsContent value="working" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 gap-4">
-            {myActiveWorking.map((item: any, i) => (
-              <Card key={i} className="glass-card border-none overflow-hidden hover:border-primary/30 transition-all">
+            {myWorkingProjects.map((project) => (
+              <Card key={project.id} className="glass-card border-none overflow-hidden group hover:border-primary/30 transition-all">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-4 items-center">
-                      <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center",
-                        item.role === 'worker' ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
-                      )}>
-                        {item.budgetMin ? <Briefcase className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                        <Briefcase className="w-7 h-7" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-lg">{item.title}</h4>
-                          <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/20">
-                            {item.status}
+                          <h4 className="font-bold text-xl">{project.title}</h4>
+                          <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
+                            Active Contract
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{item.clientName || 'Gigalight Network'} • {item.budgetMin ? 'Fixed Project' : 'Micro Gig'}</p>
+                        <p className="text-sm text-muted-foreground font-medium">Client: {project.clientName} • Fixed Price Project</p>
                       </div>
                     </div>
-                    <Button asChild variant="ghost" size="sm" className="rounded-lg gap-2">
-                      <Link href={`/market/${item.id}`}>Workspace <ArrowRight className="w-4 h-4" /></Link>
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right hidden md:block">
+                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Locked</p>
+                        <p className="text-lg font-bold text-primary">{project.budgetMin.toLocaleString()} SAT</p>
+                      </div>
+                      <Button asChild size="lg" className="rounded-xl bg-primary neon-glow-primary font-bold h-12 px-8">
+                        <Link href={`/my-projects/${project.id}`}>Enter Workspace</Link>
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            {myWorkingProjects.length === 0 && (
+              <EmptyState title="No active contracts" desc="Browse the market to find high-value projects to work on." />
+            )}
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Create Listing Modal */}
+      {/* Listing Creation Dialog remains consistent */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl bg-card border-white/10">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-headline font-bold">Create New Listing</DialogTitle>
-            <DialogDescription>Describe what you need. AI will help professionalize your requirements.</DialogDescription>
+        <DialogContent className="max-w-2xl bg-card border-white/10 p-0 overflow-hidden rounded-3xl">
+          <DialogHeader className="p-8 pb-0">
+            <DialogTitle className="text-3xl font-headline font-bold">Create New Listing</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-base">Describe your needs. AI will help professionalize your requirements.</DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Listing Type</Label>
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Listing Type</Label>
                 <div className="flex gap-2">
                   <Button 
                     variant={newProject.type === 'project' ? 'secondary' : 'outline'}
-                    className="flex-1 rounded-xl h-11"
+                    className={cn("flex-1 rounded-xl h-11 transition-all", newProject.type === 'project' && "bg-secondary neon-glow-secondary")}
                     onClick={() => setNewProject({...newProject, type: 'project'})}
                   >
                     Project
                   </Button>
                   <Button 
                     variant={newProject.type === 'task' ? 'secondary' : 'outline'}
-                    className="flex-1 rounded-xl h-11"
+                    className={cn("flex-1 rounded-xl h-11 transition-all", newProject.type === 'task' && "bg-secondary neon-glow-secondary")}
                     onClick={() => setNewProject({...newProject, type: 'task'})}
                   >
                     Micro Task
@@ -198,10 +198,10 @@ export default function ManagementHubPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Listing Title</Label>
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Title</Label>
                 <Input 
-                  placeholder="e.g. Logo Design" 
-                  className="bg-background/50 border-white/5 h-11"
+                  placeholder="e.g. Design a Lightning Wallet UI" 
+                  className="bg-white/5 border-white/5 rounded-xl h-11"
                   value={newProject.title}
                   onChange={(e) => setNewProject({...newProject, title: e.target.value})}
                 />
@@ -210,7 +210,7 @@ export default function ManagementHubPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Detailed Requirements</Label>
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Project Scope & Requirements</Label>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -218,32 +218,32 @@ export default function ManagementHubPage() {
                   onClick={handleAIGenerate}
                   disabled={isGenerating}
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> {isGenerating ? "Polish with AI..." : "AI Draft Helper"}
+                  <Sparkles className="w-3.5 h-3.5" /> {isGenerating ? "Polishing..." : "AI Assist"}
                 </Button>
               </div>
               <Textarea 
-                placeholder="What exactly needs to be done?"
-                className="min-h-[180px] bg-background/50 border-white/5 leading-relaxed"
+                placeholder="Briefly explain the goal and deliverables..."
+                className="min-h-[180px] bg-white/5 border-white/5 rounded-xl leading-relaxed text-sm"
                 value={newProject.description}
                 onChange={(e) => setNewProject({...newProject, description: e.target.value})}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label>Locked Budget (SATs)</Label>
-                <Input type="number" placeholder="50000" className="bg-background/50 border-white/5 h-11" />
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Total Budget (SAT)</Label>
+                <Input type="number" placeholder="100000" className="bg-white/5 border-white/5 rounded-xl h-11" />
               </div>
               <div className="space-y-2">
-                <Label>Target Experience</Label>
-                <Input placeholder="Intermediate" className="bg-background/50 border-white/5 h-11" />
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Target Expertise</Label>
+                <Input placeholder="Senior Developer" className="bg-white/5 border-white/5 rounded-xl h-11" />
               </div>
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="flex-1 rounded-xl">Cancel</Button>
-              <Button className="flex-1 bg-secondary neon-glow-secondary font-bold rounded-xl" onClick={() => {
-                toast({ title: "Listing Published", description: "Your listing is now live." });
+              <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="flex-1 rounded-xl h-12 font-bold">Cancel</Button>
+              <Button className="flex-1 bg-secondary neon-glow-secondary font-bold rounded-xl h-12" onClick={() => {
+                toast({ title: "Listing Published", description: "Your listing is now live on the global market." });
                 setIsCreateModalOpen(false);
               }}>
                 Publish Listing
@@ -280,7 +280,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
             </div>
             <div>
               <h3 className="text-xl font-headline font-bold group-hover:text-secondary transition-colors">{item.title}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.description || item.shortDescription}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description || item.shortDescription}</p>
             </div>
           </div>
 
@@ -288,7 +288,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <stats.icon className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{stats.label}</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">{stats.label}</span>
               </div>
               <span className="text-lg font-bold">{stats.value}</span>
             </div>
@@ -296,7 +296,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Budget</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Budget</span>
               </div>
               <span className="text-sm font-bold text-secondary">
                 {isProject ? `${item.budgetMin.toLocaleString()} SAT` : `${item.rewardAmount.toLocaleString()} SAT`}
@@ -307,7 +307,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
               <Button variant="outline" size="sm" className="rounded-lg border-white/10 hover:bg-white/5 h-9">
                 <Settings2 className="w-3.5 h-3.5" />
               </Button>
-              <Button asChild size="sm" className="rounded-lg bg-secondary hover:brightness-110 font-bold h-9">
+              <Button asChild size="sm" className="rounded-lg bg-secondary hover:brightness-110 font-bold h-9 shadow-sm shadow-secondary/20">
                 <Link href={isProject ? `/my-projects/${item.id}` : `/audits`}>Manage</Link>
               </Button>
             </div>
@@ -315,5 +315,17 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function EmptyState({ title, desc }: { title: string, desc: string }) {
+  return (
+    <div className="text-center py-20 glass-card rounded-3xl border-dashed bg-white/[0.02]">
+      <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+        <AlertCircle className="w-8 h-8 text-muted-foreground/30" />
+      </div>
+      <h3 className="text-xl font-bold">{title}</h3>
+      <p className="text-muted-foreground max-w-sm mx-auto mt-2">{desc}</p>
+    </div>
   );
 }
