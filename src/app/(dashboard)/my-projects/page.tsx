@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -20,71 +21,34 @@ import {
 } from 'lucide-react';
 import { mockProjects, mockTasks, mockProfile } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
-import { toast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 export default function ManagementHubPage() {
-  const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
-  // Form State
-  const [newProject, setNewProject] = useState({
-    title: '',
-    description: '',
-    budget: '',
-    type: 'project' as 'project' | 'task'
-  });
-
-  async function handleAIGenerate() {
-    if (!newProject.title && !newProject.description) {
-      toast({ variant: "destructive", title: "Missing input", description: "Please provide a basic title or goal first." });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const result = await generateJobProjectDescription({ prompt: newProject.title || newProject.description });
-      setNewProject({
-        ...newProject,
-        title: result.title,
-        description: `${result.description}\n\nResponsibilities:\n${result.responsibilities.join('\n')}\n\nRequirements:\n${result.requirements.join('\n')}`
-      });
-      toast({ title: "AI Draft Ready", description: "I've polished your description and requirements." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Generation failed", description: "AI Helper is currently busy." });
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
   // Hiring: Listings created by me
   const myHiringProjects = mockProjects.filter(p => p.creatorId === mockProfile.id);
   const myHiringTasks = mockTasks.filter(t => t.creatorId === mockProfile.id);
 
   // Working: Projects I'm involved in as a worker/contractor
   const myWorkingProjects = mockProjects.filter(p => p.status === 'in_progress' && p.creatorId !== mockProfile.id);
-  // (In a real app, we'd check if my userId is in the project.assignedWorkerId field)
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold">Management Hub</h1>
-          <p className="text-muted-foreground">Complete oversight of your global gig operations.</p>
+          <p className="text-muted-foreground">Complete oversight of your global professional operations.</p>
         </div>
         <Button 
+          asChild
           className="rounded-xl bg-secondary hover:brightness-110 gap-2 neon-glow-secondary font-bold h-12 px-6 shadow-lg shadow-secondary/20"
-          onClick={() => setIsCreateModalOpen(true)}
         >
-          <PlusCircle className="w-4 h-4" /> Post a Listing
+          <Link href="/my-projects/create">
+            <PlusCircle className="w-4 h-4" /> Post a Listing
+          </Link>
         </Button>
       </header>
 
@@ -104,7 +68,7 @@ export default function ManagementHubPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input 
                 type="text" 
-                placeholder="Filter your projects..." 
+                placeholder="Filter listings..." 
                 className="w-full bg-white/5 border border-white/5 rounded-2xl py-2 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -123,7 +87,7 @@ export default function ManagementHubPage() {
               <ProjectManagementCard key={task.id} item={task} type="task" />
             ))}
             {myHiringProjects.length === 0 && myHiringTasks.length === 0 && (
-              <EmptyState title="No active listings" desc="You haven't posted any jobs or micro-tasks yet." />
+              <EmptyState title="No active listings" desc="You haven't initiated any objectives yet." />
             )}
           </div>
         </TabsContent>
@@ -145,12 +109,12 @@ export default function ManagementHubPage() {
                             Active Contract
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground font-medium">Client: {project.clientName} • Fixed Price Project</p>
+                        <p className="text-sm text-muted-foreground font-medium">Client: {project.clientName} • Strategic Partner</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden md:block">
-                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Locked</p>
+                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Locked Yield</p>
                         <p className="text-lg font-bold text-primary">{project.budgetMin.toLocaleString()} SAT</p>
                       </div>
                       <Button asChild size="lg" className="rounded-xl bg-primary neon-glow-primary font-bold h-12 px-8">
@@ -162,96 +126,11 @@ export default function ManagementHubPage() {
               </Card>
             ))}
             {myWorkingProjects.length === 0 && (
-              <EmptyState title="No active contracts" desc="Browse the market to find high-value projects to work on." />
+              <EmptyState title="No active contracts" desc="Browse the market to find professional opportunities to perform." />
             )}
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Listing Creation Dialog remains consistent */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl bg-card border-white/10 p-0 overflow-hidden rounded-3xl">
-          <DialogHeader className="p-8 pb-0">
-            <DialogTitle className="text-3xl font-headline font-bold">Create New Listing</DialogTitle>
-            <DialogDescription className="text-muted-foreground text-base">Describe your needs. AI will help professionalize your requirements.</DialogDescription>
-          </DialogHeader>
-          
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Listing Type</Label>
-                <div className="flex gap-2">
-                  <Button 
-                    variant={newProject.type === 'project' ? 'secondary' : 'outline'}
-                    className={cn("flex-1 rounded-xl h-11 transition-all", newProject.type === 'project' && "bg-secondary neon-glow-secondary")}
-                    onClick={() => setNewProject({...newProject, type: 'project'})}
-                  >
-                    Project
-                  </Button>
-                  <Button 
-                    variant={newProject.type === 'task' ? 'secondary' : 'outline'}
-                    className={cn("flex-1 rounded-xl h-11 transition-all", newProject.type === 'task' && "bg-secondary neon-glow-secondary")}
-                    onClick={() => setNewProject({...newProject, type: 'task'})}
-                  >
-                    Micro Task
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Title</Label>
-                <Input 
-                  placeholder="e.g. Design a Lightning Wallet UI" 
-                  className="bg-white/5 border-white/5 rounded-xl h-11"
-                  value={newProject.title}
-                  onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Project Scope & Requirements</Label>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-primary gap-2 h-7 px-2 hover:bg-primary/10"
-                  onClick={handleAIGenerate}
-                  disabled={isGenerating}
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> {isGenerating ? "Polishing..." : "AI Assist"}
-                </Button>
-              </div>
-              <Textarea 
-                placeholder="Briefly explain the goal and deliverables..."
-                className="min-h-[180px] bg-white/5 border-white/5 rounded-xl leading-relaxed text-sm"
-                value={newProject.description}
-                onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Total Budget (SAT)</Label>
-                <Input type="number" placeholder="100000" className="bg-white/5 border-white/5 rounded-xl h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Target Expertise</Label>
-                <Input placeholder="Senior Developer" className="bg-white/5 border-white/5 rounded-xl h-11" />
-              </div>
-            </div>
-
-            <div className="pt-4 flex gap-3">
-              <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="flex-1 rounded-xl h-12 font-bold">Cancel</Button>
-              <Button className="flex-1 bg-secondary neon-glow-secondary font-bold rounded-xl h-12" onClick={() => {
-                toast({ title: "Listing Published", description: "Your listing is now live on the global market." });
-                setIsCreateModalOpen(false);
-              }}>
-                Publish Listing
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -296,7 +175,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Budget</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Protocol Yield</span>
               </div>
               <span className="text-sm font-bold text-secondary">
                 {isProject ? `${item.budgetMin.toLocaleString()} SAT` : `${item.rewardAmount.toLocaleString()} SAT`}

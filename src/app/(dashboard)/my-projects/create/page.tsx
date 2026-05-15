@@ -1,0 +1,353 @@
+
+"use client"
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Zap, 
+  Briefcase, 
+  Sparkles, 
+  ArrowLeft, 
+  CheckCircle, 
+  ShieldCheck, 
+  Clock, 
+  Plus, 
+  X,
+  Target,
+  BadgeDollarSign
+} from 'lucide-react';
+import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
+import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
+import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+type ListingType = 'task' | 'project';
+
+export default function CreateListingPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [listingType, setListingType] = useState<ListingType>('project');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: '',
+    reward: '',
+    budgetMin: '',
+    budgetMax: '',
+    difficulty: 'medium',
+    experienceLevel: 'intermediate',
+    proofMethod: 'text',
+    skills: [] as string[],
+    newSkill: ''
+  });
+
+  async function handleAIAssist() {
+    if (!formData.title && !formData.description) {
+      toast({ variant: "destructive", title: "Input Required", description: "Provide a basic title or intent first." });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const genResult = await generateJobProjectDescription({ prompt: formData.title || formData.description });
+      const skillResult = await suggestSkillsAndCategories({ text: genResult.description });
+      
+      setFormData(prev => ({
+        ...prev,
+        title: genResult.title,
+        description: `${genResult.description}\n\nKey Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}\n\nSpecific Requirements:\n${genResult.requirements.map(r => `• ${r}`).join('\n')}`,
+        skills: [...new Set([...prev.skills, ...skillResult.suggestedSkills])],
+        category: skillResult.suggestedCategories[0] || prev.category
+      }));
+      
+      toast({ title: "Intelligence Applied", description: "Your listing has been professionalized by the AI agent." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Interface Error", description: "The AI node is currently out of reach." });
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function addSkill() {
+    if (formData.newSkill && !formData.skills.includes(formData.newSkill)) {
+      setFormData({ ...formData, skills: [...formData.skills, formData.newSkill], newSkill: '' });
+    }
+  }
+
+  function removeSkill(skill: string) {
+    setFormData({ ...formData, skills: formData.skills.filter(s => s !== skill) });
+  }
+
+  function handleSubmit() {
+    toast({ title: "Listing Propagated", description: "Your listing is now live across the network." });
+    router.push('/my-projects');
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+      <header className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="rounded-full" onClick={() => router.back()}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-4xl font-headline font-bold">Initiate Objective</h1>
+          <p className="text-muted-foreground">Define your professional requirements for global network nodes.</p>
+        </div>
+      </header>
+
+      {/* Stepper */}
+      <div className="flex items-center gap-4 mb-8">
+        {[1, 2, 3].map((s) => (
+          <div key={s} className="flex items-center gap-2">
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all",
+              step === s ? "bg-primary text-white neon-glow-primary" : 
+              step > s ? "bg-emerald-500 text-white" : "bg-white/5 text-muted-foreground"
+            )}>
+              {step > s ? <CheckCircle className="w-5 h-5" /> : s}
+            </div>
+            {s < 3 && <div className={cn("w-12 h-px", step > s ? "bg-emerald-500" : "bg-white/10")} />}
+          </div>
+        ))}
+      </div>
+
+      <Card className="glass-card border-none overflow-hidden">
+        <CardContent className="p-8">
+          {step === 1 && (
+            <div className="space-y-8 animate-in slide-in-from-right-4">
+              <div className="space-y-4">
+                <h3 className="text-2xl font-headline font-bold">1. Select Objective Class</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => setListingType('task')}
+                    className={cn(
+                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden",
+                      listingType === 'task' ? "border-primary bg-primary/5" : "border-white/5 bg-white/5 hover:border-white/10"
+                    )}
+                  >
+                    <Zap className={cn("w-8 h-8 mb-4", listingType === 'task' ? "text-primary" : "text-muted-foreground")} />
+                    <h4 className="font-bold text-lg">Micro Gig</h4>
+                    <p className="text-xs text-muted-foreground mt-1">High-volume, quick verification tasks for rapid scaling.</p>
+                    {listingType === 'task' && <div className="absolute top-4 right-4"><CheckCircle className="w-5 h-5 text-primary" /></div>}
+                  </button>
+                  <button 
+                    onClick={() => setListingType('project')}
+                    className={cn(
+                      "p-6 rounded-2xl border-2 text-left transition-all group relative overflow-hidden",
+                      listingType === 'project' ? "border-secondary bg-secondary/5" : "border-white/5 bg-white/5 hover:border-white/10"
+                    )}
+                  >
+                    <Briefcase className={cn("w-8 h-8 mb-4", listingType === 'project' ? "text-secondary" : "text-muted-foreground")} />
+                    <h4 className="font-bold text-lg">Professional Project</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Complex, milestone-based objectives for specialists.</p>
+                    {listingType === 'project' && <div className="absolute top-4 right-4"><CheckCircle className="w-5 h-5 text-secondary" /></div>}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Initial Identity</Label>
+                <Input 
+                  placeholder="Target title (e.g. Audit L2 Bridge Architecture)"
+                  className="h-14 bg-background/50 border-white/5 text-lg"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                />
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button className="rounded-xl h-12 px-8 font-bold" onClick={() => setStep(2)}>Next Configuration</Button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6 animate-in slide-in-from-right-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-headline font-bold">2. Configuration & Strategy</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-primary gap-2 hover:bg-primary/10"
+                  onClick={handleAIAssist}
+                  disabled={isGenerating}
+                >
+                  <Sparkles className="w-4 h-4" /> {isGenerating ? "Synthesizing..." : "AI Enhancement"}
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Detailed Description</Label>
+                <Textarea 
+                  placeholder="Describe the scope, deliverables, and expectations..."
+                  className="min-h-[250px] bg-background/50 border-white/5 leading-relaxed"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Skills Required</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="e.g. React" 
+                      className="bg-background/50 border-white/5"
+                      value={formData.newSkill}
+                      onChange={(e) => setFormData({...formData, newSkill: e.target.value})}
+                      onKeyDown={(e) => e.key === 'Enter' && addSkill()}
+                    />
+                    <Button variant="outline" size="icon" onClick={addSkill}><Plus className="w-4 h-4" /></Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.skills.map(skill => (
+                      <Badge key={skill} className="bg-white/5 text-muted-foreground border-white/5 px-3 py-1 gap-1">
+                        {skill}
+                        <button onClick={() => removeSkill(skill)}><X className="w-3 h-3 hover:text-white" /></button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Network Difficulty</Label>
+                  <Select value={listingType === 'task' ? formData.difficulty : formData.experienceLevel} onValueChange={(val) => {
+                    if (listingType === 'task') setFormData({...formData, difficulty: val});
+                    else setFormData({...formData, experienceLevel: val});
+                  }}>
+                    <SelectTrigger className="bg-background/50 border-white/5 h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Level 1 (Entry)</SelectItem>
+                      <SelectItem value="medium">Level 2 (Intermediate)</SelectItem>
+                      <SelectItem value="hard">Level 3 (Senior/Expert)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6 border-t border-white/5">
+                <Button variant="ghost" onClick={() => setStep(1)}>Previous</Button>
+                <Button className="rounded-xl h-12 px-8 font-bold" onClick={() => setStep(3)}>Final Parameters</Button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-8 animate-in slide-in-from-right-4">
+              <h3 className="text-2xl font-headline font-bold">3. Financials & Release</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card className="bg-white/5 border-white/5 p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <BadgeDollarSign className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold">Protocol Compensation</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Multi-sig Secure</p>
+                    </div>
+                  </div>
+                  
+                  {listingType === 'task' ? (
+                    <div className="space-y-2">
+                      <Label>Standard Reward (SAT)</Label>
+                      <Input 
+                        type="number" 
+                        placeholder="e.g. 5000" 
+                        className="h-12 bg-background border-white/5 text-xl font-bold"
+                        value={formData.reward}
+                        onChange={(e) => setFormData({...formData, reward: e.target.value})}
+                      />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Min Budget (SAT)</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="50000" 
+                          className="h-12 bg-background border-white/5"
+                          value={formData.budgetMin}
+                          onChange={(e) => setFormData({...formData, budgetMin: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Max Budget (SAT)</Label>
+                        <Input 
+                          type="number" 
+                          placeholder="150000" 
+                          className="h-12 bg-background border-white/5"
+                          value={formData.budgetMax}
+                          onChange={(e) => setFormData({...formData, budgetMax: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="bg-white/5 border-white/5 p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold">Validation Protocol</h4>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Method</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>{listingType === 'task' ? "Proof Required" : "Timeline Expectation"}</Label>
+                    {listingType === 'task' ? (
+                      <Select value={formData.proofMethod} onValueChange={(val) => setFormData({...formData, proofMethod: val})}>
+                        <SelectTrigger className="bg-background border-white/5 h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Narrative Proof</SelectItem>
+                          <SelectItem value="screenshot">Media/Screenshot</SelectItem>
+                          <SelectItem value="code_snippet">Code Proof</SelectItem>
+                          <SelectItem value="link">URL Verification</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input placeholder="e.g. 4 Weeks" className="h-12 bg-background border-white/5" />
+                    )}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 flex items-start gap-4">
+                <Target className="w-6 h-6 text-primary shrink-0" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-sm">Review Protocol</h4>
+                  <p className="text-xs text-muted-foreground">
+                    By releasing this objective, you agree to lock the specified compensation in the network's multi-sig escrow. 
+                    {listingType === 'task' ? " Submissions will be audited by the AI agent and peer validators." : " You will review candidate proposals manually before selecting a node."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-6 border-t border-white/5">
+                <Button variant="ghost" onClick={() => setStep(2)}>Previous</Button>
+                <Button className="rounded-xl h-14 px-12 font-bold bg-primary neon-glow-primary" onClick={handleSubmit}>
+                  Deploy Listing
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
