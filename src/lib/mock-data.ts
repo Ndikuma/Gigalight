@@ -3,10 +3,8 @@ import { Profile, Wallet, Task, Project, TaskSubmission } from './types';
 export const mockProfile: Profile = {
   id: 'user_1',
   fullName: 'Alex Lightning',
-  isWorkerAccount: true,
-  isBusinessAccount: true,
   isValidator: true,
-  activeRole: 'worker',
+  activeRole: 'user',
   avatarUrl: 'https://picsum.photos/seed/alex/100/100',
 };
 

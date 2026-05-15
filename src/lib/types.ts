@@ -1,10 +1,8 @@
-export type UserRole = 'worker' | 'business' | 'validator';
+export type UserRole = 'user' | 'validator';
 
 export interface Profile {
   id: string;
   fullName: string;
-  isWorkerAccount: boolean;
-  isBusinessAccount: boolean;
   isValidator: boolean;
   avatarUrl?: string;
   activeRole: UserRole;

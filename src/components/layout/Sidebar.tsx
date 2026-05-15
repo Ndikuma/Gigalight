@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -13,7 +12,8 @@ import {
   ShieldCheck, 
   Zap,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
@@ -35,17 +35,16 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Market', icon: Search, href: '/market' },
+    { name: 'Gigs Market', icon: Search, href: '/market' },
+    { name: 'My Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
-    ...(role === 'business' ? [{ name: 'My Projects', icon: Briefcase, href: '/my-projects' }] : []),
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
   const roleConfigs = {
-    worker: { label: 'Worker', color: 'text-[#8457F1]', icon: Zap },
-    business: { label: 'Business', color: 'text-[#3C62FF]', icon: Briefcase },
-    validator: { label: 'Validator', color: 'text-emerald-400', icon: ShieldCheck },
+    user: { label: 'User Mode', color: 'text-primary', icon: Zap },
+    validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck },
   };
 
   const currentRole = roleConfigs[role];
@@ -67,18 +66,15 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
                 <currentRole.icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Active Role</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Role</p>
                 <p className="text-sm font-semibold">{currentRole.label}</p>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-card border-white/5 p-2">
-            <DropdownMenuItem onClick={() => onRoleChange('worker')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
-              <Zap className="w-4 h-4 text-[#8457F1]" /> Worker Mode
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange('business')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-secondary/20">
-              <Briefcase className="w-4 h-4 text-[#3C62FF]" /> Business Mode
+            <DropdownMenuItem onClick={() => onRoleChange('user')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
+              <Zap className="w-4 h-4 text-primary" /> User Mode
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-emerald-400/20">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Validator Mode
@@ -108,7 +104,12 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-white/5">
+      <div className="p-4 mt-auto border-t border-white/5 space-y-3">
+        <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2">
+          <Link href="/my-projects">
+            <PlusCircle className="w-4 h-4" /> Post a Gig
+          </Link>
+        </Button>
         <Button variant="ghost" asChild className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all justify-start">
           <Link href="/">
             <LogOut className="w-5 h-5" />
