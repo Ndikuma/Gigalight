@@ -1,4 +1,6 @@
+
 export type UserRole = 'standard' | 'validator';
+export type MembershipTier = 'basic' | 'pro' | 'elite';
 
 export interface Profile {
   id: string;
@@ -6,6 +8,7 @@ export interface Profile {
   isValidator: boolean;
   avatarUrl?: string;
   activeRole: UserRole;
+  membershipTier: MembershipTier;
   bio?: string;
   skills: string[];
   location?: string;
@@ -43,7 +46,10 @@ export interface Bid {
   userName: string;
   userAvatar?: string;
   userReputation: number;
+  membershipTier: MembershipTier;
   amount: number;
+  signalFee: number;
+  isBoosted: boolean;
   timeline: string;
   proposalText: string;
   createdAt: string;

@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { mockTasks, mockProjects, mockProfile } from '@/lib/mock-data';
 import { 
@@ -15,7 +15,9 @@ import {
   Send,
   FileText,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Trophy,
+  Rocket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,9 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import { draftApplicationProposal } from '@/ai/flows/application-proposal-assistant-flow';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function OpportunityDetailPage() {
   const { id } = useParams();
@@ -33,11 +37,17 @@ export default function OpportunityDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrafting, setIsDrafting] = useState(false);
   const [step, setStep] = useState<'view' | 'active' | 'success'>('view');
+  const [mounted, setMounted] = useState(false);
   
   // Local form states
   const [proofText, setProofText] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [proposalText, setProposalText] = useState('');
+  const [isBoosted, setIsBoosted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const opportunity = useMemo(() => {
     const task = mockTasks.find(t => t.id === id);
@@ -46,6 +56,8 @@ export default function OpportunityDetailPage() {
     if (project) return { ...project, type: 'project' as const };
     return null;
   }, [id]);
+
+  if (!mounted) return null;
 
   if (!opportunity) {
     return (
@@ -60,6 +72,9 @@ export default function OpportunityDetailPage() {
   }
 
   const isTask = opportunity.type === 'task';
+  const signalFee = isTask ? 50 : 250;
+  const boostFee = isBoosted ? 500 : 0;
+  const totalUpfront = signalFee + boostFee;
 
   async function handleAIAssist() {
     if (opportunity.type !== 'project') return;
@@ -67,11 +82,11 @@ export default function OpportunityDetailPage() {
     try {
       const result = await draftApplicationProposal({
         userProfile: {
-          title: "Senior Developer",
-          bio: "Expert in decentralized systems and modern web architecture.",
-          skills: ["React", "TypeScript", "Node.js"],
-          completedProjects: 12,
-          totalEarned: 125000,
+          title: mockProfile.fullName,
+          bio: mockProfile.bio || "",
+          skills: mockProfile.skills,
+          completedProjects: mockProfile.stats.tasksCompleted,
+          totalEarned: mockProfile.stats.totalEarned,
         },
         opportunity: {
           type: 'project',
@@ -85,7 +100,7 @@ export default function OpportunityDetailPage() {
       setProposalText(result.proposalText);
       toast({
         title: "AI Draft Ready",
-        description: "Your proposal has been personalized for this project.",
+        description: "Your proposal has been personalized based on your Node Reputation.",
       });
     } catch (e) {
       toast({
@@ -100,15 +115,12 @@ export default function OpportunityDetailPage() {
 
   function handleSubmit() {
     setIsSubmitting(true);
-    // Simulate API delay
     setTimeout(() => {
       setIsSubmitting(false);
       setStep('success');
       toast({
-        title: isTask ? "Proof Submitted" : "Bid Placed",
-        description: isTask 
-          ? "The validator network will review your work soon." 
-          : "The client has been notified of your proposal.",
+        title: isTask ? "Proof Submitted" : "Bid Propagated",
+        description: `${totalUpfront} SAT signal fee deducted from liquid balance.`,
       });
     }, 1500);
   }
@@ -119,18 +131,18 @@ export default function OpportunityDetailPage() {
         <div className="w-20 h-20 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
           <CheckCircle className="w-10 h-10" />
         </div>
-        <h1 className="text-4xl font-headline font-bold">Excellent Work!</h1>
+        <h1 className="text-4xl font-headline font-bold">Proposal Propagated</h1>
         <p className="text-muted-foreground">
           {isTask 
-            ? "Your submission has been queued for verification. You'll receive your SATs once it's approved." 
-            : "Your proposal is now in the client's inbox. They'll reach out if it's a good fit."}
+            ? "Your submission has been queued for verification. AI nodes and peer validators are reviewing your output." 
+            : `Your proposal is now visible to the client. ${isBoosted ? "Your bid has been boosted for priority visibility." : ""}`}
         </p>
         <div className="flex justify-center gap-4 pt-4">
           <Button asChild variant="outline" className="rounded-xl px-8">
             <Link href="/dashboard">Dashboard</Link>
           </Button>
           <Button asChild className="rounded-xl px-8 bg-primary">
-            <Link href="/market">Find More Gigs</Link>
+            <Link href="/market">Browse More Missions</Link>
           </Button>
         </div>
       </div>
@@ -140,19 +152,18 @@ export default function OpportunityDetailPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <Button asChild variant="ghost" className="mb-4 hover:bg-white/5 gap-2">
-        <Link href="/market"><ArrowLeft className="w-4 h-4" /> Back to Market</Link>
+        <Link href="/market"><ArrowLeft className="w-4 h-4" /> Market Interface</Link>
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <header className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge className={isTask ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"}>
                 {isTask ? <Zap className="w-3 h-3 mr-1" /> : <Briefcase className="w-3 h-3 mr-1" />}
-                {isTask ? "Micro Gig" : "Project"}
+                {isTask ? "Micro Mission" : "Professional Project"}
               </Badge>
-              <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[10px]">
+              <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[10px] font-bold tracking-widest">
                 {isTask ? (opportunity as any).category : (opportunity as any).clientName}
               </Badge>
             </div>
@@ -163,7 +174,7 @@ export default function OpportunityDetailPage() {
 
           <Card className="glass-card border-none">
             <CardHeader>
-              <CardTitle className="font-headline">Description & Requirements</CardTitle>
+              <CardTitle className="font-headline">Objective Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-muted-foreground leading-relaxed">
@@ -172,26 +183,14 @@ export default function OpportunityDetailPage() {
 
               {!isTask && (
                 <div className="space-y-3">
-                  <h4 className="font-bold text-sm uppercase tracking-widest text-secondary">Required Skills</h4>
+                  <h4 className="font-bold text-sm uppercase tracking-widest text-secondary">Expertise Nodes Required</h4>
                   <div className="flex flex-wrap gap-2">
                     {(opportunity as any).skills.map((skill: string) => (
-                      <span key={skill} className="px-3 py-1 bg-white/5 rounded-full text-xs text-muted-foreground border border-white/5">
+                      <span key={skill} className="px-3 py-1 bg-white/5 rounded-full text-xs text-muted-foreground border border-white/5 font-bold">
                         {skill}
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {isTask && (
-                <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl space-y-2">
-                  <h4 className="font-bold text-sm flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> Verification Method
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    This task requires a <strong>{(opportunity as any).proofMethod}</strong> as proof of completion. 
-                    AI and peer validators will review your submission.
-                  </p>
                 </div>
               )}
             </CardContent>
@@ -202,16 +201,16 @@ export default function OpportunityDetailPage() {
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
                   <Send className="w-5 h-5 text-primary" /> 
-                  {isTask ? "Submit Your Proof" : "Draft Your Proposal"}
+                  {isTask ? "Submit Task Proof" : "Initiate Proposal"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {isTask ? (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Submission Details</Label>
+                      <Label>Proof Documentation</Label>
                       <Textarea 
-                        placeholder="Explain how you completed the task or paste the required info here..."
+                        placeholder="Detail your methodology or provide the required technical output..."
                         className="min-h-[150px] bg-background/50"
                         value={proofText}
                         onChange={(e) => setProofText(e.target.value)}
@@ -222,23 +221,39 @@ export default function OpportunityDetailPage() {
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Your Bid (SATs)</Label>
+                        <Label>Compensation Bid (SAT)</Label>
                         <Input 
                           type="number" 
                           placeholder="Amount in SAT" 
-                          className="bg-background/50"
+                          className="bg-background/50 font-bold"
                           value={bidAmount}
                           onChange={(e) => setBidAmount(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Est. Timeline</Label>
-                        <Input placeholder="e.g. 2 weeks" className="bg-background/50" />
+                        <Label>Timeline (Protocol Days)</Label>
+                        <Input placeholder="e.g. 14 Days" className="bg-background/50" />
                       </div>
                     </div>
+                    
+                    <div className="p-4 bg-white/5 border border-white/5 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-bold flex items-center gap-2">
+                            <Rocket className="w-4 h-4 text-secondary" /> Node Boost
+                          </Label>
+                          <p className="text-[10px] text-muted-foreground">Priority visibility in the client's proposal stream.</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-secondary">+500 SAT</span>
+                          <Switch checked={isBoosted} onCheckedChange={setIsBoosted} />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label>Cover Letter / Proposal</Label>
+                        <Label>Professional Pitch</Label>
                         <Button 
                           variant="ghost" 
                           size="sm" 
@@ -246,12 +261,12 @@ export default function OpportunityDetailPage() {
                           onClick={handleAIAssist}
                           disabled={isDrafting}
                         >
-                          <Sparkles className="w-3.5 h-3.5" /> {isDrafting ? "Drafting..." : "AI Assist"}
+                          <Sparkles className="w-3.5 h-3.5" /> {isDrafting ? "Synthesizing..." : "AI Intelligence Assist"}
                         </Button>
                       </div>
                       <Textarea 
-                        placeholder="Pitch yourself to the client..."
-                        className="min-h-[200px] bg-background/50"
+                        placeholder="Detail your approach and technical capability..."
+                        className="min-h-[200px] bg-background/50 leading-relaxed"
                         value={proposalText}
                         onChange={(e) => setProposalText(e.target.value)}
                       />
@@ -259,8 +274,25 @@ export default function OpportunityDetailPage() {
                   </div>
                 )}
 
+                <div className="bg-muted/30 p-4 rounded-xl space-y-2">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-muted-foreground">Network Signal Fee</span>
+                    <span>{signalFee} SAT</span>
+                  </div>
+                  {isBoosted && (
+                    <div className="flex justify-between text-xs font-bold text-secondary">
+                      <span>Node Boost Fee</span>
+                      <span>+500 SAT</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-headline font-bold border-t border-white/5 pt-2">
+                    <span>Total Upfront Signal</span>
+                    <span className="text-primary">{totalUpfront} SAT</span>
+                  </div>
+                </div>
+
                 <div className="flex gap-3">
-                  <Button variant="ghost" onClick={() => setStep('view')} className="flex-1">Cancel</Button>
+                  <Button variant="ghost" onClick={() => setStep('view')} className="flex-1">Abort</Button>
                   <Button 
                     className={cn(
                       "flex-1 font-bold h-12",
@@ -269,7 +301,7 @@ export default function OpportunityDetailPage() {
                     onClick={handleSubmit}
                     disabled={isSubmitting || (isTask ? !proofText : !proposalText || !bidAmount)}
                   >
-                    {isSubmitting ? "Processing..." : (isTask ? "Submit Task" : "Send Proposal")}
+                    {isSubmitting ? "Propagating..." : (isTask ? "Submit Proof" : "Deploy Proposal")}
                   </Button>
                 </div>
               </CardContent>
@@ -277,12 +309,11 @@ export default function OpportunityDetailPage() {
           )}
         </div>
 
-        {/* Sidebar Info */}
         <div className="space-y-6">
           <Card className="glass-card border-none bg-gradient-to-br from-card to-background">
             <CardContent className="p-8 space-y-6">
               <div className="text-center space-y-1">
-                <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold">Reward</p>
+                <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold">Yield Potential</p>
                 <h2 className={cn(
                   "text-4xl font-headline font-bold",
                   isTask ? "text-emerald-400" : "text-secondary"
@@ -296,11 +327,11 @@ export default function OpportunityDetailPage() {
 
               <div className="space-y-4 border-t border-white/5 pt-6">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Time Limit</span>
+                  <span className="text-muted-foreground flex items-center gap-2 font-bold"><Clock className="w-4 h-4" /> Protocol Limit</span>
                   <span className="font-bold">{isTask ? "~15 mins" : "Ongoing"}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-2"><Shield className="w-4 h-4" /> Difficulty</span>
+                  <span className="text-muted-foreground flex items-center gap-2 font-bold"><Trophy className="w-4 h-4" /> Tier Level</span>
                   <span className="font-bold capitalize">{opportunity.difficulty || (opportunity as any).experienceLevel}</span>
                 </div>
               </div>
@@ -313,25 +344,19 @@ export default function OpportunityDetailPage() {
                   )}
                   onClick={() => setStep('active')}
                 >
-                  {isTask ? "Start Task Now" : "Apply for Project"}
+                  {isTask ? "Initiate Task" : "Apply for Project"}
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-none overflow-hidden">
+          <Card className="glass-card border-none">
             <CardHeader className="bg-white/5">
-              <CardTitle className="text-sm font-headline">Safety & Escrow</CardTitle>
+              <CardTitle className="text-sm font-headline">L2 Protocol Rules</CardTitle>
             </CardHeader>
             <CardContent className="p-6 text-xs text-muted-foreground space-y-4 leading-relaxed">
-              <div className="flex gap-3">
-                <Shield className="w-5 h-5 text-emerald-400 shrink-0" />
-                <p>Funds are held in a secure multisig escrow. Payout is automated upon validation.</p>
-              </div>
-              <div className="flex gap-3">
-                <FileText className="w-5 h-5 text-primary shrink-0" />
-                <p>All work is recorded on the Layer 2 network for permanent reputation building.</p>
-              </div>
+              <p>Applications require a <strong>{signalFee} SAT</strong> non-refundable Signal Fee to ensure high-quality node interactions.</p>
+              <p>Project budgets are secured in a 2-of-3 multi-sig escrow before work starts.</p>
             </CardContent>
           </Card>
         </div>
@@ -339,5 +364,3 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
-
-const cn = (...classes: any[]) => classes.filter(Boolean).join(' ');

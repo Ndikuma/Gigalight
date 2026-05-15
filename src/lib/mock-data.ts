@@ -1,3 +1,4 @@
+
 import { Profile, Wallet, Task, Project, TaskSubmission, Notification } from './types';
 
 export const mockProfile: Profile = {
@@ -5,6 +6,7 @@ export const mockProfile: Profile = {
   fullName: 'Alex Lightning',
   isValidator: true,
   activeRole: 'standard',
+  membershipTier: 'pro',
   avatarUrl: 'https://picsum.photos/seed/alex/100/100',
   bio: 'Strategic systems architect specializing in Bitcoin L2 integrations and decentralized workforce protocols. High-intensity node contributor.',
   skills: ['Next.js', 'TypeScript', 'LND', 'Rust', 'Security Audit', 'System Design'],
@@ -39,7 +41,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: 't2',
-    creatorId: 'user_1', // Owned by current user
+    creatorId: 'user_1',
     title: 'Validate Multi-sig Escrow Logic',
     rewardAmount: 7500,
     difficulty: 'hard',
@@ -48,37 +50,13 @@ export const mockTasks: Task[] = [
     category: 'Engineering',
     status: 'active',
     submissionsCount: 2,
-  },
-  {
-    id: 't3',
-    creatorId: 'user_admin',
-    title: 'UX Stress Test: Mobile Node',
-    rewardAmount: 800,
-    difficulty: 'easy',
-    shortDescription: 'Perform a high-intensity interaction session on the mobile node simulator. Log any latency spikes during satoshi settlement.',
-    proofMethod: 'screenshot',
-    category: 'Quality Assurance',
-    status: 'active',
-    submissionsCount: 24,
-  },
-  {
-    id: 't4',
-    creatorId: 'user_admin',
-    title: 'Translate Technical Roadmap (Spanish)',
-    rewardAmount: 2200,
-    difficulty: 'medium',
-    shortDescription: 'Accurately localize the 2024 network roadmap for the Spanish-speaking community. Maintain technical precision.',
-    proofMethod: 'text',
-    category: 'Localization',
-    status: 'active',
-    submissionsCount: 5,
   }
 ];
 
 export const mockProjects: Project[] = [
   {
     id: 'p1',
-    creatorId: 'user_1', // User is hiring for this
+    creatorId: 'user_1',
     title: 'Enterprise L2 Payroll Infrastructure',
     budgetMin: 150000,
     budgetMax: 450000,
@@ -95,7 +73,10 @@ export const mockProjects: Project[] = [
         userId: 'node_alpha',
         userName: 'AlphaNode Architect',
         userReputation: 98,
+        membershipTier: 'elite',
         amount: 380000,
+        signalFee: 500,
+        isBoosted: true,
         timeline: '6 weeks',
         proposalText: 'I have previously deployed L2 payment rails for three Fortune 500 equivalent crypto entities. My proposed architecture utilizes a non-custodial hub-and-spoke model for maximum throughput.',
         createdAt: new Date(Date.now() - 86400000).toISOString(),
@@ -106,51 +87,13 @@ export const mockProjects: Project[] = [
         userId: 'node_delta',
         userName: 'Delta Labs',
         userReputation: 92,
+        membershipTier: 'pro',
         amount: 320000,
+        signalFee: 200,
+        isBoosted: false,
         timeline: '4 weeks',
         proposalText: 'Fast implementation focus. We use a proprietary SDK for rapid channel balancing that can reduce integration time by 30%.',
         createdAt: new Date(Date.now() - 43200000).toISOString(),
-        status: 'pending'
-      }
-    ]
-  },
-  {
-    id: 'p2',
-    creatorId: 'user_admin',
-    title: 'Global Compliance Integration Node',
-    budgetMin: 8000,
-    budgetMax: 12000,
-    budgetType: 'hourly',
-    experienceLevel: 'expert',
-    description: 'Integrating borderless tax and regulatory tools into the L2 workforce dashboard. Must be familiar with international digital asset reporting standards.',
-    skills: ['Legal Tech', 'API Integration', 'Data Security'],
-    status: 'in_progress', // User is working on this
-    clientName: 'Regulon Network',
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-  },
-  {
-    id: 'p3',
-    creatorId: 'user_admin',
-    title: 'High-Fidelity Wallet UI Redesign',
-    budgetMin: 45000,
-    budgetMax: 65000,
-    budgetType: 'fixed',
-    experienceLevel: 'intermediate',
-    description: 'Transforming the existing wallet interface into a professional strategic tool. Focus on data density, dark-mode aesthetics, and transaction clarity.',
-    skills: ['Figma', 'UI/UX Design', 'Motion Graphics'],
-    status: 'open',
-    clientName: 'OmniWallet',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    bids: [
-      {
-        id: 'bid_3',
-        userId: 'user_design_pro',
-        userName: 'PixelPioneer',
-        userReputation: 89,
-        amount: 55000,
-        timeline: '3 weeks',
-        proposalText: 'Expert in high-contrast dark interfaces. I will provide a full design system and interactive prototypes.',
-        createdAt: new Date().toISOString(),
         status: 'pending'
       }
     ]
@@ -166,15 +109,6 @@ export const mockSubmissions: TaskSubmission[] = [
     status: 'pending',
     proofText: 'Audit complete. Identified a potential double-spend vulnerability in the off-chain channel closing logic on page 14.',
     createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sub_2',
-    taskId: 't2',
-    userId: 'user_102',
-    userName: 'CipherPunk',
-    status: 'pending',
-    proofText: 'The multisig logic fails when one of the signatories has a zero balance. See attached snippet for the fix.',
-    createdAt: new Date().toISOString(),
   }
 ];
 
@@ -186,36 +120,7 @@ export const mockNotifications: Notification[] = [
     description: 'Your contribution to "L2 Bridge Implementation" has been verified. 12,000 SAT added to your liquid balance.',
     type: 'reward',
     status: 'unread',
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
     link: '/wallet'
-  },
-  {
-    id: 'n2',
-    userId: 'user_1',
-    title: 'New Bid Propagated',
-    description: 'PixelPioneer has submitted a proposal for "High-Fidelity Wallet UI Redesign".',
-    type: 'bid',
-    status: 'unread',
-    createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-    link: '/my-projects/p3'
-  },
-  {
-    id: 'n3',
-    userId: 'user_1',
-    title: 'Network Audit Required',
-    description: 'A critical proof submission for "Validate Multi-sig Escrow Logic" requires peer validation.',
-    type: 'audit',
-    status: 'read',
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    link: '/audits'
-  },
-  {
-    id: 'n4',
-    userId: 'user_1',
-    title: 'Protocol Upgrade Imminent',
-    description: 'L2 Settlement protocols will undergo high-intensity maintenance at 04:00 UTC.',
-    type: 'system',
-    status: 'unread',
-    createdAt: new Date(Date.now() - 1800000).toISOString(), // 30 mins ago
   }
 ];
