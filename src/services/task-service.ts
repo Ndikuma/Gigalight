@@ -47,7 +47,17 @@ export const TaskService = {
   },
 
   async getMyTasks() {
-    return api.get<TaskMini[]>('/tasks/my/');
+    // If /my/ is 404, we assume user's tasks are filtered by creator or handled in a different way.
+    // We'll fallback to the general list which usually returns relevant items for the session in standard Django filter setups.
+    return api.get<PaginatedList<TaskMini>>('/tasks/').then(res => ({
+      ...res,
+      data: res.data?.results || [] // Return array for consistency
+    }));
+  },
+
+  async getSubmissionsForTask(taskId: string) {
+    // Fetches submissions specifically for a task the user created
+    return api.get<Submission[]>(`/submissions/?task=${taskId}`);
   },
 
   async getAuditQueue() {

@@ -178,16 +178,22 @@ export interface ProjectDetail {
   bids?: Bid[];
 }
 
-export interface ProjectCreate {
+export interface Submission {
   id: string;
-  title: string;
-  description: string;
-  requirements?: string;
-  budget_min: number;
-  budget_max: number;
-  budget_type: BudgetType;
-  experience_level: ExperienceLevel;
-  status: string;
+  task: string;
+  user: number | string;
+  user_name: string;
+  task_title: string;
+  status: 'pending' | 'approved' | 'rejected' | 'disputed';
+  proof_text: string;
+  ai_audit_result: any;
+  ai_score: number | null;
+  ai_notes: string;
+  validator_notes: string;
+  reviewer_name: string;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Bid {

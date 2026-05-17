@@ -43,12 +43,27 @@ export default function ManagementHubPage() {
           TaskService.getMySubmissions()
         ]);
         
-        if (projRes.data) setProjects(Array.isArray(projRes.data) ? projRes.data : []);
-        if (taskRes.data) setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
-        if (subRes.data) setSubmissions(Array.isArray(subRes.data) ? subRes.data : []);
+        // Defensive check for projects
+        if (projRes.data) {
+          setProjects(Array.isArray(projRes.data) ? projRes.data : []);
+        }
+
+        // Defensive check for tasks (handle PaginatedList vs Array)
+        if (taskRes.data) {
+          setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+        }
+
+        // Defensive check for submissions
+        if (subRes.data) {
+          setSubmissions(Array.isArray(subRes.data) ? subRes.data : []);
+        }
         
       } catch (e) {
-        toast({ variant: "destructive", title: "Synchronization Lost", description: "Could not fetch your professional history." });
+        toast({ 
+          variant: "destructive", 
+          title: "Synchronization Lost", 
+          description: "Could not fetch your professional history from the node." 
+        });
       } finally {
         setIsLoading(false);
       }
@@ -98,12 +113,12 @@ export default function ManagementHubPage() {
               <Zap className="w-4 h-4" /> Micro Gigs ({tasks.length})
             </TabsTrigger>
             <TabsTrigger value="contributions" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-emerald-500 transition-all font-bold gap-2">
-              <Activity className="w-4 h-4" /> Contributions ({submissions.length})
+              <Activity className="w-4 h-4" /> My Contributions ({submissions.length})
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* Strategic Projects Management */}
+        {/* Strategic Projects Management (Owner View) */}
         <TabsContent value="projects" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {projects.map((project) => (
@@ -115,7 +130,7 @@ export default function ManagementHubPage() {
           </div>
         </TabsContent>
 
-        {/* Micro Gigs Management */}
+        {/* Micro Gigs Management (Owner View) */}
         <TabsContent value="tasks" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {tasks.map((task) => (
@@ -127,7 +142,7 @@ export default function ManagementHubPage() {
           </div>
         </TabsContent>
 
-        {/* My Performance (Technical Contributions) */}
+        {/* My Performance (Work I've done) */}
         <TabsContent value="contributions" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {submissions.map((sub) => (
@@ -148,8 +163,8 @@ export default function ManagementHubPage() {
                         <p className="text-sm text-muted-foreground font-medium">Verified Signal: {new Date(sub.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <Button asChild className="rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold h-12 px-8 gap-2">
-                      <Link href={`/market/${sub.task}`}>View Execution <ArrowRight className="w-4 h-4" /></Link>
+                    <Button asChild variant="outline" className="rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10 font-bold h-12 px-8 gap-2">
+                      <Link href={`/market/${sub.task}`}>View Mission <ArrowRight className="w-4 h-4" /></Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -165,7 +180,7 @@ export default function ManagementHubPage() {
   );
 }
 
-function ProjectManagementCard({ item, onFormatBudget }: { item: ProjectDetail, onFormatBudget: (b: any) => string }) {
+function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBudget: (b: any) => string }) {
   return (
     <Card className="glass-card border-none overflow-hidden group hover:border-secondary/30 transition-all">
       <CardContent className="p-0">
@@ -184,10 +199,10 @@ function ProjectManagementCard({ item, onFormatBudget }: { item: ProjectDetail, 
             </div>
             <div>
               <h3 className="text-xl font-headline font-bold text-white group-hover:text-secondary transition-colors">{item.title}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.short_description || item.description}</p>
             </div>
             <div className="flex flex-wrap gap-2 pt-2">
-              {(item.skills || []).slice(0, 3).map(skill => (
+              {(item.skills || []).slice(0, 3).map((skill: any) => (
                 <span key={skill.id} className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded-md text-muted-foreground">
                   {skill.name}
                 </span>
@@ -260,7 +275,7 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Validations</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Submissions</span>
               </div>
               <span className="text-lg font-bold text-white">{task.submissions_count || 0}</span>
             </div>
@@ -277,7 +292,7 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
 
             <div className="grid grid-cols-1 gap-2 mt-2">
               <Button asChild size="sm" className="w-full rounded-xl bg-primary hover:brightness-110 font-bold h-11 shadow-sm shadow-primary/20 gap-2">
-                <Link href={`/audits`}>Audit Proof Signal <ArrowRight className="w-4 h-4" /></Link>
+                <Link href={`/my-tasks/${task.id}`}>Review Proofs <ArrowRight className="w-4 h-4" /></Link>
               </Button>
             </div>
           </div>
