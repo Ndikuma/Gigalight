@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -6,25 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Users, 
-  Shield, 
   CheckCircle, 
-  MessageSquare, 
-  Trophy,
-  Zap,
-  Briefcase,
-  AlertCircle,
-  Plus,
-  FileText,
-  Rocket,
-  Sparkles,
-  Activity,
-  Settings2,
-  Loader2
+  Zap, 
+  Briefcase, 
+  AlertCircle, 
+  FileText, 
+  Loader2 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
@@ -35,7 +26,6 @@ import { ProjectDetail } from '@/lib/types';
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams();
-  const router = useRouter();
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [activeTab, setActiveTab] = useState('applicants');
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +45,14 @@ export default function ProjectWorkspacePage() {
     fetchProject();
   }, [id]);
 
+  const formatBudget = (budget: any) => {
+    if (typeof budget === 'string') return budget;
+    if (budget && typeof budget === 'object' && 'min' in budget) {
+      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()} SAT`;
+    }
+    return 'TBD';
+  };
+
   async function handleHire(candidateName: string, bidId: string) {
     if (!project) return;
     try {
@@ -64,7 +62,6 @@ export default function ProjectWorkspacePage() {
           title: "Node Selected",
           description: `${candidateName} has been commissioned. Payout locked in escrow.`,
         });
-        // Refresh project data
         const refresh = await ProjectService.getProject(project.id);
         if (refresh.data) setProject(refresh.data);
       }
@@ -181,7 +178,7 @@ export default function ProjectWorkspacePage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold text-emerald-400">{project.budget}</h3>
+                      <h3 className="text-2xl font-bold text-emerald-400">{formatBudget(project.budget)}</h3>
                     </div>
                     <div className="space-y-2">
                       <Progress value={progressPercent} className="h-2 bg-white/5" />
@@ -242,7 +239,7 @@ export default function ProjectWorkspacePage() {
               <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-2 font-bold"><Zap className="w-4 h-4" /> Budget</span>
-                  <span className="font-bold text-secondary">{project.budget}</span>
+                  <span className="font-bold text-secondary">{formatBudget(project.budget)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-2 font-bold"><Briefcase className="w-4 h-4" /> Class</span>

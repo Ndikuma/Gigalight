@@ -58,8 +58,16 @@ export default function MarketPage() {
     fetchMarket();
   }, []);
 
+  const formatBudget = (budget: any) => {
+    if (typeof budget === 'string') return budget;
+    if (budget && typeof budget === 'object' && 'min' in budget) {
+      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()}`;
+    }
+    return 'TBD';
+  };
+
   const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
+    return (tasks || []).filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            task.short_description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedCategory || task.category.name === selectedCategory;
@@ -69,7 +77,7 @@ export default function MarketPage() {
   }, [searchQuery, selectedCategory, selectedDifficulty, tasks]);
 
   const filteredProjects = useMemo(() => {
-    return projects.filter(project => {
+    return (projects || []).filter(project => {
       const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            project.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedCategory || project.skills.some(s => s.name === selectedCategory);
@@ -125,7 +133,7 @@ export default function MarketPage() {
               <DropdownMenuContent className="w-64 bg-card border-white/10 p-2 shadow-2xl">
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Field</DropdownMenuLabel>
                 <div className="space-y-1 mb-2">
-                  {categories.slice(0, 8).map(cat => (
+                  {(categories || []).slice(0, 8).map(cat => (
                     <DropdownMenuCheckboxItem 
                       key={cat.id} 
                       checked={selectedCategory === cat.name}
@@ -207,10 +215,10 @@ export default function MarketPage() {
                   
                   <div className="flex justify-between items-start mb-6">
                     <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-                      {task.category.name}
+                      {task.category?.name}
                     </Badge>
                     <div className="text-right">
-                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount.toLocaleString()}</p>
+                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount?.toLocaleString()}</p>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
                     </div>
                   </div>
@@ -263,7 +271,7 @@ export default function MarketPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-3">
-                        {project.skills.map(skill => (
+                        {(project.skills || []).map(skill => (
                           <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
                             {skill.name}
                           </span>
@@ -275,7 +283,7 @@ export default function MarketPage() {
                       <div className="text-center space-y-1">
                         <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mb-2">Technical Budget</p>
                         <p className="text-3xl font-headline font-bold text-secondary">
-                          {project.budget}
+                          {formatBudget(project.budget)}
                         </p>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">SATOSHIS • MULTI-SIG</p>
                       </div>

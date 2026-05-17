@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -9,12 +8,10 @@ import {
   Briefcase, 
   Settings2, 
   Users, 
-  Search, 
   AlertCircle, 
   Layers,
   CheckCircle,
   Clock,
-  Filter,
   Loader2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +24,6 @@ import { ProjectDetail, Submission } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 
 export default function ManagementHubPage() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,9 +36,8 @@ export default function ManagementHubPage() {
           ProjectService.getMyProjects(),
           TaskService.getMySubmissions()
         ]);
-        // Note: The schema might return a list or a paginated object depending on current node status
-        if (Array.isArray(projRes.data)) setProjects(projRes.data as any);
-        if (Array.isArray(subRes.data)) setSubmissions(subRes.data);
+        if (projRes.data) setProjects(Array.isArray(projRes.data) ? projRes.data : []);
+        if (subRes.data) setSubmissions(Array.isArray(subRes.data) ? subRes.data : []);
       } catch (e) {
         toast({ variant: "destructive", title: "Synchronization Lost", description: "Could not fetch your professional history." });
       } finally {
@@ -139,6 +134,14 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
     ? { label: 'Bids', value: item.bids_count || 0, icon: Users } 
     : { label: 'Proof', value: item.submissions_count || 0, icon: CheckCircle };
 
+  const formatBudget = (budget: any) => {
+    if (typeof budget === 'string') return budget;
+    if (budget && typeof budget === 'object' && 'min' in budget) {
+      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()} SAT`;
+    }
+    return 'TBD';
+  };
+
   return (
     <Card className="glass-card border-none overflow-hidden group hover:border-secondary/30 transition-all">
       <CardContent className="p-0">
@@ -176,7 +179,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Protocol Yield</span>
               </div>
               <span className="text-sm font-bold text-secondary">
-                {isProject ? `${item.budget || (item.budget_max + ' SAT')}` : `${(item.reward_amount || 0).toLocaleString()} SAT`}
+                {isProject ? formatBudget(item.budget) : `${(item.reward_amount || 0).toLocaleString()} SAT`}
               </span>
             </div>
 

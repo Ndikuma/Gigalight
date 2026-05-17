@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Zap, 
@@ -12,13 +11,10 @@ import {
   CheckCircle, 
   Sparkles, 
   Send,
-  DollarSign,
   AlertCircle,
   Trophy,
   Rocket,
-  ExternalLink,
   ShieldCheck,
-  Target,
   Cpu,
   Loader2
 } from 'lucide-react';
@@ -37,11 +33,10 @@ import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
-import { TaskMini, ProjectDetail, User } from '@/lib/types';
+import { TaskMini, ProjectDetail, User, Budget } from '@/lib/types';
 
 export default function OpportunityDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrafting, setIsDrafting] = useState(false);
   const [step, setStep] = useState<'view' | 'active' | 'success'>('view');
@@ -107,8 +102,16 @@ export default function OpportunityDetailPage() {
   }
 
   const isTask = opportunity.type === 'task';
-  const signalFee = isTask ? 50 : 250; // Simplified for MVP logic
+  const signalFee = isTask ? 50 : 250;
   const totalUpfront = signalFee + (isBoosted ? 500 : 0);
+
+  const formatBudget = (budget: any) => {
+    if (typeof budget === 'string') return budget;
+    if (budget && typeof budget === 'object' && 'min' in budget) {
+      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()}`;
+    }
+    return 'TBD';
+  };
 
   async function handleAIAssist() {
     if (opportunity.type !== 'project') return;
@@ -394,7 +397,7 @@ export default function OpportunityDetailPage() {
                 )}>
                   {isTask 
                     ? `+${(opportunity.data as TaskMini).reward_amount.toLocaleString()}` 
-                    : (opportunity.data as ProjectDetail).budget}
+                    : formatBudget((opportunity.data as ProjectDetail).budget)}
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">SATOSHIS</p>
               </div>

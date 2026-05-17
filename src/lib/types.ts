@@ -20,25 +20,6 @@ export interface User {
   profile: ProfileData;
 }
 
-export interface Profile {
-  id: string;
-  fullName: string;
-  avatarUrl: string;
-  bio?: string;
-  location?: string;
-  membershipTier: 'basic' | 'pro' | 'elite';
-  reputation: number;
-  isValidator: boolean;
-  activeRole: UserRole;
-  skills: string[];
-  stats: {
-    tasksCompleted: number;
-    projectsHired: number;
-    totalEarned: number;
-    totalSpent: number;
-  };
-}
-
 export interface ProfileData {
   avatar_url?: string;
   bio?: string;
@@ -135,26 +116,6 @@ export interface TaskMini {
   created_at: string;
 }
 
-export interface Submission {
-  id: string;
-  task: string;
-  user: number;
-  user_name: string;
-  task_title: string;
-  status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'needs_revision' | 'disputed';
-  proof_text?: string;
-  proof_image_uri?: string;
-  proof_link?: string;
-  ai_audit_result: any;
-  ai_score: number | null;
-  ai_notes: string;
-  validator_notes: string;
-  reviewer_name: string;
-  reviewed_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
 export type BudgetType = 'fixed' | 'hourly';
 export type ExperienceLevel = 'entry' | 'intermediate' | 'expert';
 export type ProjectStatus = 'draft' | 'open' | 'in_progress' | 'under_review' | 'completed' | 'cancelled' | 'disputed';
@@ -171,6 +132,12 @@ export interface Milestone {
   created_at: string;
 }
 
+export interface Budget {
+  min: number;
+  max: number;
+  type: BudgetType;
+}
+
 export interface ProjectDetail {
   id: string;
   title: string;
@@ -180,7 +147,7 @@ export interface ProjectDetail {
   description: string;
   requirements: string;
   client_name: string;
-  budget: string;
+  budget: string | Budget;
   budget_type: BudgetType;
   experience_level: ExperienceLevel;
   estimated_duration_days: number | null;
@@ -208,7 +175,19 @@ export interface ProjectDetail {
   delivery_count: string;
   created_at: string;
   updated_at: string;
-  bids?: Bid[]; // For management view
+  bids?: Bid[];
+}
+
+export interface ProjectCreate {
+  id: string;
+  title: string;
+  description: string;
+  requirements?: string;
+  budget_min: number;
+  budget_max: number;
+  budget_type: BudgetType;
+  experience_level: ExperienceLevel;
+  status: string;
 }
 
 export interface Bid {
@@ -225,8 +204,8 @@ export interface Bid {
   status_display: string;
   submitted_count: number;
   created_at: string;
-  user_reputation?: number; // Added for UI display
-  membership_tier?: 'basic' | 'pro' | 'elite'; // Added for UI display
+  user_reputation?: number;
+  membership_tier?: string;
 }
 
 export interface Skill {
