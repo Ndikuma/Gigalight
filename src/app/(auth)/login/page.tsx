@@ -10,23 +10,43 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, ArrowRight, Lock, User, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AuthService } from '@/services/auth-service';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth propagation
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    try {
+      const response = await AuthService.login({ email, password });
+      
+      if (response.data) {
+        toast({
+          title: "Identity Verified",
+          description: "Establishing multi-sig session...",
+        });
+        router.push('/dashboard');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: response.error || "Invalid credentials provided to the node.",
+        });
+      }
+    } catch (err) {
       toast({
-        title: "Identity Verified",
-        description: "Establishing multi-sig session...",
+        variant: "destructive",
+        title: "Protocol Error",
+        description: "Could not connect to the Satoshi network.",
       });
-      router.push('/dashboard');
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,12 +64,15 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Identifier</Label>
+              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Identifier (Email)</Label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
-                  placeholder="Username or Satoshi Mail" 
+                  type="email"
+                  placeholder="alex@satoshi.mail" 
                   className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -67,6 +90,8 @@ export default function LoginPage() {
                   type="password"
                   placeholder="••••••••" 
                   className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>

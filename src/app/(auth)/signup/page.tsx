@@ -11,23 +11,61 @@ import { Label } from '@/components/ui/label';
 import { Sparkles, ArrowRight, Mail, User, Lock, Briefcase, Zap, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { AuthService } from '@/services/auth-service';
 
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [role, setRole] = useState<'professional' | 'client'>('professional');
+  
+  const [formData, setFormData] = useState({
+    username: '',
+    display_name: '',
+    email: '',
+    password: '',
+    password2: ''
+  });
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.password2) {
+      toast({ variant: "destructive", title: "Key Mismatch", description: "Access keys do not match." });
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Protocol Initialized",
-        description: "Your node identity has been registered.",
+    try {
+      const response = await AuthService.signup({
+        ...formData,
+        role: role // Backend can handle role if implemented, otherwise it's metadata
       });
-      router.push('/verify');
-    }, 1500);
+
+      if (response.data) {
+        toast({
+          title: "Protocol Initialized",
+          description: "Your node identity has been registered. Please login.",
+        });
+        router.push('/login');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Registration Error",
+          description: response.error || "Could not propagate identity to the network.",
+        });
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Interface Error",
+        description: "The Satoshi gateway is unreachable.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,37 +107,73 @@ export default function SignupPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Full Identity Name</Label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    name="username"
+                    placeholder="alex_node" 
+                    className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Display Name</Label>
                 <Input 
-                  placeholder="e.g. Alex Lightning" 
-                  className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                  name="display_name"
+                  placeholder="Alex Lightning" 
+                  className="h-12 bg-black/40 border-white/5 rounded-xl focus:ring-primary/40"
+                  value={formData.display_name}
+                  onChange={handleChange}
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Satoshi Protocol Mail</Label>
+              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Mail</Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
+                  name="email"
                   type="email"
                   placeholder="alex@satoshi.mail" 
                   className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                  value={formData.email}
+                  onChange={handleChange}
                   required
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Access Key</Label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Access Key</Label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    name="password"
+                    type="password"
+                    placeholder="••••••••" 
+                    className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Confirm Key</Label>
                 <Input 
+                  name="password2"
                   type="password"
                   placeholder="••••••••" 
-                  className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40"
+                  className="h-12 bg-black/40 border-white/5 rounded-xl focus:ring-primary/40"
+                  value={formData.password2}
+                  onChange={handleChange}
                   required
                 />
               </div>

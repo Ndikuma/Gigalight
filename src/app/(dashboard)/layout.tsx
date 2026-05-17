@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -20,7 +21,8 @@ import {
   Network,
   Check,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -49,10 +51,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ProfileService } from '@/services/profile-service';
 import { NotificationService } from '@/services/notification-service';
 import { AuthService } from '@/services/auth-service';
+import { toast } from '@/hooks/use-toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('standard');
   const [mounted, setMounted] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
@@ -60,19 +64,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true);
+    
     async function initLayout() {
-      const [profRes, notifRes] = await Promise.all([
-        ProfileService.getMyProfile(),
-        NotificationService.getNotifications({ page_size: 5 })
-      ]);
-      if (profRes.data) {
-        setUser(profRes.data);
-        setRole(profRes.data.is_validator ? 'validator' : 'standard');
+      // Primary Auth Guard: Check for access token
+      const token = localStorage.getItem('gigalight_access');
+      if (!token) {
+        router.push('/login');
+        return;
       }
-      if (notifRes.data) setNotifications(notifRes.data.results);
+
+      try {
+        const [profRes, notifRes] = await Promise.all([
+          ProfileService.getMyProfile(),
+          NotificationService.getNotifications({ page_size: 5 })
+        ]);
+
+        if (profRes.status === 401) {
+          // Token expired or invalid
+          AuthService.logout();
+          router.push('/login');
+          return;
+        }
+
+        if (profRes.data) {
+          setUser(profRes.data);
+          setRole(profRes.data.is_validator ? 'validator' : 'standard');
+        }
+        if (notifRes.data) {
+          setNotifications(notifRes.data.results);
+        }
+        
+        setIsAuthenticating(false);
+      } catch (err) {
+        console.error("Layout init error:", err);
+        // Fallback for network issues during auth check
+        setIsAuthenticating(false); 
+      }
     }
+    
     initLayout();
-  }, []);
+  }, [router]);
 
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
@@ -102,7 +133,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const currentRole = roleConfigs[role] || roleConfigs.standard;
 
-  if (!mounted) return null;
+  if (!mounted || isAuthenticating) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center neon-glow-primary animate-pulse">
+          <Zap className="w-10 h-10 text-primary" />
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground font-bold uppercase tracking-widest text-[10px]">
+          <Loader2 className="w-3 h-3 animate-spin" /> Synchronizing Node...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -234,7 +276,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button className="flex items-center gap-3 outline-none group ml-1 md:ml-2">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-lg group-hover:rotate-6 transition-transform">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
-                    <img src={user?.profile?.avatar_url || 'https://picsum.photos/seed/node/100/100'} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={user?.profile?.avatar_url || `https://picsum.photos/seed/${user?.id || 'node'}/100/100`} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </button>
