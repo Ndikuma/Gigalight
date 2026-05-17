@@ -46,6 +46,10 @@ export const TaskService = {
     return api.get<Submission[]>('/submissions/my/');
   },
 
+  async getMyTasks() {
+    return api.get<TaskMini[]>('/tasks/my/');
+  },
+
   async getAuditQueue() {
     return api.get<Submission[]>('/submissions/queue/');
   },
