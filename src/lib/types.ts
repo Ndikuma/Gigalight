@@ -147,21 +147,21 @@ export interface ProjectDetail {
   description: string;
   requirements: string;
   client_name: string;
-  budget: string | Budget;
+  budget: Budget;
   budget_type: BudgetType;
   experience_level: ExperienceLevel;
   estimated_duration_days: number | null;
-  fee_cost: string;
+  fee_cost: number;
   bid_cost: number;
   max_bids: number;
   bids_count: number;
-  total_bids: string;
+  total_bids: number;
   avg_bid: number;
-  available_slots: string;
+  available_slots: number;
   status: ProjectStatus;
   skills: Skill[];
   milestones: Milestone[];
-  hired_name: string;
+  hired_name: string | null;
   selected_bid: string | null;
   deadline: string | null;
   is_featured: boolean;
@@ -172,7 +172,7 @@ export interface ProjectDetail {
   attachment: string | null;
   views_count: number;
   contract: any;
-  delivery_count: string;
+  delivery_count: number;
   created_at: string;
   updated_at: string;
   bids?: Bid[];
@@ -193,7 +193,7 @@ export interface ProjectCreate {
 export interface Bid {
   id: string;
   project: string;
-  user: number;
+  user: number | string;
   user_display: string;
   amount: number;
   signal_fee: number;

@@ -15,7 +15,8 @@ import {
   Loader2,
   Zap,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Package
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -164,14 +165,17 @@ export default function ManagementHubPage() {
   );
 }
 
-function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBudget: (b: any) => string }) {
+function ProjectManagementCard({ item, onFormatBudget }: { item: ProjectDetail, onFormatBudget: (b: any) => string }) {
   return (
     <Card className="glass-card border-none overflow-hidden group hover:border-secondary/30 transition-all">
       <CardContent className="p-0">
         <div className="flex flex-col lg:flex-row">
           <div className="flex-1 p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Badge className="bg-secondary/10 text-secondary border-none uppercase text-[9px] tracking-widest font-bold">
+              <Badge className={cn(
+                "border-none uppercase text-[9px] tracking-widest font-bold",
+                item.status === 'in_progress' ? "bg-emerald-400/10 text-emerald-400" : "bg-secondary/10 text-secondary"
+              )}>
                 {item.status?.replace('_', ' ') || 'OPEN'}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground capitalize text-[9px] font-bold">
@@ -182,25 +186,42 @@ function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBu
               <h3 className="text-xl font-headline font-bold text-white group-hover:text-secondary transition-colors">{item.title}</h3>
               <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
             </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              {(item.skills || []).slice(0, 3).map(skill => (
+                <span key={skill.id} className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded-md text-muted-foreground">
+                  {skill.name}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="lg:w-80 bg-white/5 border-l border-white/5 p-6 flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Active Proposals</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Active Nodes</span>
+                </div>
+                <span className="text-sm font-bold text-white">{item.total_bids || item.bids_count || 0}</span>
               </div>
-              <span className="text-lg font-bold text-white">{item.bids_count || 0}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Strategic Yield</span>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Deliverables</span>
+                </div>
+                <span className="text-sm font-bold text-white">{item.delivery_count || 0}</span>
               </div>
-              <span className="text-sm font-bold text-secondary">
-                {onFormatBudget(item.budget)}
-              </span>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Budget</span>
+                </div>
+                <span className="text-sm font-bold text-secondary">
+                  {onFormatBudget(item.budget)}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-2 mt-2">
