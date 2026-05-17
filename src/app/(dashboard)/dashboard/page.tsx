@@ -15,7 +15,9 @@ import {
   Lock,
   Loader2,
   ShieldAlert,
-  Info
+  Info,
+  Network,
+  Cpu
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +35,7 @@ export default function DashboardHome() {
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nodeStatus, setNodeStatus] = useState<'active' | 'syncing'>('active');
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -74,7 +77,10 @@ export default function DashboardHome() {
   if (isLoading) {
     return (
       <div className="h-[80vh] flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">Initializing Node...</p>
+        </div>
       </div>
     );
   }
@@ -218,34 +224,66 @@ export default function DashboardHome() {
         </div>
 
         <div className="space-y-6">
+          {/* Node Connection Status */}
+          <Card className="glass-card border-none overflow-hidden group">
+             <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                        nodeStatus === 'active' ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                      )}>
+                        <Network className={cn("w-5 h-5", nodeStatus === 'active' && "animate-pulse")} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Signal</p>
+                        <h4 className="font-bold text-sm">Node Status: {nodeStatus === 'active' ? 'Active' : 'Syncing'}</h4>
+                      </div>
+                   </div>
+                   <div className={cn(
+                     "px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-tighter border",
+                     nodeStatus === 'active' ? "bg-emerald-500/5 text-emerald-400 border-emerald-500/20" : "bg-amber-500/5 text-amber-400 border-amber-500/20"
+                   )}>
+                     Synchronized
+                   </div>
+                </div>
+             </CardContent>
+          </Card>
+
           <Card className="glass-card border-none overflow-hidden border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="font-headline text-lg flex items-center gap-2">
                 <Globe className="w-5 h-5 text-secondary" />
                 Network Roadmap
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3 relative group">
-                <div className="absolute top-2 right-2 flex gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <CardContent className="space-y-6">
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4 relative group hover:border-secondary/30 transition-all">
+                <div className="absolute top-4 right-4">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
                 </div>
-                <h5 className="text-xs font-bold uppercase tracking-widest text-secondary">Upcoming: Career Nodes</h5>
+                <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+                      <Zap className="w-4 h-4" />
+                   </div>
+                   <h5 className="text-xs font-bold uppercase tracking-widest text-secondary">Upcoming: Career Nodes</h5>
+                </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  We are integrating long-term career opportunities with borderless L2 payroll systems.
+                  We are integrating long-term career opportunities with borderless Bitcoin L2 payroll systems for enterprise squads.
                 </p>
-                <Button asChild variant="ghost" className="w-full text-[10px] h-7 font-bold text-primary gap-1">
+                <Button asChild variant="ghost" className="w-full text-[10px] h-9 font-bold text-primary hover:bg-primary/5 gap-2 rounded-xl">
                   <Link href="/jobs">LEARN MORE <ArrowRight className="w-3 h-3" /></Link>
                 </Button>
               </div>
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-1">
-                <div className="flex justify-between text-[10px] font-bold uppercase">
-                  <span className="text-muted-foreground">Active Nodes</span>
-                  <span className="text-emerald-400">12,450</span>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</p>
+                  <p className="text-xl font-headline font-bold text-emerald-400">12,450</p>
                 </div>
-                <div className="flex justify-between text-[10px] font-bold uppercase">
-                  <span className="text-muted-foreground">Total Settlement</span>
-                  <span className="text-primary">124.5 BTC</span>
+                <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Total Settlement</p>
+                  <p className="text-xl font-headline font-bold text-primary">124.5 <span className="text-[9px] opacity-70">BTC</span></p>
                 </div>
               </div>
             </CardContent>
