@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -29,6 +30,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { ProjectService } from '@/services/project-service';
 import { ProjectDetail, Bid } from '@/lib/types';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function ProjectWorkspacePage() {
   const { id } = useParams();
@@ -171,11 +173,7 @@ export default function ProjectWorkspacePage() {
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-bold text-lg">{bid.user_display}</h4>
-                              {bid.user_reputation && (
-                                <Badge className="bg-emerald-500/10 text-emerald-400 border-none text-[8px] uppercase tracking-widest font-bold">
-                                  Score: {bid.user_reputation}
-                                </Badge>
-                              )}
+                              <StarRating reputation={bid.user_reputation || 0} />
                             </div>
                             <div className="flex items-center gap-4 mt-1">
                               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Signal: <span className="text-secondary">{(bid.amount || 0).toLocaleString()} SAT</span></p>

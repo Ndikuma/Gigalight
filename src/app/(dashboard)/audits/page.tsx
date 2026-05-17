@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskService } from '@/services/task-service';
 import { Submission } from '@/lib/types';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function AuditsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -138,9 +139,12 @@ export default function AuditsPage() {
                         {sub.status}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      Contributor: <span className="text-foreground">{sub.user_name}</span> • {new Date(sub.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm text-muted-foreground font-medium">
+                        Contributor: <span className="text-foreground">{sub.user_name}</span> • {new Date(sub.created_at).toLocaleDateString()}
+                      </p>
+                      <StarRating reputation={75} /> {/* Placeholder rep as it's not in Submission type directly */}
+                    </div>
                     
                     <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
                       <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proof_text}"</p>

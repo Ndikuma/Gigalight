@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -38,6 +39,7 @@ import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
 import { TaskMini, ProjectDetail, User, Budget } from '@/lib/types';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function OpportunityDetailPage() {
   const { id } = useParams();
@@ -269,10 +271,11 @@ export default function OpportunityDetailPage() {
         <Button asChild variant="ghost" className="hover:bg-white/5 gap-2 rounded-2xl h-12 px-6 font-bold text-muted-foreground hover:text-white">
           <Link href="/market"><ArrowLeft className="w-4 h-4" /> Market Interface</Link>
         </Button>
-        <div className="flex items-center gap-2">
-          <Badge className="bg-emerald-500/10 text-emerald-400 border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Node Reputation: {user?.reputation || 0}
-          </Badge>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end">
+            <StarRating reputation={user?.reputation || 0} showScore />
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Validated Performance</span>
+          </div>
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
             <Trophy className="w-3.5 h-3.5 mr-2" /> Protocol Tier: {user?.tier || 'Standard'}
           </Badge>

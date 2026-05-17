@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState } from 'react';
@@ -29,6 +30,7 @@ import { TaskService } from '@/services/task-service';
 import { User, Wallet as WalletType, TaskMini } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function DashboardHome() {
   const [profile, setProfile] = useState<User | null>(null);
@@ -108,8 +110,11 @@ export default function DashboardHome() {
             </div>
           </div>
           <div className="flex-1 space-y-4 text-center md:text-left">
-            <div>
-              <h2 className="text-3xl font-headline font-bold">{profile?.display_name || 'Protocol Node'}</h2>
+            <div className="space-y-1">
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <h2 className="text-3xl font-headline font-bold">{profile?.display_name || 'Protocol Node'}</h2>
+                <StarRating reputation={profile?.reputation || 0} showScore className="justify-center md:justify-start" />
+              </div>
               <p className="text-muted-foreground text-sm max-w-xl">
                 {profile?.profile?.bio || 'Strategic node waiting for mission initialization.'}
               </p>
