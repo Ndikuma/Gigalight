@@ -17,10 +17,29 @@ export interface User {
   projects_hired: number;
   total_earned: number;
   total_spent: number;
-  profile: Profile;
+  profile: ProfileData;
 }
 
 export interface Profile {
+  id: string;
+  fullName: string;
+  avatarUrl: string;
+  bio?: string;
+  location?: string;
+  membershipTier: 'basic' | 'pro' | 'elite';
+  reputation: number;
+  isValidator: boolean;
+  activeRole: UserRole;
+  skills: string[];
+  stats: {
+    tasksCompleted: number;
+    projectsHired: number;
+    totalEarned: number;
+    totalSpent: number;
+  };
+}
+
+export interface ProfileData {
   avatar_url?: string;
   bio?: string;
   location?: string;
@@ -179,6 +198,7 @@ export interface ProjectDetail {
   delivery_count: string;
   created_at: string;
   updated_at: string;
+  bids?: Bid[]; // For management view
 }
 
 export interface Bid {
@@ -195,6 +215,8 @@ export interface Bid {
   status_display: string;
   submitted_count: number;
   created_at: string;
+  user_reputation?: number; // Added for UI display
+  membership_tier?: 'basic' | 'pro' | 'elite'; // Added for UI display
 }
 
 export interface Skill {

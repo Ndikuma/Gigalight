@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -28,16 +27,16 @@ export default function MarketPage() {
 
   const categories = useMemo(() => {
     const all = activeTab === 'tasks' 
-      ? mockTasks.map(t => t.category)
-      : mockProjects.map(p => p.skills).flat();
+      ? mockTasks.map(t => t.category.name)
+      : mockProjects.map(p => p.skills.map(s => s.name)).flat();
     return Array.from(new Set(all));
   }, [activeTab]);
 
   const filteredTasks = useMemo(() => {
     return mockTasks.filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           task.shortDescription.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || task.category === selectedCategory;
+                           task.short_description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || task.category.name === selectedCategory;
       const matchesDifficulty = !selectedDifficulty || task.difficulty === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
@@ -47,8 +46,8 @@ export default function MarketPage() {
     return mockProjects.filter(project => {
       const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            project.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || project.skills.includes(selectedCategory);
-      const matchesDifficulty = !selectedDifficulty || project.experienceLevel === selectedDifficulty;
+      const matchesCategory = !selectedCategory || project.skills.some(s => s.name === selectedCategory);
+      const matchesDifficulty = !selectedDifficulty || project.experience_level === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
   }, [searchQuery, selectedCategory, selectedDifficulty]);
@@ -177,17 +176,17 @@ export default function MarketPage() {
                 
                 <div className="flex justify-between items-start mb-6">
                   <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-                    {task.category}
+                    {task.category.name}
                   </Badge>
                   <div className="text-right">
-                    <p className="font-headline font-bold text-2xl text-emerald-400">+{task.rewardAmount.toLocaleString()}</p>
+                    <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount.toLocaleString()}</p>
                     <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
                   </div>
                 </div>
 
                 <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors leading-tight">{task.title}</h3>
                 <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
-                  {task.shortDescription}
+                  {task.short_description}
                 </p>
 
                 <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
@@ -207,18 +206,6 @@ export default function MarketPage() {
             )) : (
               <EmptyState onReset={resetFilters} />
             )}
-            
-            {filteredTasks.length > 0 && (
-              <div className="glass-card p-6 rounded-3xl border-dashed border-white/10 flex flex-col justify-center items-center text-center opacity-60">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-                  <Sparkles className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <h4 className="font-bold text-sm">Protocol Expansion</h4>
-                <p className="text-[10px] text-muted-foreground mt-2 max-w-[200px] leading-relaxed">
-                  The network is currently propagating 42 more high-priority objectives.
-                </p>
-              </div>
-            )}
           </div>
         </TabsContent>
 
@@ -232,22 +219,22 @@ export default function MarketPage() {
                   <div className="space-y-6 flex-1">
                     <div className="flex flex-wrap gap-2">
                       <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none px-4 py-1.5 capitalize text-[10px] font-bold tracking-widest">
-                        {project.experienceLevel} CLASS
+                        {project.experience_level} CLASS
                       </Badge>
                       <Badge className="bg-white/5 text-muted-foreground border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest">
-                        {project.budgetType} SETTLEMENT
+                        {project.budget_type} SETTLEMENT
                       </Badge>
                     </div>
                     
                     <div>
                       <h3 className="text-3xl font-headline font-bold mb-3 group-hover:text-secondary transition-colors tracking-tight">{project.title}</h3>
-                      <p className="text-muted-foreground max-w-3xl leading-relaxed text-sm lg:text-base">{project.description}</p>
+                      <p className="text-muted-foreground max-w-3xl leading-relaxed text-sm lg:text-base">{project.short_description}</p>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
                       {project.skills.map(skill => (
-                        <span key={skill} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
-                          {skill}
+                        <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
+                          {skill.name}
                         </span>
                       ))}
                     </div>
@@ -257,14 +244,14 @@ export default function MarketPage() {
                     <div className="text-center space-y-1">
                       <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mb-2">Technical Budget</p>
                       <p className="text-3xl font-headline font-bold text-secondary">
-                        {project.budgetMin.toLocaleString()} - {project.budgetMax.toLocaleString()}
+                        {project.budget}
                       </p>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">SATOSHIS • MULTI-SIG</p>
                     </div>
                     <div className="space-y-3 pt-2">
                        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase">
                         <span>Signal Density</span>
-                        <span className="text-white">High (12 Bids)</span>
+                        <span className="text-white">{project.total_bids}</span>
                       </div>
                       <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-2xl transition-all font-bold h-14 neon-glow-secondary text-lg">
                         <Link href={`/market/${project.id}`}>Initiate Proposal</Link>
@@ -276,21 +263,6 @@ export default function MarketPage() {
             )) : (
               <EmptyState onReset={resetFilters} />
             )}
-
-            <div className="p-16 border-2 border-dashed border-white/5 rounded-[2.5rem] text-center space-y-6 bg-white/[0.02]">
-               <div className="mx-auto w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shadow-xl">
-                <Globe className="w-8 h-8" />
-               </div>
-               <div className="space-y-2">
-                <h3 className="text-2xl font-headline font-bold">Seeking Long-Term Strategic Roles?</h3>
-                <p className="text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
-                  Our Career Node network is launching soon with Enterprise-tier integration and automated L2 multi-sig payroll.
-                </p>
-               </div>
-               <Button asChild variant="outline" className="rounded-2xl border-white/10 gap-3 h-12 px-10 font-bold hover:bg-white/5">
-                <Link href="/jobs">Learn about Career Nodes <ArrowRight className="w-4 h-4" /></Link>
-               </Button>
-            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -305,7 +277,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
         <SlidersHorizontal className="w-10 h-10 text-muted-foreground/30" />
       </div>
       <h3 className="text-2xl font-bold mb-2">No missions propagated</h3>
-      <p className="text-muted-foreground max-w-sm mx-auto mb-8 leading-relaxed">
+      <p className="text-muted-foreground max-sm mx-auto mb-8 leading-relaxed">
         Adjust your technical parameters or search keywords to discover active network objectives.
       </p>
       <Button variant="outline" onClick={onReset} className="rounded-2xl border-white/10 px-8 font-bold h-12">

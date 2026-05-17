@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState } from 'react';
@@ -29,11 +28,12 @@ export default function ManagementHubPage() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Hiring: Listings created by me
-  const myHiringProjects = mockProjects.filter(p => p.creatorId === mockProfile.id);
-  const myHiringTasks = mockTasks.filter(t => t.creatorId === mockProfile.id);
+  const myHiringProjects = mockProjects.filter(p => p.creator === mockProfile.id);
+  // Using creator_id as simulated for tasks since mockData didn't have it explicitly mapped in TaskMini
+  const myHiringTasks = mockTasks.filter(t => (t as any).creator_id === mockProfile.id);
 
   // Working: Projects I'm involved in as a worker/contractor
-  const myWorkingProjects = mockProjects.filter(p => p.status === 'in_progress' && p.creatorId !== mockProfile.id);
+  const myWorkingProjects = mockProjects.filter(p => p.status === 'in_progress' && p.creator !== mockProfile.id);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -109,13 +109,13 @@ export default function ManagementHubPage() {
                             Active Contract
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground font-medium">Client: {project.clientName} • Strategic Partner</p>
+                        <p className="text-sm text-muted-foreground font-medium">Client: {project.client_name} • Strategic Partner</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right hidden md:block">
                         <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Locked Yield</p>
-                        <p className="text-lg font-bold text-primary">{project.budgetMin.toLocaleString()} SAT</p>
+                        <p className="text-lg font-bold text-primary">{project.budget}</p>
                       </div>
                       <Button asChild size="lg" className="rounded-xl bg-primary neon-glow-primary font-bold h-12 px-8">
                         <Link href={`/my-projects/${project.id}`}>Enter Workspace</Link>
@@ -138,8 +138,8 @@ export default function ManagementHubPage() {
 function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 'task' }) {
   const isProject = type === 'project';
   const stats = isProject 
-    ? { label: 'Bids', value: item.bids?.length || 0, icon: Users } 
-    : { label: 'Proof', value: item.submissionsCount || 0, icon: CheckCircle };
+    ? { label: 'Bids', value: item.bids_count || 0, icon: Users } 
+    : { label: 'Proof', value: item.submissions_count || 0, icon: CheckCircle };
 
   return (
     <Card className="glass-card border-none overflow-hidden group hover:border-secondary/30 transition-all">
@@ -154,12 +154,12 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 {item.status.replace('_', ' ')}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground capitalize text-[9px] font-bold">
-                {item.experienceLevel || item.difficulty}
+                {item.experience_level || item.difficulty}
               </Badge>
             </div>
             <div>
               <h3 className="text-xl font-headline font-bold group-hover:text-secondary transition-colors">{item.title}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description || item.shortDescription}</p>
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.description || item.short_description}</p>
             </div>
           </div>
 
@@ -178,7 +178,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Protocol Yield</span>
               </div>
               <span className="text-sm font-bold text-secondary">
-                {isProject ? `${item.budgetMin.toLocaleString()} SAT` : `${item.rewardAmount.toLocaleString()} SAT`}
+                {isProject ? `${item.budget}` : `${item.reward_amount.toLocaleString()} SAT`}
               </span>
             </div>
 

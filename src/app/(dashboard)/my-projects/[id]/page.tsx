@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -117,12 +116,12 @@ export default function ProjectWorkspacePage() {
 
             <TabsContent value="applicants" className="space-y-4 mt-0">
               {project.bids?.length ? (
-                project.bids?.sort((a, b) => (b.isBoosted ? 1 : 0) - (a.isBoosted ? 1 : 0)).map((bid) => (
+                project.bids?.sort((a, b) => (b.is_boosted ? 1 : 0) - (a.is_boosted ? 1 : 0)).map((bid) => (
                   <Card key={bid.id} className={cn(
                     "glass-card border-none transition-all relative overflow-hidden",
-                    bid.isBoosted ? "ring-2 ring-secondary/30 shadow-[0_0_20px_rgba(60,98,255,0.15)]" : "hover:border-secondary/20"
+                    bid.is_boosted ? "ring-2 ring-secondary/30 shadow-[0_0_20px_rgba(60,98,255,0.15)]" : "hover:border-secondary/20"
                   )}>
-                    {bid.isBoosted && (
+                    {bid.is_boosted && (
                       <div className="absolute top-0 right-0">
                         <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl flex items-center gap-1 uppercase tracking-widest">
                           <Rocket className="w-2.5 h-2.5" /> Boosted Proposal
@@ -133,23 +132,23 @@ export default function ProjectWorkspacePage() {
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div className="flex gap-4">
                           <Avatar className="w-14 h-14 border-2 border-white/10 rounded-2xl">
-                            <AvatarImage src={`https://picsum.photos/seed/${bid.userId}/100/100`} />
-                            <AvatarFallback>{bid.userName[0]}</AvatarFallback>
+                            <AvatarImage src={`https://picsum.photos/seed/${bid.user}/100/100`} />
+                            <AvatarFallback>{bid.user_display[0]}</AvatarFallback>
                           </Avatar>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-lg">{bid.userName}</h4>
+                              <h4 className="font-bold text-lg">{bid.user_display}</h4>
                               <Badge className={cn(
                                 "text-[9px] font-bold uppercase px-2",
-                                bid.membershipTier === 'elite' ? "bg-amber-500/10 text-amber-500" :
-                                bid.membershipTier === 'pro' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                bid.membership_tier === 'elite' ? "bg-amber-500/10 text-amber-500" :
+                                bid.membership_tier === 'pro' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                               )}>
-                                {bid.membershipTier} Node
+                                {bid.membership_tier} Node
                               </Badge>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
                                <div className="flex items-center gap-1 text-[10px] font-bold text-primary">
-                                <Trophy className="w-3 h-3" /> {bid.userReputation} REP
+                                <Trophy className="w-3 h-3" /> {bid.user_reputation} REP
                               </div>
                               <p className="text-[10px] text-muted-foreground font-bold">Bid: <span className="text-secondary">{bid.amount.toLocaleString()} SAT</span></p>
                               <p className="text-[10px] text-muted-foreground font-bold">Delivery: {bid.timeline}</p>
@@ -163,7 +162,7 @@ export default function ProjectWorkspacePage() {
                           <Button 
                             size="sm" 
                             className="rounded-xl bg-emerald-500 hover:bg-emerald-600 h-10 px-6 font-bold"
-                            onClick={() => handleHire(bid.userName)}
+                            onClick={() => handleHire(bid.user_display)}
                           >
                             Commission Node
                           </Button>
@@ -172,7 +171,7 @@ export default function ProjectWorkspacePage() {
 
                       <div className="bg-black/40 rounded-2xl p-4 border border-white/5 relative group">
                         <p className="text-sm text-muted-foreground italic leading-relaxed">
-                          "{bid.proposalText}"
+                          "{bid.proposal_text}"
                         </p>
                       </div>
 
@@ -200,7 +199,7 @@ export default function ProjectWorkspacePage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-2xl font-bold text-emerald-400">{project.budgetMin.toLocaleString()} SAT</h3>
+                      <h3 className="text-2xl font-bold text-emerald-400">{project.budget}</h3>
                       <Badge variant="outline" className="border-emerald-400/20 text-emerald-400">FUNDED</Badge>
                     </div>
                     <div className="space-y-2">
@@ -223,8 +222,8 @@ export default function ProjectWorkspacePage() {
                       <AvatarFallback>W</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h4 className="font-bold">JungleNode</h4>
-                      <Badge className="text-[9px] bg-primary/10 text-primary">Pro Node</Badge>
+                      <h4 className="font-bold">{project.hired_name}</h4>
+                      <Badge className="text-[9px] bg-primary/10 text-primary">Hired Professional</Badge>
                     </div>
                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-white/5"><MessageSquare className="w-4 h-4" /></Button>
                   </CardContent>
@@ -295,8 +294,8 @@ export default function ProjectWorkspacePage() {
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {project.skills.map(skill => (
-                        <Badge key={skill} className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1.5 font-bold uppercase tracking-widest text-[10px]">
-                          {skill}
+                        <Badge key={skill.id} className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1.5 font-bold uppercase tracking-widest text-[10px]">
+                          {skill.name}
                         </Badge>
                       ))}
                     </div>
@@ -316,26 +315,26 @@ export default function ProjectWorkspacePage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Signal Density</p>
-                  <p className="text-2xl font-bold">{project.bids?.length || 0}</p>
+                  <p className="text-2xl font-bold">{project.bids_count}</p>
                 </div>
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
                   <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Reputation Pool</p>
-                  <p className="text-2xl font-bold">Avg 94</p>
+                  <p className="text-2xl font-bold">Avg {project.avg_bid > 0 ? 94 : 0}</p>
                 </div>
               </div>
 
               <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-2 font-bold"><Zap className="w-4 h-4" /> Locked Budget</span>
-                  <span className="font-bold text-secondary">{project.budgetMin.toLocaleString()} SAT</span>
+                  <span className="font-bold text-secondary">{project.budget}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-2 font-bold"><Briefcase className="w-4 h-4" /> Budget Class</span>
-                  <span className="font-bold capitalize">{project.budgetType} Price</span>
+                  <span className="font-bold capitalize">{project.budget_type} Price</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground flex items-center gap-2 font-bold"><Trophy className="w-4 h-4" /> Expert Class</span>
-                  <span className="font-bold capitalize">{project.experienceLevel}</span>
+                  <span className="font-bold capitalize">{project.experience_level}</span>
                 </div>
               </div>
             </CardContent>

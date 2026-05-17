@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -32,14 +31,14 @@ export default function AuditsPage() {
     setIsAuditing(submissionId);
     try {
       const sub = mockSubmissions.find(s => s.id === submissionId);
-      const task = mockTasks.find(t => t.id === sub?.taskId);
+      const task = mockTasks.find(t => t.id === sub?.task);
 
       if (!sub || !task) return;
 
       const result = await aiSubmissionAuditor({
-        taskInstructions: task.instructions || task.shortDescription,
-        proofRequirements: task.validatorGuidelines || "Verify proof meets task intent.",
-        proofText: sub.proofText,
+        taskInstructions: task.description || task.short_description,
+        proofRequirements: "Verify proof meets task intent and technical requirements.",
+        proofText: sub.proof_text,
         proofDescription: "Peer audit requested via validator network."
       });
 
@@ -91,26 +90,26 @@ export default function AuditsPage() {
         </div>
         
         {mockSubmissions.map((sub) => {
-          const task = mockTasks.find(t => t.id === sub.taskId);
+          const task = mockTasks.find(t => t.id === sub.task);
           return (
             <Card key={sub.id} className="glass-card border-none overflow-hidden hover:border-emerald-400/30 transition-all group">
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                   <div className="flex gap-5 flex-1">
                     <Avatar className="w-14 h-14 rounded-2xl">
-                      <AvatarImage src={`https://picsum.photos/seed/${sub.userId}/100/100`} />
-                      <AvatarFallback>{sub.userName?.[0] || 'U'}</AvatarFallback>
+                      <AvatarImage src={`https://picsum.photos/seed/${sub.user}/100/100`} />
+                      <AvatarFallback>{sub.user_name?.[0] || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-lg">{task?.title || 'Unknown Objective'}</h4>
+                        <h4 className="font-bold text-lg">{sub.task_title || 'Unknown Objective'}</h4>
                         <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
                           {sub.status}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground font-medium">
-                        Contributor: <span className="text-foreground">{sub.userName || sub.userId}</span> 
-                        {mounted && <span> • {new Date(sub.createdAt).toLocaleDateString()}</span>}
+                        Contributor: <span className="text-foreground">{sub.user_name}</span> 
+                        {mounted && <span> • {new Date(sub.created_at).toLocaleDateString()}</span>}
                       </p>
                       
                       <div className="flex items-center gap-3 mt-3">
@@ -123,17 +122,17 @@ export default function AuditsPage() {
                           <DialogContent className="glass-card border-white/10">
                             <DialogHeader>
                               <DialogTitle className="font-headline">Audit Guidelines</DialogTitle>
-                              <DialogDescription>Protocol criteria for "{task?.title}"</DialogDescription>
+                              <DialogDescription>Protocol criteria for "{sub.task_title}"</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 mt-4">
                               <div className="space-y-2">
-                                <h5 className="text-xs font-bold text-primary uppercase">Task Instructions</h5>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{task?.instructions || task?.shortDescription}</p>
+                                <h5 className="text-xs font-bold text-primary uppercase">Task Description</h5>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{task?.description || task?.short_description}</p>
                               </div>
                               <div className="space-y-2">
-                                <h5 className="text-xs font-bold text-emerald-400 uppercase">Validator decision Rules</h5>
+                                <h5 className="text-xs font-bold text-emerald-400 uppercase">Validator Decision Rules</h5>
                                 <p className="text-sm text-muted-foreground leading-relaxed bg-emerald-400/5 p-4 rounded-xl border border-emerald-400/10 italic">
-                                  {task?.validatorGuidelines || "Verify proof aligns with technical intent."}
+                                  Verify proof aligns with technical intent and standard network security protocols.
                                 </p>
                               </div>
                             </div>
@@ -142,7 +141,7 @@ export default function AuditsPage() {
                       </div>
 
                       <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
-                        <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proofText}"</p>
+                        <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proof_text}"</p>
                         <div className="absolute right-2 top-2 opacity-0 group-hover/proof:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
                         </div>
