@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -65,7 +66,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true);
     
     async function initLayout() {
-      // Primary Auth Guard: Check for access token
       const token = localStorage.getItem('gigalight_access');
       if (!token) {
         router.push('/login');
@@ -79,7 +79,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ]);
 
         if (profRes.status === 401) {
-          // Token expired or invalid
           AuthService.logout();
           router.push('/login');
           return;
@@ -87,10 +86,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         if (profRes.data) {
           setUser(profRes.data);
+          // Auto-set role based on validator status, but default to standard for strategy
           setRole(profRes.data.is_validator ? 'validator' : 'standard');
         }
         
-        // Ensure notifications is always an array
         if (notifRes.data && Array.isArray(notifRes.data.results)) {
           setNotifications(notifRes.data.results);
         } else {
@@ -100,7 +99,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setIsAuthenticating(false);
       } catch (err) {
         console.error("Layout init error:", err);
-        // Fallback for network issues during auth check
         setIsAuthenticating(false); 
       }
     }
@@ -108,7 +106,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     initLayout();
   }, [router]);
 
-  // Safely calculate unread count with an array check
   const unreadCount = Array.isArray(notifications) 
     ? notifications.filter(n => n.status === 'unread').length 
     : 0;
@@ -138,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Roles', icon: Sparkles, href: '/jobs' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Financials', icon: WalletIcon, href: '/wallet' },
-    ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
+    ...(user?.is_validator && role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
 
   const roleConfigs = {
@@ -163,7 +160,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Professional Navigation */}
       <header className="h-16 border-b border-white/5 bg-card/50 backdrop-blur-xl sticky top-0 z-50 px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-4 md:gap-10">
           <div className="xl:hidden">
@@ -222,33 +218,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="h-8 w-px bg-white/5 hidden sm:block mx-1 md:mx-2"></div>
 
-          {/* Mode Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="rounded-xl h-10 px-2 md:px-3 hover:bg-white/5 gap-2 border border-white/5">
-                <div className={cn("p-1 rounded-md bg-background", currentRole.color)}>
-                  <currentRole.icon className="w-3.5 h-3.5" />
-                </div>
-                <div className="text-left hidden lg:block">
-                  <p className="text-[9px] text-muted-foreground uppercase font-bold leading-none">{currentRole.desc}</p>
-                  <p className="text-xs font-bold leading-tight">{currentRole.label}</p>
-                </div>
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-card border-white/10 p-2 shadow-2xl">
-              <DropdownMenuItem onClick={() => setRole('standard')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-primary/20 cursor-pointer">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <div><p className="font-bold text-sm">Professional Mode</p><p className="text-[10px] text-muted-foreground">Strategy & Ops</p></div>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setRole('validator')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-emerald-400/20 cursor-pointer">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <div><p className="font-bold text-sm">Validator Mode</p><p className="text-[10px] text-muted-foreground">Audit & Integrity</p></div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Mode Switcher - Gated by user.is_validator */}
+          {user?.is_validator ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="rounded-xl h-10 px-2 md:px-3 hover:bg-white/5 gap-2 border border-white/5">
+                  <div className={cn("p-1 rounded-md bg-background", currentRole.color)}>
+                    <currentRole.icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold leading-none">{currentRole.desc}</p>
+                    <p className="text-xs font-bold leading-tight">{currentRole.label}</p>
+                  </div>
+                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-card border-white/10 p-2 shadow-2xl">
+                <DropdownMenuItem onClick={() => setRole('standard')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-primary/20 cursor-pointer">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <div><p className="font-bold text-sm">Professional Mode</p><p className="text-[10px] text-muted-foreground">Strategy & Ops</p></div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setRole('validator')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-emerald-400/20 cursor-pointer">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <div><p className="font-bold text-sm">Validator Mode</p><p className="text-[10px] text-muted-foreground">Audit & Integrity</p></div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="rounded-xl h-10 px-2 md:px-4 flex items-center gap-2 border border-white/5 bg-white/5 select-none cursor-default">
+              <div className="p-1 rounded-md bg-background text-primary">
+                <Sparkles className="w-3.5 h-3.5" />
+              </div>
+              <div className="text-left hidden lg:block">
+                <p className="text-[9px] text-muted-foreground uppercase font-bold leading-none">Strategy & Ops</p>
+                <p className="text-xs font-bold leading-tight">Professional Mode</p>
+              </div>
+            </div>
+          )}
 
-          {/* Notification System */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 hidden sm:flex outline-none">
@@ -290,7 +297,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </PopoverContent>
           </Popover>
 
-          {/* User Profile */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-3 outline-none group ml-1 md:ml-2">
