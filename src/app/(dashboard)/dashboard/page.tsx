@@ -82,20 +82,20 @@ export default function DashboardHome() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           label="Available Liquidity" 
-          value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
+          value={`${mockWallet.available_balance.toLocaleString()} SAT`} 
           icon={Wallet} 
           subValue="≈ $18.42 USD"
           color="primary"
         />
         <StatCard 
           label="Pending Verification" 
-          value={`${mockWallet.pendingBalance.toLocaleString()} SAT`} 
+          value={`${mockWallet.pending_balance.toLocaleString()} SAT`} 
           icon={ShieldCheck} 
           color="emerald"
         />
         <StatCard 
           label="Lifetime Revenue" 
-          value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
+          value={`${mockWallet.total_rewarded.toLocaleString()} SAT`} 
           icon={Zap} 
           subValue="Platform Yield"
           color="secondary"
@@ -129,11 +129,11 @@ export default function DashboardHome() {
                       </div>
                       <div>
                         <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{task.title}</h4>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{task.category} • {task.difficulty}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{task.category.name} • {task.difficulty}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-headline font-bold text-emerald-400">+{task.rewardAmount} SAT</p>
+                      <p className="font-headline font-bold text-emerald-400">+{task.reward_amount.toLocaleString()} SAT</p>
                       <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Multi-sig Ready</p>
                     </div>
                   </div>

@@ -53,7 +53,7 @@ export default function SettingsPage() {
   const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
   
   const [profile, setProfile] = useState(mockProfile);
-  const [balance, setBalance] = useState(mockWallet.availableBalance);
+  const [balance, setBalance] = useState(mockWallet.available_balance);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
 
@@ -283,7 +283,7 @@ export default function SettingsPage() {
                 />
                 <StatCard 
                   label="Platform Yield" 
-                  value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
+                  value={`${mockWallet.total_rewarded.toLocaleString()} SAT`} 
                   icon={History} 
                   subValue="Total revenue finalized on-chain"
                   color="emerald"
