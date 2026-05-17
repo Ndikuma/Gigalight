@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setUser(profRes.data);
           setRole(profRes.data.is_validator ? 'validator' : 'standard');
         }
-        if (notifRes.data) {
+        if (notifRes.data && Array.isArray(notifRes.data.results)) {
           setNotifications(notifRes.data.results);
         }
         
@@ -105,16 +105,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     initLayout();
   }, [router]);
 
-  const unreadCount = notifications.filter(n => n.status === 'unread').length;
+  // Safely calculate unread count with an array check
+  const unreadCount = Array.isArray(notifications) 
+    ? notifications.filter(n => n.status === 'unread').length 
+    : 0;
 
   const markAllAsRead = async () => {
-    await NotificationService.markAllRead();
-    setNotifications(notifications.map(n => ({ ...n, status: 'read' as const })));
+    try {
+      await NotificationService.markAllRead();
+      setNotifications(prev => (prev || []).map(n => ({ ...n, status: 'read' as const })));
+    } catch (e) {
+      console.error("Failed to mark notifications as read:", e);
+    }
   };
 
   const handleLogout = async () => {
-    await AuthService.logout();
-    router.push('/login');
+    try {
+      await AuthService.logout();
+    } catch (e) {
+      console.error("Logout propagation failed:", e);
+    } finally {
+      router.push('/login');
+    }
   };
 
   const navItems = [
@@ -249,7 +261,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10" onClick={markAllAsRead}>Clear All</Button>
               </div>
               <ScrollArea className="h-80">
-                {notifications.length > 0 ? (
+                {Array.isArray(notifications) && notifications.length > 0 ? (
                   <div className="divide-y divide-white/5">
                     {notifications.map((n) => (
                       <div key={n.id} className={cn("p-4 transition-colors relative group cursor-pointer", n.status === 'unread' ? "bg-primary/5" : "hover:bg-white/5")}>
@@ -265,7 +277,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </div>
                     ))}
                   </div>
-                ) : <div className="h-full flex flex-col items-center justify-center p-8 text-center"><Bell className="w-8 h-8 text-muted-foreground/20" /><p className="text-xs font-bold text-muted-foreground">All signals clear</p></div>}
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                    <Bell className="w-8 h-8 text-muted-foreground/20" />
+                    <p className="text-xs font-bold text-muted-foreground">All signals clear</p>
+                  </div>
+                )}
               </ScrollArea>
             </PopoverContent>
           </Popover>
