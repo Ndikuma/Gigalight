@@ -1,137 +1,226 @@
+/**
+ * @fileOverview Professional Type Definitions synchronized with Django models and OpenAPI schema.
+ */
 
+export type UserStatus = 'active' | 'suspended' | 'banned';
 export type UserRole = 'standard' | 'validator';
-export type MembershipTier = 'basic' | 'pro' | 'elite';
+
+export interface User {
+  id: number;
+  email: string;
+  display_name: string;
+  tier?: string; // UUID
+  status: UserStatus;
+  is_validator: boolean;
+  reputation: number;
+  tasks_completed: number;
+  projects_hired: number;
+  total_earned: number;
+  total_spent: number;
+  profile: Profile;
+}
 
 export interface Profile {
-  id: string;
-  fullName: string;
-  isValidator: boolean;
-  avatarUrl?: string;
-  activeRole: UserRole;
-  membershipTier: MembershipTier;
+  avatar_url?: string;
   bio?: string;
-  skills: string[];
   location?: string;
-  reputation: number; // 0-100
-  stats: {
-    tasksCompleted: number;
-    projectsHired: number;
-    totalEarned: number;
-    totalSpent: number;
-  };
+  timezone?: string;
+  website?: string;
+  skills?: any;
+  completed_tasks: number;
+  successful_projects: number;
+  total_earned: number;
+  total_spent: number;
 }
 
 export interface Wallet {
-  availableBalance: number;
-  pendingBalance: number;
-  totalRewarded: number;
+  available_balance: number;
+  pending_balance: number;
+  locked_balance: number;
+  total_rewarded: number;
+  total_deposited: number;
+  total_withdrawn: number;
+  total_sats: number;
+  transactions: WalletTransaction[];
+}
+
+export type WalletTransactionStatus = 'pending' | 'confirmed' | 'failed' | 'refunded' | 'expired';
+export type WalletTransactionType = 
+  | 'deposit' 
+  | 'withdrawal' 
+  | 'reward_payout' 
+  | 'bid_lock' 
+  | 'bid_release' 
+  | 'escrow_in' 
+  | 'escrow_out' 
+  | 'task_fee_deduction';
+
+export interface WalletTransaction {
+  id: string;
+  type: WalletTransactionType;
+  type_display: string;
+  amount: number;
+  balance_after: number;
+  lnd_invoice: string;
+  lnd_payment_hash: string;
+  status: WalletTransactionStatus;
+  status_display: string;
+  description: string;
+  linked_object_type: string;
+  linked_object_id: string;
+  created_at: string;
+  settled_at: string | null;
 }
 
 export type ProofMethod = 
-  | 'image' 
-  | 'screenshot'
-  | 'video' 
-  | 'text' 
-  | 'response'
-  | 'link' 
-  | 'social_link'
-  | 'file' 
-  | 'confirm'
-  | 'account_action'
-  | 'app_install'
-  | 'email_confirm'
-  | 'qr_scan'
-  | 'gps'
-  | 'code_snippet';
+  | 'image' | 'screenshot' | 'video' | 'text' | 'response' | 'link' | 'social_link' 
+  | 'file' | 'confirm' | 'account_action' | 'app_install' | 'email_confirm' 
+  | 'qr_scan' | 'gps' | 'code_snippet';
 
-export interface Task {
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export interface Category {
   id: string;
-  creatorId: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  is_active: boolean;
+  task_count: number;
+  created_at: string;
+}
+
+export interface TaskMini {
+  id: string;
   title: string;
-  rewardAmount: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  shortDescription: string;
-  instructions: string;
-  proofMethod: ProofMethod;
-  category: string;
-  status: 'active' | 'completed' | 'paused';
-  submissionsCount: number;
-  externalUrl?: string;
-  externalUrlLabel?: string;
-  validatorGuidelines?: string;
-  targetCompletions?: number;
+  short_description: string;
+  description: string;
+  category: { id: string; name: string; slug: string; icon?: string };
+  difficulty: Difficulty;
+  reward_amount: number;
+  external_url: string | null;
+  submissions_count: number;
+  proof_method: ProofMethod;
+  boost_multiplier: number;
+  boost_ends_at: string | null;
+  boosted: string;
+  created_at: string;
+}
+
+export interface Submission {
+  id: string;
+  task: string;
+  user: number;
+  user_name: string;
+  task_title: string;
+  status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'needs_revision' | 'disputed';
+  proof_text?: string;
+  proof_image_uri?: string;
+  proof_link?: string;
+  ai_audit_result: any;
+  ai_score: number | null;
+  ai_notes: string;
+  validator_notes: string;
+  reviewer_name: string;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BudgetType = 'fixed' | 'hourly';
+export type ExperienceLevel = 'entry' | 'intermediate' | 'expert';
+export type ProjectStatus = 'draft' | 'open' | 'in_progress' | 'under_review' | 'completed' | 'cancelled' | 'disputed';
+
+export interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: 'pending' | 'active' | 'submitted' | 'approved' | 'paid' | 'disputed';
+  order: number;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface ProjectDetail {
+  id: string;
+  title: string;
+  slug: string;
+  short_description: string;
+  creator: string;
+  description: string;
+  requirements: string;
+  client_name: string;
+  budget: string;
+  budget_type: BudgetType;
+  experience_level: ExperienceLevel;
+  estimated_duration_days: number | null;
+  fee_cost: string;
+  bid_cost: number;
+  max_bids: number;
+  bids_count: number;
+  total_bids: string;
+  avg_bid: number;
+  available_slots: string;
+  status: ProjectStatus;
+  skills: Skill[];
+  milestones: Milestone[];
+  hired_name: string;
+  selected_bid: string | null;
+  deadline: string | null;
+  is_featured: boolean;
+  is_remote: boolean;
+  is_public: boolean;
+  allow_bidding: boolean;
+  image: string | null;
+  attachment: string | null;
+  views_count: number;
+  contract: any;
+  delivery_count: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Bid {
   id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  userReputation: number;
-  membershipTier: MembershipTier;
+  project: string;
+  user: number;
+  user_display: string;
   amount: number;
-  signalFee: number;
-  isBoosted: boolean;
+  signal_fee: number;
+  is_boosted: boolean;
   timeline: string;
-  proposalText: string;
-  createdAt: string;
+  proposal_text: string;
   status: 'pending' | 'accepted' | 'rejected';
+  status_display: string;
+  submitted_count: number;
+  created_at: string;
 }
 
-export interface ProjectMilestone {
+export interface Skill {
   id: string;
-  title: string;
-  description: string;
-  amount: number;
-  status: 'pending' | 'active' | 'submitted' | 'approved' | 'paid';
-  dueDate?: string;
+  name: string;
+  icon?: string;
 }
 
-export interface Project {
-  id: string;
-  creatorId: string;
-  title: string;
-  budgetMin: number;
-  budgetMax: number;
-  budgetType: 'fixed' | 'hourly';
-  experienceLevel: 'entry' | 'intermediate' | 'expert';
-  description: string;
-  requirements?: string;
-  skills: string[];
-  status: 'open' | 'in_progress' | 'under_review' | 'completed' | 'cancelled' | 'disputed';
-  clientName: string;
-  createdAt: string;
-  deadline?: string;
-  bids?: Bid[];
-  milestones?: ProjectMilestone[];
-}
-
-export interface TaskSubmission {
-  id: string;
-  taskId: string;
-  userId: string;
-  userName?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  proofText?: string;
-  proofImageUri?: string;
-  proofLink?: string;
-  createdAt: string;
-  aiAuditResult?: {
-    suggestedStatus: string;
-    rationale: string;
-    discrepancies: string[];
-  };
-}
-
-export type NotificationType = 'reward' | 'audit' | 'bid' | 'system' | 'milestone';
+export type NotificationType = 'reward' | 'audit' | 'bid' | 'system' | 'milestone' | 'payment';
 
 export interface Notification {
   id: string;
-  userId: string;
-  title: string;
-  description: string;
   type: NotificationType;
+  type_display: string;
   status: 'unread' | 'read';
-  createdAt: string;
-  link?: string;
+  status_display: string;
+  title: string;
+  message: string;
+  link: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface PaginatedList<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
 }

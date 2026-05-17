@@ -1,4 +1,3 @@
-
 'use client';
 
 import { api } from '@/lib/api-client';
@@ -9,23 +8,32 @@ import { api } from '@/lib/api-client';
 
 export const AuthService = {
   async login(credentials: any) {
-    const response = await api.post<{ token: string; user: any }>('/auth/login/', credentials);
-    if (response.data?.token) {
-      localStorage.setItem('gigalight_token', response.data.token);
+    const response = await api.post<{ access: string; refresh: string; user: any }>('/auth/login/', credentials);
+    if (response.data?.access) {
+      localStorage.setItem('gigalight_access', response.data.access);
+      localStorage.setItem('gigalight_refresh', response.data.refresh);
     }
     return response;
   },
 
   async signup(data: any) {
-    return api.post('/auth/register/', data);
+    return api.post('/auth/signup/', data);
   },
 
   async logout() {
-    localStorage.removeItem('gigalight_token');
-    return api.post('/auth/logout/', {});
+    const refresh = localStorage.getItem('gigalight_refresh');
+    const response = await api.post('/auth/logout/', { refresh });
+    localStorage.removeItem('gigalight_access');
+    localStorage.removeItem('gigalight_refresh');
+    return response;
   },
 
-  async verifyNode() {
-    return api.get('/auth/verify/');
+  async refreshToken() {
+    const refresh = localStorage.getItem('gigalight_refresh');
+    const response = await api.post<{ access: string }>('/auth/refresh/', { refresh });
+    if (response.data?.access) {
+      localStorage.setItem('gigalight_access', response.data.access);
+    }
+    return response;
   }
 };

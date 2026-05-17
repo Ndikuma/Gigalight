@@ -1,9 +1,8 @@
-
 'use client';
 
 /**
- * @fileOverview Base API client for communicating with the GigaLight Django Backend.
- * Handles authentication headers, base URL configuration, and standardized error responses.
+ * @fileOverview Professional API client for GigaLight Django Backend.
+ * Handles JWT authentication, Bearer tokens, and standardized error propagation.
  */
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -21,9 +20,9 @@ class ApiClient {
     };
 
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('gigalight_token');
+      const token = localStorage.getItem('gigalight_access');
       if (token) {
-        headers['Authorization'] = `Token ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
       }
     }
 
@@ -38,9 +37,10 @@ class ApiClient {
       const response = await fetch(url, { ...options, headers });
       
       if (response.status === 401) {
-        // Handle unauthorized access (e.g., redirect to login)
+        // Potential logic for auto-refresh would go here
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('gigalight_token');
+          localStorage.removeItem('gigalight_access');
+          localStorage.removeItem('gigalight_refresh');
         }
       }
 
@@ -52,7 +52,7 @@ class ApiClient {
       if (!response.ok) {
         return {
           data: null,
-          error: data?.message || data?.detail || `Error: ${response.status}`,
+          error: data?.message || data?.detail || `Protocol Error: ${response.status}`,
           status: response.status,
         };
       }
@@ -71,16 +71,23 @@ class ApiClient {
     return this.request<T>(endpoint, { method: 'GET' });
   }
 
-  post<T>(endpoint: string, body: any) {
+  post<T>(endpoint: string, body?: any) {
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: body ? JSON.stringify(body) : undefined,
     });
   }
 
   put<T>(endpoint: string, body: any) {
     return this.request<T>(endpoint, {
       method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  }
+
+  patch<T>(endpoint: string, body: any) {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
