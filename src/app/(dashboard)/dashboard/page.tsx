@@ -275,17 +275,6 @@ export default function DashboardHome() {
                   <Link href="/jobs">LEARN MORE <ArrowRight className="w-3 h-3" /></Link>
                 </Button>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</p>
-                  <p className="text-xl font-headline font-bold text-emerald-400">12,450</p>
-                </div>
-                <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Total Settlement</p>
-                  <p className="text-xl font-headline font-bold text-primary">124.5 <span className="text-[9px] opacity-70">BTC</span></p>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
