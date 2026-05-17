@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo } from 'react';
@@ -392,7 +391,7 @@ export default function CreateListingPage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-emerald-500" /> Multi-sig Funding</span>
-                          <span className="text-xl font-headline font-bold text-emerald-400">{totalEscrow.toLocaleString()} SAT</span>
+                          <span className="text-xl font-headline font-bold text-emerald-400">{(parseInt(formData.reward_amount) * parseInt(formData.target_completions)).toLocaleString()} SAT</span>
                         </div>
                       </div>
                     </div>

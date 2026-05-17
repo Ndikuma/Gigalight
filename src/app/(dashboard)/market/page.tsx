@@ -20,6 +20,7 @@ import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { TaskMini, ProjectDetail, Category } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function MarketPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,9 +43,9 @@ export default function MarketPage() {
           TaskService.getCategories()
         ]);
 
-        if (taskRes.data) setTasks(taskRes.data.results);
-        if (projectRes.data) setProjects(projectRes.data.results);
-        if (catRes.data) setCategories(catRes.data.results);
+        if (taskRes.data) setTasks(taskRes.data.results || []);
+        if (projectRes.data) setProjects(projectRes.data.results || []);
+        if (catRes.data) setCategories(catRes.data.results || []);
       } catch (e) {
         toast({
           variant: "destructive",
@@ -59,18 +60,21 @@ export default function MarketPage() {
   }, []);
 
   const formatBudget = (budget: any) => {
+    if (!budget) return 'TBD';
     if (typeof budget === 'string') return budget;
-    if (budget && typeof budget === 'object' && 'min' in budget) {
-      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()}`;
+    if (typeof budget === 'object' && budget !== null) {
+      if ('min' in budget && 'max' in budget) {
+        return `${(budget.min || 0).toLocaleString()} - ${(budget.max || 0).toLocaleString()} SAT`;
+      }
     }
     return 'TBD';
   };
 
   const filteredTasks = useMemo(() => {
     return (tasks || []).filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           task.short_description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || task.category.name === selectedCategory;
+      const matchesSearch = task.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           task.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || task.category?.name === selectedCategory;
       const matchesDifficulty = !selectedDifficulty || task.difficulty === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
@@ -78,9 +82,9 @@ export default function MarketPage() {
 
   const filteredProjects = useMemo(() => {
     return (projects || []).filter(project => {
-      const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           project.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || project.skills.some(s => s.name === selectedCategory);
+      const matchesSearch = project.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           project.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || project.skills?.some(s => s.name === selectedCategory);
       const matchesDifficulty = !selectedDifficulty || project.experience_level === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
@@ -215,10 +219,10 @@ export default function MarketPage() {
                   
                   <div className="flex justify-between items-start mb-6">
                     <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-                      {task.category?.name}
+                      {task.category?.name || 'General'}
                     </Badge>
                     <div className="text-right">
-                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount?.toLocaleString()}</p>
+                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount?.toLocaleString() || 0}</p>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
                     </div>
                   </div>
@@ -261,7 +265,7 @@ export default function MarketPage() {
                           {project.experience_level} CLASS
                         </Badge>
                         <Badge className="bg-white/5 text-muted-foreground border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest">
-                          {project.budget_type} SETTLEMENT
+                          {project.budget_type || 'FIXED'} SETTLEMENT
                         </Badge>
                       </div>
                       
@@ -290,7 +294,7 @@ export default function MarketPage() {
                       <div className="space-y-3 pt-2">
                          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase">
                           <span>Signal Density</span>
-                          <span className="text-white">{project.total_bids}</span>
+                          <span className="text-white">{project.total_bids || project.bids_count || 0}</span>
                         </div>
                         <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-2xl transition-all font-bold h-14 neon-glow-secondary text-lg">
                           <Link href={`/market/${project.id}`}>Initiate Proposal</Link>

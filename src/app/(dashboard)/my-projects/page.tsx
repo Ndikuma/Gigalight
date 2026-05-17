@@ -47,6 +47,17 @@ export default function ManagementHubPage() {
     fetchData();
   }, []);
 
+  const formatBudget = (budget: any) => {
+    if (!budget) return 'TBD';
+    if (typeof budget === 'string') return budget;
+    if (typeof budget === 'object' && budget !== null) {
+      if ('min' in budget && 'max' in budget) {
+        return `${(budget.min || 0).toLocaleString()} - ${(budget.max || 0).toLocaleString()} SAT`;
+      }
+    }
+    return 'TBD';
+  };
+
   if (isLoading) {
     return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
   }
@@ -83,7 +94,7 @@ export default function ManagementHubPage() {
         <TabsContent value="hiring" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {projects.map((project) => (
-              <ProjectManagementCard key={project.id} item={project} type="project" />
+              <ProjectManagementCard key={project.id} item={project} type="project" onFormatBudget={formatBudget} />
             ))}
             {projects.length === 0 && (
               <EmptyState title="No active listings" desc="You haven't initiated any objectives yet." />
@@ -128,19 +139,11 @@ export default function ManagementHubPage() {
   );
 }
 
-function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 'task' }) {
+function ProjectManagementCard({ item, type, onFormatBudget }: { item: any, type: 'project' | 'task', onFormatBudget: (b: any) => string }) {
   const isProject = type === 'project';
   const stats = isProject 
-    ? { label: 'Bids', value: item.bids_count || 0, icon: Users } 
+    ? { label: 'Proposals', value: item.bids_count || 0, icon: Users } 
     : { label: 'Proof', value: item.submissions_count || 0, icon: CheckCircle };
-
-  const formatBudget = (budget: any) => {
-    if (typeof budget === 'string') return budget;
-    if (budget && typeof budget === 'object' && 'min' in budget) {
-      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()} SAT`;
-    }
-    return 'TBD';
-  };
 
   return (
     <Card className="glass-card border-none overflow-hidden group hover:border-secondary/30 transition-all">
@@ -155,7 +158,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 {item.status?.replace('_', ' ') || 'OPEN'}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground capitalize text-[9px] font-bold">
-                {item.experience_level || item.difficulty}
+                {item.experience_level || item.difficulty || 'Intermediate'}
               </Badge>
             </div>
             <div>
@@ -179,7 +182,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Protocol Yield</span>
               </div>
               <span className="text-sm font-bold text-secondary">
-                {isProject ? formatBudget(item.budget) : `${(item.reward_amount || 0).toLocaleString()} SAT`}
+                {isProject ? onFormatBudget(item.budget) : `${(item.reward_amount || 0).toLocaleString()} SAT`}
               </span>
             </div>
 
