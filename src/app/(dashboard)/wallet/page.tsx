@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -195,6 +196,7 @@ export default function WalletPage() {
       return;
     }
     setIsDecoding(true);
+    // In a real implementation, we would call a backend endpoint to decode BOLT11
     await new Promise(r => setTimeout(r, 1000));
     setDecodedData({
       amount: 5000,
@@ -379,7 +381,7 @@ export default function WalletPage() {
                   <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Final Settlement</p>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                   <Activity className="w-3 h-3 text-muted-foreground" />
+                   <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Linked</span>
                 </div>
               </div>
