@@ -137,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Market', icon: Globe, href: '/market' },
     { name: 'Roles', icon: Sparkles, href: '/jobs' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
-    { name: 'Financials', icon: WalletIcon, href: '/settings?tab=wallet' },
+    { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
 
@@ -205,7 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <nav className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href === '/settings?tab=wallet' && pathname === '/settings');
+              const isActive = pathname === item.href;
               return (
                 <Link key={item.name} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <item.icon className="w-4 h-4" /> {item.name}

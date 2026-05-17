@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,74 +18,36 @@ import {
   Lock,
   Smartphone,
   Camera,
-  Wallet as WalletIcon,
-  ArrowDownLeft,
-  ArrowUpRight,
-  History,
-  QrCode,
-  Copy,
-  Check,
-  Zap,
-  X,
-  Loader2,
-  Clock
+  Loader2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription
-} from '@/components/ui/dialog';
 import { ProfileService } from '@/services/profile-service';
-import { WalletService } from '@/services/wallet-service';
-import { User as UserType, Wallet as WalletType } from '@/lib/types';
+import { User as UserType } from '@/lib/types';
 
-type SettingsSection = 'identity' | 'wallet' | 'tiers' | 'security';
+type SettingsSection = 'identity' | 'tiers' | 'security';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
   
   const [user, setUser] = useState<UserType | null>(null);
-  const [wallet, setWallet] = useState<WalletType | null>(null);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Wallet State
-  const [isDepositOpen, setIsDepositOpen] = useState(false);
-  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState('10000');
-  const [invoice, setInvoice] = useState<string | null>(null);
-  const [paymentHash, setPaymentHash] = useState<string | null>(null);
-  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
-  const [hasCopied, setHasCopied] = useState(false);
-  const [withdrawInvoice, setWithdrawInvoice] = useState('');
-  const [isDecoding, setIsDecoding] = useState(false);
-  const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
-  const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
-  
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     setMounted(true);
-    if (initialTab) setActiveSection(initialTab);
+    if (initialTab && initialTab !== 'wallet') {
+      setActiveSection(initialTab);
+    }
 
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [profRes, walletRes] = await Promise.all([
-          ProfileService.getMyProfile(),
-          WalletService.getWallet()
-        ]);
+        const profRes = await ProfileService.getMyProfile();
         if (profRes.data) setUser(profRes.data);
-        if (walletRes.data) setWallet(walletRes.data);
       } catch (err) {
         toast({ variant: "destructive", title: "Protocol Signal Lost", description: "Could not fetch configuration data." });
       } finally {
@@ -93,42 +55,7 @@ export default function SettingsPage() {
       }
     }
     fetchData();
-
-    return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    };
   }, [initialTab]);
-
-  // Polling logic for deposit
-  useEffect(() => {
-    if (isPolling && paymentHash) {
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          const res = await WalletService.pollDepositStatus(paymentHash);
-          // If balance changed or backend returns status indicating success
-          if (res.data) {
-            // Check if status in transaction list for this hash is confirmed
-            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === paymentHash);
-            if (tx?.status === 'confirmed') {
-              clearInterval(pollingIntervalRef.current!);
-              setIsPolling(false);
-              setWallet(res.data);
-              setInvoice(null);
-              setPaymentHash(null);
-              setIsDepositOpen(false);
-              toast({ title: "Settlement Confirmed", description: "SATs have been added to your liquid balance." });
-            }
-          }
-        } catch (e) {
-          console.error("Polling error", e);
-        }
-      }, 3000);
-    }
-
-    return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    };
-  }, [isPolling, paymentHash]);
 
   if (!mounted) return null;
 
@@ -152,82 +79,14 @@ export default function SettingsPage() {
   }
 
   async function handleUpgrade(tierId: string, cost: number) {
-    if (!wallet || (wallet.available_balance || 0) < cost) {
-      toast({
-        variant: "destructive",
-        title: "Insufficient Liquidity",
-        description: `Upgrade requires ${cost.toLocaleString()} SAT. Please deposit funds.`,
-      });
-      setIsDepositOpen(true);
-      return;
-    }
-
-    try {
-      toast({
-        title: "Activation Propagated",
-        description: `Your ${tierId.toUpperCase()} Node tier has been queued for settlement.`,
-      });
-      const profRes = await ProfileService.getMyProfile();
-      if (profRes.data) setUser(profRes.data);
-    } catch (e) {
-      toast({ variant: "destructive", title: "Settlement Error", description: "Critical error during tier activation." });
-    }
-  }
-
-  async function handleGenerateInvoice() {
-    setIsGeneratingInvoice(true);
-    try {
-      // Data as per backend requirement: { amount, memo, expires_in }
-      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount), "Professional Node Deposit", 3600);
-      
-      // Handle response based on OpenAPI spec (returns Wallet containing the new tx)
-      if (res.data) {
-        const walletData = res.data as WalletType;
-        // The newly created deposit transaction is usually the first one or we can find it
-        const newTx = walletData.transactions?.[0];
-        if (newTx && newTx.lnd_invoice) {
-          setInvoice(newTx.lnd_invoice);
-          setPaymentHash(newTx.lnd_payment_hash);
-          setIsPolling(true);
-          toast({ title: "Invoice Propagated", description: "Node is now listening for payment signal." });
-        } else {
-          toast({ variant: "destructive", title: "Protocol Mismatch", description: "Node returned wallet data without a valid invoice." });
-        }
-      } else {
-        toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
-      }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Network Error", description: "The Blink node is unreachable." });
-    } finally {
-      setIsGeneratingInvoice(false);
-    }
-  }
-
-  async function handleConfirmWithdraw() {
-    if (!decodedData) return;
-    setIsProcessingWithdraw(true);
-    try {
-      const res = await WalletService.initiateWithdrawal(withdrawInvoice);
-      if (res.data) {
-        toast({ title: "Withdrawal Propagated", description: "SATs are settling across the protocol." });
-        setIsWithdrawOpen(false);
-        setWithdrawInvoice('');
-        setDecodedData(null);
-        const wRes = await WalletService.getWallet();
-        if (wRes.data) setWallet(wRes.data);
-      } else {
-        toast({ variant: "destructive", title: "Settlement Rejected", description: res.error || "Insufficient node liquidity." });
-      }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Protocol Error", description: "L2 settlement path not found." });
-    } finally {
-      setIsProcessingWithdraw(false);
-    }
+    toast({
+      title: "Activation Propagated",
+      description: `Your upgrade request to ${tierId.toUpperCase()} Node has been queued. Please finalize in the Wallet Hub.`,
+    });
   }
 
   const navItems = [
     { id: 'identity', label: 'Identity', icon: User, desc: 'Profile & Bio' },
-    { id: 'wallet', label: 'Financials', icon: WalletIcon, desc: 'Yield & Escrow' },
     { id: 'tiers', label: 'Node Tiers', icon: Trophy, desc: 'Signal & Rewards' },
     { id: 'security', label: 'Security', icon: Shield, desc: 'Access Control' },
   ];
@@ -338,70 +197,6 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {activeSection === 'wallet' && wallet && (
-            <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StatCard 
-                  label="Liquid Balance" 
-                  value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} 
-                  icon={WalletIcon} 
-                  subValue="Settled and available for release"
-                  color="primary"
-                />
-                <StatCard 
-                  label="Platform Yield" 
-                  value={`${(wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
-                  icon={History} 
-                  subValue="Total revenue finalized on-chain"
-                  color="emerald"
-                />
-              </div>
-
-              <Card className="glass-card border-none">
-                <CardHeader className="p-8 pb-0 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="font-headline text-2xl">Ledger Activity</CardTitle>
-                    <CardDescription>Comprehensive record of technical yields and settlements.</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="rounded-xl h-10 border-white/5 font-bold" onClick={() => setIsWithdrawOpen(true)}>Withdraw</Button>
-                    <Button className="rounded-xl h-10 bg-primary font-bold" onClick={() => setIsDepositOpen(true)}>Deposit</Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <div className="space-y-1">
-                    {Array.isArray(wallet?.transactions) && wallet.transactions.length > 0 ? wallet.transactions.map((tx, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all group">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                            tx.amount > 0 ? "bg-emerald-400/10 text-emerald-400" : "bg-primary/10 text-primary"
-                          )}>
-                            {tx.amount > 0 ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold">{tx.description}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{new Date(tx.created_at).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={cn(
-                            "font-headline font-bold text-lg",
-                            tx.amount > 0 ? "text-emerald-400" : "text-foreground"
-                          )}>
-                            {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    )) : (
-                      <div className="text-center py-10 text-muted-foreground font-bold">No ledger activity detected.</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {activeSection === 'tiers' && (
             <Card className="glass-card border-none bg-gradient-to-br from-secondary/10 via-transparent to-transparent animate-in slide-in-from-right-4 duration-500">
               <CardHeader className="p-8 pb-0">
@@ -509,168 +304,6 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
-
-      <Dialog open={isDepositOpen} onOpenChange={(open) => {
-        setIsDepositOpen(open);
-        if (!open) {
-          setInvoice(null);
-          setPaymentHash(null);
-          setIsPolling(false);
-          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-        }
-      }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
-              <Zap className="w-5 h-5 text-secondary" /> Deposit SATs
-            </DialogTitle>
-            <DialogDescription>
-              Generate a Lightning Network invoice to fund your professional node.
-            </DialogDescription>
-          </DialogHeader>
-
-          {!invoice ? (
-            <div className="space-y-6 py-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Amount (SAT)</Label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    value={depositAmount} 
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="h-14 bg-white/5 border-white/5 text-xl font-bold pl-4"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">SATOSHIS</div>
-                </div>
-              </div>
-              <Button 
-                className="w-full h-14 rounded-xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary"
-                onClick={handleGenerateInvoice}
-                disabled={isGeneratingInvoice}
-              >
-                {isGeneratingInvoice ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Initializing Node...
-                  </>
-                ) : 'Generate Protocol Invoice'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-8 py-6 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20 relative">
-                <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <QrCode className="w-40 h-40 text-black opacity-90" />
-                  {isPolling && (
-                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                      <div className="w-12 h-12 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
-                      <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Listening for Signal...</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-4 overflow-hidden">
-                  <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 text-left">{invoice}</p>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 hover:bg-white/10 shrink-0"
-                    onClick={() => {
-                       navigator.clipboard.writeText(invoice!);
-                       setHasCopied(true);
-                       setTimeout(() => setHasCopied(false), 2000);
-                       toast({ title: "Invoice Copied" });
-                    }}
-                  >
-                    {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Expires in 60 Minutes</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Propagation will complete automatically once the payment signal is detected on the network.
-                </p>
-              </div>
-              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => {
-                setInvoice(null);
-                setPaymentHash(null);
-                setIsPolling(false);
-                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-              }}>
-                Abort & Modify
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
-              <ArrowUpRight className="w-5 h-5 text-primary" /> Professional Withdrawal
-            </DialogTitle>
-            <DialogDescription>
-              Payout your platform yield to an external Lightning Network node.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
-              <div className="relative">
-                <Input 
-                  placeholder="lnbc1..." 
-                  value={withdrawInvoice}
-                  onChange={(e) => setWithdrawInvoice(e.target.value)}
-                  className="h-14 bg-white/5 border-white/5 text-sm font-mono pr-24"
-                />
-                {!decodedData && (
-                  <Button 
-                    size="sm" 
-                    className="absolute right-2 top-2 h-10 rounded-lg font-bold"
-                    onClick={async () => {
-                      if (!withdrawInvoice.startsWith('lnbc')) return;
-                      setIsDecoding(true);
-                      await new Promise(r => setTimeout(r, 1000));
-                      setDecodedData({ amount: 15000, description: "External Payout" });
-                      setIsDecoding(false);
-                    }}
-                    disabled={isDecoding || !withdrawInvoice}
-                  >
-                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {decodedData && (
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
-                  <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
-                </div>
-              </div>
-            )}
-
-            <Button 
-              className="w-full h-14 rounded-xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary"
-              disabled={!decodedData || isProcessingWithdraw}
-              onClick={handleConfirmWithdraw}
-            >
-              {isProcessingWithdraw ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processing Yield...
-                </>
-              ) : 'Confirm Withdrawal'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
