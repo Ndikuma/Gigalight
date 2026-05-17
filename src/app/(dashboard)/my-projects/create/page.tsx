@@ -29,13 +29,14 @@ import {
   Settings,
   FileText,
   Loader2,
-  Cpu
+  Cpu,
+  Layers
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ProofMethod, Skill } from '@/lib/types';
+import { ProofMethod, Skill, Category } from '@/lib/types';
 import { ProjectService } from '@/services/project-service';
 import { TaskService } from '@/services/task-service';
 import { SkillService } from '@/services/skill-service';
@@ -49,6 +50,7 @@ export default function CreateListingPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -73,17 +75,24 @@ export default function CreateListingPage() {
   });
 
   useEffect(() => {
-    async function fetchSkills() {
+    async function fetchTaxonomy() {
       try {
-        const res = await SkillService.listSkills({ page_size: 20 });
-        if (res.data?.results) {
-          setAvailableSkills(res.data.results);
+        const [skillRes, catRes] = await Promise.all([
+          SkillService.listSkills({ page_size: 20 }),
+          TaskService.getCategories()
+        ]);
+        
+        if (skillRes.data?.results) {
+          setAvailableSkills(skillRes.data.results);
+        }
+        if (catRes.data?.results) {
+          setCategories(catRes.data.results);
         }
       } catch (e) {
-        console.error("Failed to fetch skills taxonomy");
+        console.error("Failed to fetch protocol taxonomy");
       }
     }
-    fetchSkills();
+    fetchTaxonomy();
   }, []);
 
   const totalEscrow = useMemo(() => {
@@ -145,7 +154,7 @@ export default function CreateListingPage() {
           budget_max: parseInt(formData.budget_max),
           budget_type: formData.budget_type,
           experience_level: formData.experience_level,
-          skills: formData.skills, // Propagate technical expertise requirements
+          skills: formData.skills,
         });
       } else {
         response = await TaskService.createTask({
@@ -157,6 +166,7 @@ export default function CreateListingPage() {
           proof_method: formData.proof_method,
           difficulty: formData.difficulty as any,
           validator_guidelines: formData.validatorGuidelines,
+          category: formData.category_id,
         });
       }
 
@@ -282,7 +292,7 @@ export default function CreateListingPage() {
                 />
               </div>
 
-              {listingType === 'project' && (
+              {listingType === 'project' ? (
                 <div className="space-y-4">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Technical Requirements (One per line)</Label>
                   <Textarea 
@@ -291,6 +301,25 @@ export default function CreateListingPage() {
                     value={formData.requirements}
                     onChange={(e) => setFormData({...formData, requirements: e.target.value})}
                   />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Layers className="w-3.5 h-3.5" /> Protocol Taxonomy Category
+                  </Label>
+                  <Select 
+                    value={formData.category_id} 
+                    onValueChange={(val) => setFormData({...formData, category_id: val})}
+                  >
+                    <SelectTrigger className="bg-background/50 border-white/5 h-12">
+                      <SelectValue placeholder="Select verified category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -317,7 +346,6 @@ export default function CreateListingPage() {
                     <Button variant="outline" size="icon" onClick={() => addSkill()} className="rounded-lg shrink-0"><Plus className="w-4 h-4" /></Button>
                   </div>
                   
-                  {/* Verified Skill Taxonomy Suggestions */}
                   {availableSkills.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Taxonomy</p>
