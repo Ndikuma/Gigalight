@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { WalletService } from '@/services/wallet-service';
@@ -17,7 +16,8 @@ import {
   QrCode, 
   AlertCircle,
   Loader2,
-  X
+  X,
+  Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,13 +41,17 @@ export default function WalletPage() {
   
   const [depositAmount, setDepositAmount] = useState('10000');
   const [invoice, setInvoice] = useState<string | null>(null);
+  const [paymentHash, setPaymentHash] = useState<string | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
 
   const [withdrawInvoice, setWithdrawInvoice] = useState('');
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function fetchWallet() {
@@ -61,14 +65,53 @@ export default function WalletPage() {
       }
     }
     fetchWallet();
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
   }, []);
+
+  // Polling logic
+  useEffect(() => {
+    if (isPolling && paymentHash) {
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await WalletService.pollDepositStatus(paymentHash);
+          if (res.data) {
+            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === paymentHash);
+            if (tx?.status === 'confirmed') {
+              clearInterval(pollingIntervalRef.current!);
+              setIsPolling(false);
+              setWallet(res.data);
+              setInvoice(null);
+              setPaymentHash(null);
+              setIsDepositOpen(false);
+              toast({ title: "Settlement Confirmed", description: "SATs have been added to your liquid balance." });
+            }
+          }
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
+  }, [isPolling, paymentHash]);
 
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
     try {
-      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
+      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount), "Professional Node Deposit", 3600);
       if (res.data) {
-        setInvoice((res.data as any).lnd_invoice || `lnbc${depositAmount}demo...`);
+        const walletData = res.data as WalletType;
+        const newTx = walletData.transactions?.[0];
+        if (newTx && newTx.lnd_invoice) {
+          setInvoice(newTx.lnd_invoice);
+          setPaymentHash(newTx.lnd_payment_hash);
+          setIsPolling(true);
+        }
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Gateway Error", description: "Could not initialize deposit signal." });
@@ -214,7 +257,15 @@ export default function WalletPage() {
         </div>
       </div>
 
-      <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
+      <Dialog open={isDepositOpen} onOpenChange={(open) => {
+        setIsDepositOpen(open);
+        if (!open) {
+          setInvoice(null);
+          setPaymentHash(null);
+          setIsPolling(false);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+        }
+      }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
@@ -238,17 +289,57 @@ export default function WalletPage() {
                 onClick={handleGenerateInvoice}
                 disabled={isGeneratingInvoice}
               >
-                {isGeneratingInvoice ? <Loader2 className="animate-spin" /> : 'Generate Invoice'}
+                {isGeneratingInvoice ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : 'Generate Protocol Invoice'}
               </Button>
             </div>
           ) : (
-            <div className="space-y-8 py-6 text-center">
-              <QrCode className="w-48 h-48 mx-auto" />
-              <div className="bg-black/40 p-4 rounded-2xl flex items-center gap-2">
-                <p className="text-[10px] truncate flex-1">{invoice}</p>
-                <Button size="icon" variant="ghost" onClick={() => navigator.clipboard.writeText(invoice!)}><Copy className="w-4 h-4" /></Button>
+            <div className="space-y-8 py-6 text-center animate-in zoom-in-95 duration-300">
+              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20 relative">
+                <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  <QrCode className="w-40 h-40 text-black opacity-90" />
+                  {isPolling && (
+                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Listening...</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Button className="w-full" onClick={() => setIsDepositOpen(false)}>Done</Button>
+              <div className="space-y-4">
+                <div className="bg-black/40 p-4 border border-white/5 rounded-2xl flex items-center gap-2 overflow-hidden">
+                  <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 text-left">{invoice}</p>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 hover:bg-white/10 shrink-0"
+                    onClick={() => {
+                       navigator.clipboard.writeText(invoice!);
+                       setHasCopied(true);
+                       setTimeout(() => setHasCopied(false), 2000);
+                       toast({ title: "Invoice Copied" });
+                    }}
+                  >
+                    {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Expires in 60 Minutes</span>
+                </div>
+              </div>
+              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => {
+                setInvoice(null);
+                setPaymentHash(null);
+                setIsPolling(false);
+                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+              }}>
+                Abort Mission
+              </Button>
             </div>
           )}
         </DialogContent>

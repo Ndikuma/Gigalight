@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,8 @@ import {
   Check,
   Zap,
   X,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -62,12 +62,16 @@ export default function SettingsPage() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('10000');
   const [invoice, setInvoice] = useState<string | null>(null);
+  const [paymentHash, setPaymentHash] = useState<string | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [withdrawInvoice, setWithdrawInvoice] = useState('');
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -89,7 +93,42 @@ export default function SettingsPage() {
       }
     }
     fetchData();
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
   }, [initialTab]);
+
+  // Polling logic for deposit
+  useEffect(() => {
+    if (isPolling && paymentHash) {
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await WalletService.pollDepositStatus(paymentHash);
+          // If balance changed or backend returns status indicating success
+          if (res.data) {
+            // Check if status in transaction list for this hash is confirmed
+            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === paymentHash);
+            if (tx?.status === 'confirmed') {
+              clearInterval(pollingIntervalRef.current!);
+              setIsPolling(false);
+              setWallet(res.data);
+              setInvoice(null);
+              setPaymentHash(null);
+              setIsDepositOpen(false);
+              toast({ title: "Settlement Confirmed", description: "SATs have been added to your liquid balance." });
+            }
+          }
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
+  }, [isPolling, paymentHash]);
 
   if (!mounted) return null;
 
@@ -98,7 +137,6 @@ export default function SettingsPage() {
     try {
       const res = await ProfileService.updateProfile({
         display_name: user.display_name,
-        // Profile fields might be nested or on a different object depending on backend implementation
       });
       if (res.data) {
         toast({
@@ -139,10 +177,22 @@ export default function SettingsPage() {
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
     try {
-      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
+      // Data as per backend requirement: { amount, memo, expires_in }
+      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount), "Professional Node Deposit", 3600);
+      
+      // Handle response based on OpenAPI spec (returns Wallet containing the new tx)
       if (res.data) {
-        setInvoice((res.data as any).lnd_invoice || `lnbc${depositAmount}demo...`);
-        toast({ title: "Invoice Generated", description: "Scan or copy to propagate SATs." });
+        const walletData = res.data as WalletType;
+        // The newly created deposit transaction is usually the first one or we can find it
+        const newTx = walletData.transactions?.[0];
+        if (newTx && newTx.lnd_invoice) {
+          setInvoice(newTx.lnd_invoice);
+          setPaymentHash(newTx.lnd_payment_hash);
+          setIsPolling(true);
+          toast({ title: "Invoice Propagated", description: "Node is now listening for payment signal." });
+        } else {
+          toast({ variant: "destructive", title: "Protocol Mismatch", description: "Node returned wallet data without a valid invoice." });
+        }
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
       }
@@ -460,14 +510,22 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
+      <Dialog open={isDepositOpen} onOpenChange={(open) => {
+        setIsDepositOpen(open);
+        if (!open) {
+          setInvoice(null);
+          setPaymentHash(null);
+          setIsPolling(false);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+        }
+      }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
               <Zap className="w-5 h-5 text-secondary" /> Deposit SATs
             </DialogTitle>
             <DialogDescription>
-              Generate a Lightning Network invoice to fund your project escrow.
+              Generate a Lightning Network invoice to fund your professional node.
             </DialogDescription>
           </DialogHeader>
 
@@ -493,16 +551,22 @@ export default function SettingsPage() {
                 {isGeneratingInvoice ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Generating...
+                    Initializing Node...
                   </>
-                ) : 'Generate Invoice'}
+                ) : 'Generate Protocol Invoice'}
               </Button>
             </div>
           ) : (
             <div className="space-y-8 py-6 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20">
+              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20 relative">
                 <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
                   <QrCode className="w-40 h-40 text-black opacity-90" />
+                  {isPolling && (
+                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
+                      <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Listening for Signal...</p>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="space-y-4">
@@ -522,15 +586,21 @@ export default function SettingsPage() {
                     {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
-                <Button 
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl h-12"
-                  onClick={() => setIsDepositOpen(false)}
-                >
-                  Confirm Simulation Payment
-                </Button>
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Expires in 60 Minutes</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Propagation will complete automatically once the payment signal is detected on the network.
+                </p>
               </div>
-              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => setInvoice(null)}>
-                Modify Parameters
+              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => {
+                setInvoice(null);
+                setPaymentHash(null);
+                setIsPolling(false);
+                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+              }}>
+                Abort & Modify
               </Button>
             </div>
           )}

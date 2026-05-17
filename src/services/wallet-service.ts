@@ -16,8 +16,12 @@ export const WalletService = {
     return api.get('/wallet/blink/');
   },
 
-  async generateDepositInvoice(amount: number) {
-    return api.post<Wallet>('/wallet/deposit/', { amount });
+  async generateDepositInvoice(amount: number, memo = "Wallet deposit", expiresIn = 3600) {
+    return api.post<any>('/wallet/deposit/', { 
+      amount, 
+      memo, 
+      expires_in: expiresIn 
+    });
   },
 
   async pollDepositStatus(paymentHash: string) {
