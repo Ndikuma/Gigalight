@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -25,7 +24,8 @@ import {
   Activity,
   Layers,
   Network,
-  Database
+  Database,
+  Bitcoin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -48,13 +49,18 @@ export default function WalletPage() {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   
+  // Deposit States
+  const [depositMethod, setDepositMethod] = useState<'lightning' | 'onchain'>('lightning');
   const [depositAmount, setDepositAmount] = useState('5000');
   const [invoiceData, setInvoiceData] = useState<DepositInvoiceResponse | null>(null);
+  const [onchainData, setOnchainData] = useState<{ bitcoin_address: string, qr_code: string } | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  // Withdraw States
   const [withdrawInvoice, setWithdrawInvoice] = useState('');
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
@@ -129,6 +135,7 @@ export default function WalletPage() {
 
   const cleanupDeposit = () => {
     setInvoiceData(null);
+    setOnchainData(null);
     setIsPolling(false);
     setTimeLeft(null);
     if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
@@ -162,6 +169,23 @@ export default function WalletPage() {
       toast({ variant: "destructive", title: "Network Error", description: "The protocol node is unreachable." });
     } finally {
       setIsGeneratingInvoice(false);
+    }
+  }
+
+  async function handleGetOnchainAddress() {
+    setIsLoadingOnchain(true);
+    try {
+      const res = await WalletService.getBitcoinAddress();
+      if (res.data) {
+        setOnchainData(res.data);
+        toast({ title: "Address Propagated", description: "Settlement path established via Bitcoin L1." });
+      } else {
+        toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not retrieve address." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "The L1 bridge node is unreachable." });
+    } finally {
+      setIsLoadingOnchain(false);
     }
   }
 
@@ -394,100 +418,181 @@ export default function WalletPage() {
         setIsDepositOpen(open);
         if (!open) cleanupDeposit();
       }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden">
-          <DialogHeader className="p-4">
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
-                <Zap className="w-6 h-6" />
-              </div>
-              Fund Node
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              Generate a Lightning invoice to fund your protocol node instantly.
-            </DialogDescription>
-          </DialogHeader>
-
-          {!invoiceData ? (
-            <div className="space-y-6 p-4">
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    value={depositAmount} 
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 focus:ring-secondary/40"
-                  />
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SATOSHIS</div>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+                  <ArrowDownLeft className="w-6 h-6" />
                 </div>
-              </div>
-              <Button 
-                className="w-full h-16 rounded-2xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary shadow-lg shadow-secondary/20"
-                onClick={handleGenerateInvoice}
-                disabled={isGeneratingInvoice}
-              >
-                {isGeneratingInvoice ? (
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Propagating...
+                Fund Node
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Select your preferred settlement path to fund your protocol node.
+              </DialogDescription>
+            </DialogHeader>
+
+            {!invoiceData && !onchainData ? (
+              <Tabs defaultValue="lightning" onValueChange={(v) => setDepositMethod(v as any)} className="w-full">
+                <TabsList className="grid grid-cols-2 bg-white/5 p-1 rounded-xl h-auto mb-6">
+                  <TabsTrigger value="lightning" className="rounded-lg py-2.5 font-bold text-xs gap-2 data-[state=active]:bg-secondary data-[state=active]:text-white">
+                    <Zap className="w-3.5 h-3.5" /> Lightning
+                  </TabsTrigger>
+                  <TabsTrigger value="onchain" className="rounded-lg py-2.5 font-bold text-xs gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
+                    <Bitcoin className="w-3.5 h-3.5" /> On-Chain
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="lightning" className="space-y-6 mt-0 animate-in fade-in duration-300">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
+                    <div className="relative">
+                      <Input 
+                        type="number" 
+                        value={depositAmount} 
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 focus:ring-secondary/40"
+                      />
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SATOSHIS</div>
+                    </div>
                   </div>
-                ) : 'Generate L2 Invoice'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-8 p-4 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
-                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                  <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
-                </div>
-              </div>
+                  <Button 
+                    className="w-full h-16 rounded-2xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary shadow-lg shadow-secondary/20"
+                    onClick={handleGenerateInvoice}
+                    disabled={isGeneratingInvoice}
+                  >
+                    {isGeneratingInvoice ? (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Propagating...
+                      </div>
+                    ) : 'Generate L2 Invoice'}
+                  </Button>
+                </TabsContent>
 
-              {isPolling && (
-                <div className="flex flex-col items-center gap-2 py-2 animate-in fade-in slide-in-from-top-2">
+                <TabsContent value="onchain" className="space-y-6 mt-0 animate-in fade-in duration-300">
+                  <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <Database className="w-4 h-4" />
+                      </div>
+                      <p className="text-xs font-bold text-white">L1 Settlement Node</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Generate a unique Bitcoin address for on-chain funding. Settlements are finalized after 3 network confirmations.
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
+                    onClick={handleGetOnchainAddress}
+                    disabled={isLoadingOnchain}
+                  >
+                    {isLoadingOnchain ? (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Bridging...
+                      </div>
+                    ) : 'Initialize L1 Path'}
+                  </Button>
+                </TabsContent>
+              </Tabs>
+            ) : invoiceData ? (
+              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
+                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
+                    <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
                     <Activity className="w-3 h-3 text-secondary animate-pulse" />
                     <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting Network Signal</span>
                   </div>
                 </div>
-              )}
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-                  <span className="text-muted-foreground">Session Expiry</span>
-                  <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
-                    <Clock className="w-3 h-3" />
-                    {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
-                  <div className="flex-1 text-left">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace</p>
-                    <p className="text-[11px] font-mono text-white/70 truncate leading-none">
-                      {invoiceData.payment_request.substring(0, 12)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 12)}
-                    </p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
+                    <span className="text-muted-foreground">Session Expiry</span>
+                    <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
+                      <Clock className="w-3 h-3" />
+                      {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+                    </span>
                   </div>
-                  <Button 
-                    size="icon" 
-                    variant="secondary" 
-                    className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
-                    onClick={() => {
-                       navigator.clipboard.writeText(invoiceData.payment_request);
-                       setHasCopied(true);
-                       setTimeout(() => setHasCopied(false), 2000);
-                       toast({ title: "Signal Copied to Node" });
-                    }}
-                  >
-                    {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </div>
 
-              <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
-                Abort Settlement Path
-              </Button>
-            </div>
-          )}
+                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
+                    <div className="flex-1 text-left">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace</p>
+                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
+                        {invoiceData.payment_request.substring(0, 12)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 12)}
+                      </p>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
+                      onClick={() => {
+                         navigator.clipboard.writeText(invoiceData.payment_request);
+                         setHasCopied(true);
+                         setTimeout(() => setHasCopied(false), 2000);
+                         toast({ title: "Signal Copied to Node" });
+                      }}
+                    >
+                      {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
+                  Abort Settlement Path
+                </Button>
+              </div>
+            ) : onchainData ? (
+              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
+                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
+                    <img src={onchainData.qr_code} alt="Onchain Address QR" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                    <Database className="w-3 h-3 text-primary" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Live L1 Settlement Node</span>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">3 Confirmations Required</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/addr">
+                    <div className="flex-1 text-left">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Bitcoin Address</p>
+                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
+                        {onchainData.bitcoin_address}
+                      </p>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      className="h-10 w-10 shrink-0 rounded-xl border-primary/20 text-primary hover:bg-primary/10 transition-transform"
+                      onClick={() => {
+                         navigator.clipboard.writeText(onchainData.bitcoin_address);
+                         setHasCopied(true);
+                         setTimeout(() => setHasCopied(false), 2000);
+                         toast({ title: "Address Copied to Clipboard" });
+                      }}
+                    >
+                      {hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
+                  Return to Interface
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
 

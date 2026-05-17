@@ -4,8 +4,13 @@ import { api } from '@/lib/api-client';
 import { Wallet, DepositInvoiceResponse } from '@/lib/types';
 
 /**
- * @fileOverview Bitcoin Lightning Wallet and Settlement Services.
+ * @fileOverview Bitcoin Lightning and On-Chain Wallet Services.
  */
+
+export interface BitcoinAddressResponse {
+  bitcoin_address: string;
+  qr_code: string;
+}
 
 export const WalletService = {
   async getWallet() {
@@ -22,6 +27,10 @@ export const WalletService = {
       memo, 
       expires_in: expiresIn 
     });
+  },
+
+  async getBitcoinAddress() {
+    return api.get<BitcoinAddressResponse>('/wallet/bitcoin/');
   },
 
   async pollDepositStatus(paymentHash: string) {
