@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -90,8 +89,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setUser(profRes.data);
           setRole(profRes.data.is_validator ? 'validator' : 'standard');
         }
+        
+        // Ensure notifications is always an array
         if (notifRes.data && Array.isArray(notifRes.data.results)) {
           setNotifications(notifRes.data.results);
+        } else {
+          setNotifications([]);
         }
         
         setIsAuthenticating(false);

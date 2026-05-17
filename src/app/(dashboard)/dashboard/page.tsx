@@ -42,7 +42,12 @@ export default function DashboardHome() {
 
         if (profRes.data) setProfile(profRes.data);
         if (walletRes.data) setWallet(walletRes.data);
-        if (taskRes.data) setTasks(taskRes.data.results);
+        // Ensure tasks is always an array even if the result is empty or null
+        if (taskRes.data && Array.isArray(taskRes.data.results)) {
+          setTasks(taskRes.data.results);
+        } else {
+          setTasks([]);
+        }
       } catch (e) {
         toast({
           variant: "destructive",
@@ -166,7 +171,7 @@ export default function DashboardHome() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {tasks.length > 0 ? tasks.map((task) => (
+              {Array.isArray(tasks) && tasks.length > 0 ? tasks.map((task) => (
                 <Link key={task.id} href={`/market/${task.id}`}>
                   <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group mb-2">
                     <div className="flex items-center gap-4">
@@ -175,11 +180,13 @@ export default function DashboardHome() {
                       </div>
                       <div>
                         <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{task.title}</h4>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{task.category.name} • {task.difficulty}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                          {task.category?.name || 'General'} • {task.difficulty}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-headline font-bold text-emerald-400">+{task.reward_amount.toLocaleString()} SAT</p>
+                      <p className="font-headline font-bold text-emerald-400">+{task.reward_amount?.toLocaleString() || 0} SAT</p>
                       <p className="text-[10px] uppercase text-muted-foreground font-bold tracking-widest">Multi-sig Ready</p>
                     </div>
                   </div>
