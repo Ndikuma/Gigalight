@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,15 +28,17 @@ import {
   Wallet,
   Settings,
   FileText,
-  Loader2
+  Loader2,
+  Cpu
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ProofMethod } from '@/lib/types';
+import { ProofMethod, Skill } from '@/lib/types';
 import { ProjectService } from '@/services/project-service';
 import { TaskService } from '@/services/task-service';
+import { SkillService } from '@/services/skill-service';
 
 type ListingType = 'task' | 'project';
 
@@ -45,6 +48,7 @@ export default function CreateListingPage() {
   const [listingType, setListingType] = useState<ListingType>('project');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -67,6 +71,20 @@ export default function CreateListingPage() {
     skills: [] as string[],
     newSkill: ''
   });
+
+  useEffect(() => {
+    async function fetchSkills() {
+      try {
+        const res = await SkillService.listSkills({ page_size: 20 });
+        if (res.data?.results) {
+          setAvailableSkills(res.data.results);
+        }
+      } catch (e) {
+        console.error("Failed to fetch skills taxonomy");
+      }
+    }
+    fetchSkills();
+  }, []);
 
   const totalEscrow = useMemo(() => {
     if (listingType === 'project') return 0;
@@ -103,9 +121,10 @@ export default function CreateListingPage() {
     }
   }
 
-  function addSkill() {
-    if (formData.newSkill && !formData.skills.includes(formData.newSkill)) {
-      setFormData({ ...formData, skills: [...formData.skills, formData.newSkill], newSkill: '' });
+  function addSkill(skillName?: string) {
+    const skillToAdd = (skillName || formData.newSkill).trim();
+    if (skillToAdd && !formData.skills.includes(skillToAdd)) {
+      setFormData({ ...formData, skills: [...formData.skills, skillToAdd], newSkill: '' });
     }
   }
 
@@ -126,6 +145,7 @@ export default function CreateListingPage() {
           budget_max: parseInt(formData.budget_max),
           budget_type: formData.budget_type,
           experience_level: formData.experience_level,
+          skills: formData.skills, // Propagate technical expertise requirements
         });
       } else {
         response = await TaskService.createTask({
@@ -274,7 +294,7 @@ export default function CreateListingPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Execution Instructions</Label>
                   <Textarea 
@@ -288,21 +308,43 @@ export default function CreateListingPage() {
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Skill Nodes Required</Label>
                   <div className="flex gap-2">
                     <Input 
-                      placeholder="e.g. React" 
+                      placeholder="Add specific node capability..." 
                       className="bg-background/50 border-white/5"
                       value={formData.newSkill}
                       onChange={(e) => setFormData({...formData, newSkill: e.target.value})}
                       onKeyDown={(e) => e.key === 'Enter' && addSkill()}
                     />
-                    <Button variant="outline" size="icon" onClick={addSkill} className="rounded-lg"><Plus className="w-4 h-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => addSkill()} className="rounded-lg shrink-0"><Plus className="w-4 h-4" /></Button>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  
+                  {/* Verified Skill Taxonomy Suggestions */}
+                  {availableSkills.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Taxonomy</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableSkills.slice(0, 10).map(skill => (
+                          <button 
+                            key={skill.id}
+                            type="button"
+                            onClick={() => addSkill(skill.name)}
+                            className="text-[9px] px-2 py-1 rounded-md bg-white/5 border border-white/5 hover:bg-primary/20 hover:border-primary/30 transition-colors text-muted-foreground hover:text-white"
+                          >
+                            {skill.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mt-2 pt-4 border-t border-white/5">
                     {formData.skills.map(skill => (
-                      <Badge key={skill} className="bg-white/5 text-muted-foreground border-white/5 px-3 py-1 gap-1">
+                      <Badge key={skill} className="bg-primary/10 text-primary border-primary/20 px-3 py-1 gap-1.5 font-bold uppercase text-[9px] tracking-widest">
+                        <Cpu className="w-2.5 h-2.5" />
                         {skill}
-                        <button onClick={() => removeSkill(skill)}><X className="w-3 h-3 hover:text-white" /></button>
+                        <button onClick={() => removeSkill(skill)} className="hover:text-white transition-colors"><X className="w-3 h-3" /></button>
                       </Badge>
                     ))}
+                    {formData.skills.length === 0 && <p className="text-xs text-muted-foreground italic">No specialized skills propagated yet.</p>}
                   </div>
                 </div>
               </div>
