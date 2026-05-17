@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview Professional API client for GigaLight Django Backend.
- * Handles JWT authentication, Bearer tokens, and standardized error propagation.
+ * Handles JWT authentication, Bearer tokens, and standardized unwrapping of { success, data } envelopes.
  */
 
 const BASE_URL = 'https://broader-yeah-axis-secretariat.trycloudflare.com/api';
@@ -38,31 +38,45 @@ class ApiClient {
       
       if (response.status === 401) {
         if (typeof window !== 'undefined') {
-          // Attempting to refresh would happen here
-          // For now, clear tokens to prompt re-login if session is dead
           localStorage.removeItem('gigalight_access');
           localStorage.removeItem('gigalight_refresh');
         }
       }
 
-      let data = null;
+      let rawData: any = null;
       if (response.status !== 204) {
         try {
-          data = await response.json();
+          rawData = await response.json();
         } catch (e) {
-          data = null;
+          rawData = null;
         }
       }
 
       if (!response.ok) {
         return {
           data: null,
-          error: data?.message || data?.detail || `Protocol Error: ${response.status}`,
+          error: rawData?.message || rawData?.detail || rawData?.error || `Protocol Error: ${response.status}`,
           status: response.status,
         };
       }
 
-      return { data, error: null, status: response.status };
+      /**
+       * Handle the standard Gigalight wrapper: { success: boolean, data: T, message?: string }
+       * If 'success' is present, we return the inner 'data'.
+       */
+      let finalData = rawData;
+      if (rawData && typeof rawData === 'object' && 'success' in rawData) {
+        if (rawData.success === false) {
+          return {
+            data: null,
+            error: rawData.message || 'Operation failed on protocol node.',
+            status: response.status,
+          };
+        }
+        finalData = rawData.data;
+      }
+
+      return { data: finalData as T, error: null, status: response.status };
     } catch (err) {
       return {
         data: null,
