@@ -412,47 +412,50 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="space-y-8 p-4 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden">
-                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative overflow-hidden">
+              <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
+                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative overflow-hidden bg-white">
                   <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
                   {isPolling && (
-                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex flex-col items-center justify-center">
-                      <div className="w-12 h-12 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-2"></div>
-                      <p className="text-[8px] font-bold text-secondary uppercase tracking-[0.2em] animate-pulse">Monitoring Network</p>
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1.5px] flex flex-col items-center justify-center">
+                      <div className="w-14 h-14 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
+                      <p className="text-[9px] font-bold text-secondary uppercase tracking-[0.3em] animate-pulse">Awaiting Signal</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-                  <span className="text-muted-foreground">Expires In</span>
+                  <span className="text-muted-foreground">Session Expiry</span>
                   <span className={cn(timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
                     {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group">
-                  <p className="text-[9px] font-mono text-muted-foreground truncate flex-1 text-left leading-none">
-                    {invoiceData.payment_request}
-                  </p>
+                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden relative">
+                  <div className="flex-1 text-left">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Payment Signal</p>
+                    <p className="text-[11px] font-mono text-white/50 truncate leading-none max-w-[200px]">
+                      {invoiceData.payment_request.substring(0, 10)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 10)}
+                    </p>
+                  </div>
                   <Button 
                     size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 hover:bg-white/10 shrink-0 rounded-lg"
+                    variant="secondary" 
+                    className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary"
                     onClick={() => {
                        navigator.clipboard.writeText(invoiceData.payment_request);
                        setHasCopied(true);
                        setTimeout(() => setHasCopied(false), 2000);
-                       toast({ title: "Signal Copied" });
+                       toast({ title: "Signal Copied to Node" });
                     }}
                   >
-                    {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
 
-              <Button variant="ghost" className="w-full font-bold text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
-                Abort Deposit
+              <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
+                Abort Settlement Path
               </Button>
             </div>
           )}
