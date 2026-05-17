@@ -41,13 +41,13 @@ export default function SignupPage() {
     try {
       const response = await AuthService.signup({
         ...formData,
-        role: role // Backend can handle role if implemented, otherwise it's metadata
+        role: role
       });
 
       if (response.data) {
         toast({
           title: "Protocol Initialized",
-          description: "Your node identity has been registered. Please login.",
+          description: "Your node identity has been registered. Proceed to login.",
         });
         router.push('/login');
       } else {

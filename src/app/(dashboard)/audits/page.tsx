@@ -1,10 +1,10 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Filter, MoreHorizontal, BookOpen } from 'lucide-react';
-import { mockSubmissions, mockTasks } from '@/lib/mock-data';
+import { ShieldCheck, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Sparkles, Filter, MoreHorizontal, BookOpen, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { aiSubmissionAuditor } from '@/ai/flows/ai-submission-auditor';
 import { toast } from '@/hooks/use-toast';
@@ -18,25 +18,38 @@ import {
   DialogTrigger,
   DialogDescription
 } from "@/components/ui/dialog";
+import { TaskService } from '@/services/task-service';
+import { Submission } from '@/lib/types';
 
 export default function AuditsPage() {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isAuditing, setIsAuditing] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [isActioning, setIsActioning] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
+    async function fetchQueue() {
+      setIsLoading(true);
+      try {
+        const res = await TaskService.getAuditQueue();
+        if (res.data) setSubmissions(res.data);
+      } catch (err) {
+        toast({ variant: "destructive", title: "Sync Error", description: "Could not fetch validator queue." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchQueue();
   }, []);
 
   async function runAiAudit(submissionId: string) {
     setIsAuditing(submissionId);
     try {
-      const sub = mockSubmissions.find(s => s.id === submissionId);
-      const task = mockTasks.find(t => t.id === sub?.task);
-
-      if (!sub || !task) return;
+      const sub = submissions.find(s => s.id === submissionId);
+      if (!sub) return;
 
       const result = await aiSubmissionAuditor({
-        taskInstructions: task.description || task.short_description,
+        taskInstructions: sub.task_title,
         proofRequirements: "Verify proof meets task intent and technical requirements.",
         proofText: sub.proof_text,
         proofDescription: "Peer audit requested via validator network."
@@ -53,11 +66,31 @@ export default function AuditsPage() {
     }
   }
 
-  function handleAction(id: string, action: 'Approve' | 'Reject') {
-    toast({
-      title: `Submission ${action}d`,
-      description: `Validation yield has been credited to your node.`,
-    });
+  async function handleAction(id: string, action: 'Approve' | 'Reject') {
+    setIsActioning(id);
+    try {
+      const res = action === 'Approve' 
+        ? await TaskService.approveSubmission(id, "Verified by network node.")
+        : await TaskService.rejectSubmission(id, "Proof does not meet protocol standards.");
+      
+      if (res.data) {
+        toast({
+          title: `Submission ${action}d`,
+          description: `Validation yield has been credited to your node.`,
+        });
+        setSubmissions(prev => prev.filter(s => s.id !== id));
+      } else {
+        toast({ variant: "destructive", title: "Action Failed", description: res.error || "Internal protocol error." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "Gateway timeout during validation." });
+    } finally {
+      setIsActioning(null);
+    }
+  }
+
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -79,111 +112,78 @@ export default function AuditsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard label="Network Reputation" value="Tier 8" icon={ShieldCheck} color="emerald" />
-        <StatCard label="Pending Audits" value={`${mockSubmissions.length} Documents`} icon={Clock} color="primary" />
+        <StatCard label="Pending Audits" value={`${submissions.length} Items`} icon={Clock} color="primary" />
         <StatCard label="Validation Yield" value="2,450 SAT" icon={Sparkles} color="secondary" />
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-headline font-bold">Awaiting Verification</h2>
-          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Queue Density: {mockSubmissions.length} Items</span>
+          <span className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Queue Density: {submissions.length} Items</span>
         </div>
         
-        {mockSubmissions.map((sub) => {
-          const task = mockTasks.find(t => t.id === sub.task);
-          return (
-            <Card key={sub.id} className="glass-card border-none overflow-hidden hover:border-emerald-400/30 transition-all group">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                  <div className="flex gap-5 flex-1">
-                    <Avatar className="w-14 h-14 rounded-2xl">
-                      <AvatarImage src={`https://picsum.photos/seed/${sub.user}/100/100`} />
-                      <AvatarFallback>{sub.user_name?.[0] || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-lg">{sub.task_title || 'Unknown Objective'}</h4>
-                        <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
-                          {sub.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        Contributor: <span className="text-foreground">{sub.user_name}</span> 
-                        {mounted && <span> • {new Date(sub.created_at).toLocaleDateString()}</span>}
-                      </p>
-                      
-                      <div className="flex items-center gap-3 mt-3">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="rounded-lg gap-2 text-[10px] font-bold uppercase tracking-widest border-white/5 h-8">
-                              <BookOpen className="w-3.5 h-3.5" /> View Guidelines
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="glass-card border-white/10">
-                            <DialogHeader>
-                              <DialogTitle className="font-headline">Audit Guidelines</DialogTitle>
-                              <DialogDescription>Protocol criteria for "{sub.task_title}"</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 mt-4">
-                              <div className="space-y-2">
-                                <h5 className="text-xs font-bold text-primary uppercase">Task Description</h5>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{task?.description || task?.short_description}</p>
-                              </div>
-                              <div className="space-y-2">
-                                <h5 className="text-xs font-bold text-emerald-400 uppercase">Validator Decision Rules</h5>
-                                <p className="text-sm text-muted-foreground leading-relaxed bg-emerald-400/5 p-4 rounded-xl border border-emerald-400/10 italic">
-                                  Verify proof aligns with technical intent and standard network security protocols.
-                                </p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-
-                      <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
-                        <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proof_text}"</p>
-                        <div className="absolute right-2 top-2 opacity-0 group-hover/proof:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
-                        </div>
-                      </div>
+        {submissions.map((sub) => (
+          <Card key={sub.id} className="glass-card border-none overflow-hidden hover:border-emerald-400/30 transition-all group">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                <div className="flex gap-5 flex-1">
+                  <Avatar className="w-14 h-14 rounded-2xl">
+                    <AvatarImage src={`https://picsum.photos/seed/${sub.user}/100/100`} />
+                    <AvatarFallback>{sub.user_name?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-lg">{sub.task_title}</h4>
+                      <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
+                        {sub.status}
+                      </Badge>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="flex flex-col gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="rounded-xl border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/10 gap-2 h-10 px-4 font-bold"
-                        onClick={() => runAiAudit(sub.id)}
-                        disabled={isAuditing === sub.id}
-                      >
-                        <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Analyzing...' : 'AI Validation'}
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="flex-1 rounded-xl text-destructive hover:bg-destructive/10 h-10 px-4 font-bold"
-                          onClick={() => handleAction(sub.id, 'Reject')}
-                        >
-                          Reject
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 h-10 px-6 font-bold"
-                          onClick={() => handleAction(sub.id, 'Approve')}
-                        >
-                          Approve
-                        </Button>
-                      </div>
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Contributor: <span className="text-foreground">{sub.user_name}</span> • {new Date(sub.created_at).toLocaleDateString()}
+                    </p>
+                    
+                    <div className="bg-background/80 p-4 rounded-xl border border-white/5 mt-3 relative overflow-hidden group/proof">
+                      <p className="text-sm italic text-muted-foreground relative z-10 leading-relaxed">"{sub.proof_text}"</p>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="rounded-xl border-emerald-400/20 text-emerald-400 hover:bg-emerald-400/10 gap-2 h-10 px-4 font-bold"
+                      onClick={() => runAiAudit(sub.id)}
+                      disabled={isAuditing === sub.id}
+                    >
+                      <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Analyzing...' : 'AI Validation'}
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 rounded-xl text-destructive hover:bg-destructive/10 h-10 px-4 font-bold"
+                        onClick={() => handleAction(sub.id, 'Reject')}
+                        disabled={isActioning === sub.id}
+                      >
+                        Reject
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        className="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-600 h-10 px-6 font-bold"
+                        onClick={() => handleAction(sub.id, 'Approve')}
+                        disabled={isActioning === sub.id}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

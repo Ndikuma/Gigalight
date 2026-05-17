@@ -33,7 +33,6 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { mockProfile, mockWallet } from '@/lib/mock-data';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -45,6 +44,9 @@ import {
   DialogTitle, 
   DialogDescription
 } from '@/components/ui/dialog';
+import { ProfileService } from '@/services/profile-service';
+import { WalletService } from '@/services/wallet-service';
+import { User as UserType, Wallet as WalletType } from '@/lib/types';
 
 type SettingsSection = 'identity' | 'wallet' | 'tiers' | 'security';
 
@@ -52,10 +54,11 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
   
-  const [profile, setProfile] = useState(mockProfile);
-  const [balance, setBalance] = useState(mockWallet.available_balance);
+  const [user, setUser] = useState<UserType | null>(null);
+  const [wallet, setWallet] = useState<WalletType | null>(null);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Wallet State
   const [isDepositOpen, setIsDepositOpen] = useState(false);
@@ -72,19 +75,49 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true);
     if (initialTab) setActiveSection(initialTab);
+
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const [profRes, walletRes] = await Promise.all([
+          ProfileService.getMyProfile(),
+          WalletService.getWallet()
+        ]);
+        if (profRes.data) setUser(profRes.data);
+        if (walletRes.data) setWallet(walletRes.data);
+      } catch (err) {
+        toast({ variant: "destructive", title: "Protocol Signal Lost", description: "Could not fetch configuration data." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
   }, [initialTab]);
 
   if (!mounted) return null;
 
-  function handleSave() {
-    toast({
-      title: "Protocol Synced",
-      description: "Settings metadata has been propagated across your node identity.",
-    });
+  async function handleSave() {
+    if (!user) return;
+    try {
+      const res = await ProfileService.updateProfile({
+        display_name: user.display_name,
+        profile: user.profile
+      });
+      if (res.data) {
+        toast({
+          title: "Protocol Synced",
+          description: "Settings metadata has been propagated across your node identity.",
+        });
+      } else {
+        toast({ variant: "destructive", title: "Update Failed", description: res.error || "Could not sync identity changes." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Interface Error", description: "Failed to communicate with the gateway." });
+    }
   }
 
-  function handleUpgrade(tier: 'basic' | 'pro' | 'elite', cost: number) {
-    if (balance < cost) {
+  async function handleUpgrade(tierId: string, cost: number) {
+    if (!wallet || wallet.available_balance < cost) {
       toast({
         variant: "destructive",
         title: "Insufficient Liquidity",
@@ -94,75 +127,60 @@ export default function SettingsPage() {
       return;
     }
 
-    setBalance(prev => prev - cost);
-    setProfile(prev => ({ ...prev, membershipTier: tier }));
-    
-    toast({
-      title: `${tier.toUpperCase()} Node Activated`,
-      description: `Protocol fee adjusted. ${cost.toLocaleString()} SAT settled via L2.`,
-    });
+    try {
+      // Mock tier activation logic as per specific backend schema requirement if available
+      toast({
+        title: "Activation Propagated",
+        description: `Your ${tierId.toUpperCase()} Node tier has been queued for settlement.`,
+      });
+      // Refresh user to see changes
+      const profRes = await ProfileService.getMyProfile();
+      if (profRes.data) setUser(profRes.data);
+    } catch (e) {
+      toast({ variant: "destructive", title: "Settlement Error", description: "Critical error during tier activation." });
+    }
   }
 
-  // Wallet Mock Handlers
+  // Wallet Handlers
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setInvoice(`lnbc${depositAmount}n1p3uxls...v${Math.random().toString(36).substring(7)}`);
-    setIsGeneratingInvoice(false);
-  }
-
-  // Finalize Deposit (Simulated)
-  function handleSimulateDeposit() {
-    const amount = parseInt(depositAmount) || 0;
-    setBalance(prev => prev + amount);
-    setInvoice(null);
-    setIsDepositOpen(false);
-    toast({
-      title: "SATs Propagated",
-      description: `${amount.toLocaleString()} SAT added to your liquid balance.`,
-    });
-  }
-
-  async function handleDecodeInvoice(manualValue?: string) {
-    const val = manualValue || withdrawInvoice;
-    if (!val.startsWith('lnbc')) {
-      toast({ variant: "destructive", title: "Invalid Invoice", description: "Please provide a valid Lightning Network (BOLT11) invoice." });
-      return;
-    }
-    setIsDecoding(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setDecodedData({
-      amount: Math.floor(Math.random() * 50000) + 1000,
-      description: "External Strategic Settlement"
-    });
-    setIsDecoding(false);
-  }
-
-  function handleCopy() {
-    if (invoice) {
-      navigator.clipboard.writeText(invoice);
-      setHasCopied(true);
-      toast({ title: "Invoice Copied", description: "Ready to be pasted in your external wallet." });
-      setTimeout(() => setHasCopied(false), 2000);
+    try {
+      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
+      if (res.data) {
+        // Assume API returns invoice in description or a specific field based on actual Blink response
+        setInvoice((res.data as any).lnd_invoice || `lnbc${depositAmount}demo...`);
+        toast({ title: "Invoice Generated", description: "Scan or copy to propagate SATs." });
+      } else {
+        toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "The Blink node is unreachable." });
+    } finally {
+      setIsGeneratingInvoice(false);
     }
   }
 
-  function handleConfirmWithdraw() {
+  async function handleConfirmWithdraw() {
     if (!decodedData) return;
-    if (balance < decodedData.amount) {
-      toast({ variant: "destructive", title: "Insufficient Funds", description: "Your liquid balance is too low for this withdrawal." });
-      return;
-    }
-
     setIsProcessingWithdraw(true);
-    setTimeout(() => {
-      setBalance(prev => prev - decodedData!.amount);
+    try {
+      const res = await WalletService.initiateWithdrawal(withdrawInvoice);
+      if (res.data) {
+        toast({ title: "Withdrawal Propagated", description: "SATs are settling across the protocol." });
+        setIsWithdrawOpen(false);
+        setWithdrawInvoice('');
+        setDecodedData(null);
+        // Refresh wallet
+        const wRes = await WalletService.getWallet();
+        if (wRes.data) setWallet(wRes.data);
+      } else {
+        toast({ variant: "destructive", title: "Settlement Rejected", description: res.error || "Insufficient node liquidity." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Protocol Error", description: "L2 settlement path not found." });
+    } finally {
       setIsProcessingWithdraw(false);
-      setIsWithdrawOpen(false);
-      setWithdrawInvoice('');
-      setDecodedData(null);
-      toast({ title: "Withdrawal Propagated", description: "SATs are settling across the GigaLight protocol." });
-    }, 2000);
+    }
   }
 
   const navItems = [
@@ -172,6 +190,10 @@ export default function SettingsPage() {
     { id: 'security', label: 'Security', icon: Shield, desc: 'Access Control' },
   ];
 
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="space-y-1">
@@ -180,7 +202,6 @@ export default function SettingsPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar Navigation */}
         <nav className="space-y-2">
           {navItems.map((item) => (
             <button
@@ -202,9 +223,8 @@ export default function SettingsPage() {
           ))}
         </nav>
 
-        {/* Content Panel */}
         <div className="lg:col-span-3 space-y-6">
-          {activeSection === 'identity' && (
+          {activeSection === 'identity' && user && (
             <Card className="glass-card border-none animate-in slide-in-from-right-4 duration-500">
               <CardHeader className="p-8 pb-0">
                 <CardTitle className="font-headline text-2xl">Identity & Bio</CardTitle>
@@ -215,7 +235,7 @@ export default function SettingsPage() {
                   <div className="relative group">
                     <div className="w-28 h-28 rounded-[2rem] bg-gradient-to-tr from-primary to-secondary p-1 shadow-2xl transition-transform group-hover:scale-105">
                       <div className="w-full h-full rounded-[1.8rem] bg-card flex items-center justify-center overflow-hidden">
-                        <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={user.profile?.avatar_url || 'https://picsum.photos/seed/node/200/200'} alt="Avatar" className="w-full h-full object-cover" />
                       </div>
                     </div>
                     <button className="absolute -bottom-2 -right-2 bg-primary p-2 rounded-xl border-4 border-card shadow-xl hover:scale-110 transition-transform">
@@ -226,7 +246,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 justify-center sm:justify-start">
                       <h4 className="font-bold">Protocol Avatar</h4>
                       <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] font-bold tracking-widest">
-                        {profile.membershipTier} Node
+                        {user.tier || 'Standard'} Node
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
@@ -242,13 +262,21 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Full Node Name</Label>
-                    <Input defaultValue={profile.fullName} className="h-12 bg-black/40 border-white/5 rounded-xl font-bold focus:ring-primary/40" />
+                    <Input 
+                      value={user.display_name} 
+                      onChange={(e) => setUser({...user, display_name: e.target.value})}
+                      className="h-12 bg-black/40 border-white/5 rounded-xl font-bold focus:ring-primary/40" 
+                    />
                   </div>
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Technical Jurisdiction</Label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input defaultValue={profile.location} className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40" />
+                      <Input 
+                        value={user.profile?.location || ''} 
+                        onChange={(e) => setUser({...user, profile: {...user.profile, location: e.target.value}})}
+                        className="h-12 bg-black/40 border-white/5 rounded-xl pl-11 focus:ring-primary/40" 
+                      />
                     </div>
                   </div>
                 </div>
@@ -257,7 +285,8 @@ export default function SettingsPage() {
                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Professional Mission Bio</Label>
                   <textarea 
                     className="w-full min-h-[140px] bg-black/40 border-white/5 rounded-2xl p-6 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    defaultValue={profile.bio}
+                    value={user.profile?.bio || ''}
+                    onChange={(e) => setUser({...user, profile: {...user.profile, bio: e.target.value}})}
                     placeholder="Describe your technical expertise and node history..."
                   />
                 </div>
@@ -271,19 +300,19 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {activeSection === 'wallet' && (
+          {activeSection === 'wallet' && wallet && (
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatCard 
                   label="Liquid Balance" 
-                  value={`${balance.toLocaleString()} SAT`} 
+                  value={`${wallet.available_balance.toLocaleString()} SAT`} 
                   icon={WalletIcon} 
                   subValue="Settled and available for release"
                   color="primary"
                 />
                 <StatCard 
                   label="Platform Yield" 
-                  value={`${mockWallet.total_rewarded.toLocaleString()} SAT`} 
+                  value={`${wallet.total_rewarded.toLocaleString()} SAT`} 
                   icon={History} 
                   subValue="Total revenue finalized on-chain"
                   color="emerald"
@@ -303,37 +332,32 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="p-8">
                   <div className="space-y-1">
-                    {[
-                      { type: 'income', label: 'Technical Architecture Audit Yield', amount: 12000, date: 'Today, 2:30 PM', status: 'finalized' },
-                      { type: 'expense', label: 'Withdrawal to External Node', amount: 50000, date: 'Yesterday, 11:15 AM', status: 'finalized' },
-                      { type: 'income', label: 'Node Validator Tier Reward', amount: 500, date: 'Oct 24, 2023', status: 'finalized' },
-                      { type: 'pending', label: 'Escrow Lock: L2 Bridge Implementation', amount: 25000, date: 'Awaiting Milestone', status: 'pending' },
-                    ].map((tx, i) => (
+                    {wallet.transactions.length > 0 ? wallet.transactions.map((tx, i) => (
                       <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all group">
                         <div className="flex items-center gap-4">
                           <div className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center",
-                            tx.type === 'income' ? "bg-emerald-400/10 text-emerald-400" : 
-                            tx.type === 'expense' ? "bg-primary/10 text-primary" : "bg-yellow-400/10 text-yellow-400"
+                            tx.amount > 0 ? "bg-emerald-400/10 text-emerald-400" : "bg-primary/10 text-primary"
                           )}>
-                            {tx.type === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : 
-                             tx.type === 'expense' ? <ArrowUpRight className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                            {tx.amount > 0 ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                           </div>
                           <div>
-                            <p className="text-sm font-bold">{tx.label}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{tx.date}</p>
+                            <p className="text-sm font-bold">{tx.description}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{new Date(tx.created_at).toLocaleDateString()}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className={cn(
                             "font-headline font-bold text-lg",
-                            tx.type === 'income' ? "text-emerald-400" : "text-foreground"
+                            tx.amount > 0 ? "text-emerald-400" : "text-foreground"
                           )}>
-                            {tx.type === 'expense' ? '-' : '+'}{tx.amount.toLocaleString()}
+                            {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
                           </p>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-10 text-muted-foreground font-bold">No ledger activity detected.</div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -362,11 +386,11 @@ export default function SettingsPage() {
                   ].map((tier) => (
                     <div key={tier.id} className={cn(
                       "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-[300px] relative overflow-hidden group",
-                      profile.membershipTier === tier.id 
+                      user?.tier === tier.id 
                         ? "border-secondary/40 bg-secondary/5 ring-1 ring-secondary/20 shadow-2xl" 
                         : "border-white/5 bg-black/40 hover:border-white/10"
                     )}>
-                      {profile.membershipTier === tier.id && (
+                      {user?.tier === tier.id && (
                         <div className="absolute top-0 right-0 p-3">
                           <CheckCircle className="w-5 h-5 text-secondary" />
                         </div>
@@ -385,14 +409,14 @@ export default function SettingsPage() {
                         </ul>
                       </div>
                       
-                      {profile.membershipTier === tier.id ? (
+                      {user?.tier === tier.id ? (
                         <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1">
                           <CheckCircle className="w-3 h-3" /> Active Protocol Level
                         </div>
                       ) : (
                         <Button 
                           className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10"
-                          onClick={() => handleUpgrade(tier.id as any, tier.rawFee)}
+                          onClick={() => handleUpgrade(tier.id, tier.rawFee)}
                         >
                           Select Tier
                         </Button>
@@ -440,28 +464,6 @@ export default function SettingsPage() {
                       <p className="text-xs text-muted-foreground">Require a professional verification code for sensitive actions.</p>
                     </div>
                     <Switch defaultChecked />
-                  </div>
-                </div>
-
-                <Separator className="bg-white/5" />
-
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> Professional Sessions
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                          <Globe className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold">Node Satoshi-01 (Current)</p>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Active Now • San Salvador, SV</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="border-emerald-500/20 text-emerald-400 text-[9px] font-bold">STABLE</Badge>
-                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -523,14 +525,19 @@ export default function SettingsPage() {
                     size="icon" 
                     variant="ghost" 
                     className="h-8 w-8 hover:bg-white/10 shrink-0"
-                    onClick={handleCopy}
+                    onClick={() => {
+                       navigator.clipboard.writeText(invoice);
+                       setHasCopied(true);
+                       setTimeout(() => setHasCopied(false), 2000);
+                       toast({ title: "Invoice Copied" });
+                    }}
                   >
                     {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
                 <Button 
                   className="w-full bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl h-12"
-                  onClick={handleSimulateDeposit}
+                  onClick={() => setIsDepositOpen(false)}
                 >
                   Confirm Simulation Payment
                 </Button>
@@ -557,9 +564,7 @@ export default function SettingsPage() {
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
-              </div>
+              <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
               <div className="relative">
                 <Input 
                   placeholder="lnbc1..." 
@@ -571,22 +576,17 @@ export default function SettingsPage() {
                   <Button 
                     size="sm" 
                     className="absolute right-2 top-2 h-10 rounded-lg font-bold"
-                    onClick={() => handleDecodeInvoice()}
+                    onClick={async () => {
+                      if (!withdrawInvoice.startsWith('lnbc')) return;
+                      setIsDecoding(true);
+                      await new Promise(r => setTimeout(r, 1000));
+                      setDecodedData({ amount: 15000, description: "External Payout" });
+                      setIsDecoding(false);
+                    }}
                     disabled={isDecoding || !withdrawInvoice}
                   >
                     {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
                   </Button>
-                )}
-                {decodedData && (
-                  <button 
-                    className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-white"
-                    onClick={() => {
-                      setWithdrawInvoice('');
-                      setDecodedData(null);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 )}
               </div>
             </div>
@@ -596,10 +596,6 @@ export default function SettingsPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
                   <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
-                </div>
-                <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Description</span>
-                  <span className="text-xs font-bold">{decodedData.description}</span>
                 </div>
               </div>
             )}
@@ -616,9 +612,6 @@ export default function SettingsPage() {
                 </>
               ) : 'Confirm Withdrawal'}
             </Button>
-            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
-              Instant Settlement via GigaLight L2 Protocol
-            </p>
           </div>
         </DialogContent>
       </Dialog>

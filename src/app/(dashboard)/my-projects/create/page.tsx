@@ -27,13 +27,16 @@ import {
   Lock,
   Wallet,
   Settings,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ProofMethod } from '@/lib/types';
+import { ProjectService } from '@/services/project-service';
+import { TaskService } from '@/services/task-service';
 
 type ListingType = 'task' | 'project';
 
@@ -42,6 +45,7 @@ export default function CreateListingPage() {
   const [step, setStep] = useState(1);
   const [listingType, setListingType] = useState<ListingType>('project');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -50,27 +54,27 @@ export default function CreateListingPage() {
     requirements: '',
     instructions: '',
     validatorGuidelines: '',
-    category: '',
-    reward: '500',
-    budgetMin: '50000',
-    budgetMax: '150000',
-    budgetType: 'fixed' as 'fixed' | 'hourly',
+    category_id: '',
+    reward_amount: '500',
+    budget_min: '50000',
+    budget_max: '150000',
+    budget_type: 'fixed' as 'fixed' | 'hourly',
     difficulty: 'medium',
-    experienceLevel: 'intermediate',
-    proofMethod: 'text' as ProofMethod,
-    externalUrl: '',
-    externalUrlLabel: '',
-    targetCompletions: '10',
+    experience_level: 'intermediate',
+    proof_method: 'text' as ProofMethod,
+    external_url: '',
+    external_url_label: '',
+    target_completions: '10',
     skills: [] as string[],
     newSkill: ''
   });
 
   const totalEscrow = useMemo(() => {
     if (listingType === 'project') return 0;
-    const reward = parseInt(formData.reward) || 0;
-    const slots = parseInt(formData.targetCompletions) || 0;
+    const reward = parseInt(formData.reward_amount) || 0;
+    const slots = parseInt(formData.target_completions) || 0;
     return reward * slots;
-  }, [formData.reward, formData.targetCompletions, listingType]);
+  }, [formData.reward_amount, formData.target_completions, listingType]);
 
   async function handleAIAssist() {
     if (!formData.title && !formData.description) {
@@ -90,7 +94,6 @@ export default function CreateListingPage() {
         instructions: `Key Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}`,
         validatorGuidelines: "Ensure all technical requirements are explicitly met in the submitted proof.",
         skills: [...new Set([...prev.skills, ...skillResult.suggestedSkills])],
-        category: skillResult.suggestedCategories[0] || prev.category
       }));
       
       toast({ title: "Intelligence Applied", description: "Your listing has been professionalized by the AI agent." });
@@ -111,9 +114,51 @@ export default function CreateListingPage() {
     setFormData({ ...formData, skills: formData.skills.filter(s => s !== skill) });
   }
 
-  function handleSubmit() {
-    toast({ title: "Listing Propagated", description: "Your listing is now live across the network." });
-    router.push('/my-projects');
+  async function handleSubmit() {
+    setIsSubmitting(true);
+    try {
+      let response;
+      if (listingType === 'project') {
+        response = await ProjectService.createProject({
+          title: formData.title,
+          description: formData.description,
+          requirements: formData.requirements,
+          budget_min: parseInt(formData.budget_min),
+          budget_max: parseInt(formData.budget_max),
+          budget_type: formData.budget_type,
+          experience_level: formData.experience_level,
+        });
+      } else {
+        response = await TaskService.createTask({
+          title: formData.title,
+          description: formData.description,
+          short_description: formData.description.substring(0, 200),
+          reward_amount: parseInt(formData.reward_amount),
+          target_completions: parseInt(formData.target_completions),
+          proof_method: formData.proof_method,
+          difficulty: formData.difficulty as any,
+          validator_guidelines: formData.validatorGuidelines,
+        });
+      }
+
+      if (response.data) {
+        toast({ 
+          title: "Listing Propagated", 
+          description: `Objective "${formData.title}" is now live on the L2 protocol.` 
+        });
+        router.push('/my-projects');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Deployment Error",
+          description: response.error || "Could not synchronize objective with the network.",
+        });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Network Error", description: "Critical interface timeout during propagation." });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -128,7 +173,6 @@ export default function CreateListingPage() {
         </div>
       </header>
 
-      {/* Stepper */}
       <div className="flex items-center gap-4 mb-8">
         {[1, 2, 3].map((s) => (
           <div key={s} className="flex items-center gap-2">
@@ -267,9 +311,9 @@ export default function CreateListingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                  <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Experience Class</Label>
-                  <Select value={listingType === 'task' ? formData.difficulty : formData.experienceLevel} onValueChange={(val) => {
+                  <Select value={listingType === 'task' ? formData.difficulty : formData.experience_level} onValueChange={(val) => {
                     if (listingType === 'task') setFormData({...formData, difficulty: val});
-                    else setFormData({...formData, experienceLevel: val});
+                    else setFormData({...formData, experience_level: val});
                   }}>
                     <SelectTrigger className="bg-background/50 border-white/5 h-11">
                       <SelectValue />
@@ -283,7 +327,7 @@ export default function CreateListingPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Compensation Model</Label>
-                  <Select value={formData.budgetType} onValueChange={(val: any) => setFormData({...formData, budgetType: val})}>
+                  <Select value={formData.budget_type} onValueChange={(val: any) => setFormData({...formData, budget_type: val})}>
                     <SelectTrigger className="bg-background/50 border-white/5 h-11">
                       <SelectValue />
                     </SelectTrigger>
@@ -326,8 +370,8 @@ export default function CreateListingPage() {
                           <Input 
                             type="number" 
                             className="h-12 bg-background border-white/5 font-bold"
-                            value={formData.reward}
-                            onChange={(e) => setFormData({...formData, reward: e.target.value})}
+                            value={formData.reward_amount}
+                            onChange={(e) => setFormData({...formData, reward_amount: e.target.value})}
                           />
                         </div>
                         <div className="space-y-2">
@@ -335,8 +379,8 @@ export default function CreateListingPage() {
                           <Input 
                             type="number" 
                             className="h-12 bg-background border-white/5"
-                            value={formData.targetCompletions}
-                            onChange={(e) => setFormData({...formData, targetCompletions: e.target.value})}
+                            value={formData.target_completions}
+                            onChange={(e) => setFormData({...formData, target_completions: e.target.value})}
                           />
                         </div>
                       </div>
@@ -344,7 +388,7 @@ export default function CreateListingPage() {
                       <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
                         <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground">
                           <span className="flex items-center gap-1.5 uppercase tracking-widest"><Calculator className="w-3 h-3" /> Escrow Formula</span>
-                          <span>{formData.reward} × {formData.targetCompletions}</span>
+                          <span>{formData.reward_amount} × {formData.target_completions}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-emerald-500" /> Multi-sig Funding</span>
@@ -360,8 +404,8 @@ export default function CreateListingPage() {
                           type="number" 
                           placeholder="50000" 
                           className="h-12 bg-background border-white/5"
-                          value={formData.budgetMin}
-                          onChange={(e) => setFormData({...formData, budgetMin: e.target.value})}
+                          value={formData.budget_min}
+                          onChange={(e) => setFormData({...formData, budget_min: e.target.value})}
                         />
                       </div>
                       <div className="space-y-2">
@@ -370,8 +414,8 @@ export default function CreateListingPage() {
                           type="number" 
                           placeholder="150000" 
                           className="h-12 bg-background border-white/5"
-                          value={formData.budgetMax}
-                          onChange={(e) => setFormData({...formData, budgetMax: e.target.value})}
+                          value={formData.budget_max}
+                          onChange={(e) => setFormData({...formData, budget_max: e.target.value})}
                         />
                       </div>
                     </div>
@@ -393,7 +437,7 @@ export default function CreateListingPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-xs">Verification Signal Method</Label>
-                        <Select value={formData.proofMethod} onValueChange={(val: ProofMethod) => setFormData({...formData, proofMethod: val})}>
+                        <Select value={formData.proof_method} onValueChange={(val: ProofMethod) => setFormData({...formData, proof_method: val})}>
                           <SelectTrigger className="bg-background border-white/5 h-12">
                             <SelectValue />
                           </SelectTrigger>
@@ -414,8 +458,8 @@ export default function CreateListingPage() {
                         <Input 
                           placeholder="https://..." 
                           className="h-10 bg-background border-white/5"
-                          value={formData.externalUrl}
-                          onChange={(e) => setFormData({...formData, externalUrl: e.target.value})}
+                          value={formData.external_url}
+                          onChange={(e) => setFormData({...formData, external_url: e.target.value})}
                         />
                       </div>
                     </div>
@@ -447,8 +491,17 @@ export default function CreateListingPage() {
 
               <div className="flex justify-between pt-6 border-t border-white/5">
                 <Button variant="ghost" onClick={() => setStep(2)}>Previous</Button>
-                <Button className="rounded-xl h-14 px-12 font-bold bg-primary neon-glow-primary" onClick={handleSubmit}>
-                  Deploy & Fund Objective
+                <Button 
+                  className="rounded-xl h-14 px-12 font-bold bg-primary neon-glow-primary" 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Propagating...
+                    </div>
+                  ) : 'Deploy & Fund Objective'}
                 </Button>
               </div>
             </div>

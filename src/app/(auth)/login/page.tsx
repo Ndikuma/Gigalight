@@ -42,7 +42,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Protocol Error",
-        description: "Could not connect to the Satoshi network.",
+        description: "Could not connect to the Satoshi network gateway.",
       });
     } finally {
       setIsLoading(false);
