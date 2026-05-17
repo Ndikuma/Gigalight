@@ -16,7 +16,11 @@ import {
   Rocket,
   ShieldCheck,
   Cpu,
-  Loader2
+  Loader2,
+  Code,
+  Link as LinkIcon,
+  FileText,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,9 +110,12 @@ export default function OpportunityDetailPage() {
   const totalUpfront = signalFee + (isBoosted ? 500 : 0);
 
   const formatBudget = (budget: any) => {
+    if (!budget) return 'TBD';
     if (typeof budget === 'string') return budget;
-    if (budget && typeof budget === 'object' && 'min' in budget) {
-      return `${budget.min.toLocaleString()} - ${budget.max.toLocaleString()}`;
+    if (typeof budget === 'object') {
+      const min = (budget.min || 0).toLocaleString();
+      const max = (budget.max || 0).toLocaleString();
+      return `${min} - ${max} SAT`;
     }
     return 'TBD';
   };
@@ -182,26 +189,74 @@ export default function OpportunityDetailPage() {
     }
   }
 
+  const renderProofInput = (method: string) => {
+    switch (method) {
+      case 'code_snippet':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Verified Code Snippet</Label>
+              <Badge variant="outline" className="text-[9px] font-mono opacity-50"><Code className="w-3 h-3 mr-1" /> NODE_ENV: PRODUCTION</Badge>
+            </div>
+            <Textarea 
+              placeholder="Paste your verified technical implementation or fix here..."
+              className="min-h-[300px] bg-black/60 border-primary/20 rounded-[1.5rem] p-6 text-xs font-mono leading-relaxed focus:ring-primary/40 text-emerald-400"
+              value={proofText}
+              onChange={(e) => setProofText(e.target.value)}
+            />
+          </div>
+        );
+      case 'link':
+      case 'social_link':
+        return (
+          <div className="space-y-4">
+            <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Protocol URL Propagation</Label>
+            <div className="relative group">
+              <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="https://..."
+                className="h-16 bg-black/40 border-white/5 rounded-2xl pl-12 focus:ring-primary/40 font-bold"
+                value={proofText}
+                onChange={(e) => setProofText(e.target.value)}
+              />
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="space-y-4">
+            <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Technical Documentation</Label>
+            <Textarea 
+              placeholder="Provide detailed documentation of your technical output and mission methodology..."
+              className="min-h-[200px] bg-black/40 border-white/5 rounded-[1.5rem] p-6 text-sm leading-relaxed focus:ring-primary/40"
+              value={proofText}
+              onChange={(e) => setProofText(e.target.value)}
+            />
+          </div>
+        );
+    }
+  };
+
   if (step === 'success') {
     return (
       <div className="max-w-2xl mx-auto py-32 text-center space-y-8 animate-in zoom-in-95 duration-500">
-        <div className="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10">
+        <div className="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10 border border-emerald-500/30">
           <CheckCircle className="w-12 h-12" />
         </div>
         <div className="space-y-4">
           <h1 className="text-5xl font-headline font-bold tracking-tight">Protocol Propagated</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
             {isTask 
-              ? "Your submission has been queued for verification. AI nodes and peer validators are reviewing your technical output." 
-              : `Your strategic proposal is now visible to the client. Settlement path is open.`}
+              ? "Your technical submission has been queued for verification. Network nodes are reviewing your technical output for SAT release." 
+              : `Your strategic proposal node is now active. The client has been notified of your signal.`}
           </p>
         </div>
         <div className="flex justify-center gap-4 pt-8">
           <Button asChild variant="outline" className="rounded-2xl px-12 h-14 font-bold text-lg">
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/dashboard">Return to Hub</Link>
           </Button>
           <Button asChild className="rounded-2xl px-12 h-14 font-bold text-lg bg-primary neon-glow-primary">
-            <Link href="/market">Next Mission</Link>
+            <Link href="/market">Browse Marketplace</Link>
           </Button>
         </div>
       </div>
@@ -216,10 +271,10 @@ export default function OpportunityDetailPage() {
         </Button>
         <div className="flex items-center gap-2">
           <Badge className="bg-emerald-500/10 text-emerald-400 border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Protocol Verified
+            <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Node Reputation: {user?.reputation || 0}
           </Badge>
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <Trophy className="w-3.5 h-3.5 mr-2" /> {user?.tier || 'Standard'} Tier
+            <Trophy className="w-3.5 h-3.5 mr-2" /> Protocol Tier: {user?.tier || 'Standard'}
           </Badge>
         </div>
       </div>
@@ -236,7 +291,7 @@ export default function OpportunityDetailPage() {
                 {isTask ? "Micro Mission" : "Strategic Project"}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[10px] font-bold tracking-widest px-4 py-1.5 bg-white/5">
-                {isTask ? (opportunity.data as TaskMini).category.name : (opportunity.data as ProjectDetail).client_name}
+                {isTask ? (opportunity.data as TaskMini).category?.name : (opportunity.data as ProjectDetail).client_name}
               </Badge>
             </div>
             <h1 className="text-5xl md:text-6xl font-headline font-bold tracking-tight leading-[0.95]">
@@ -246,7 +301,10 @@ export default function OpportunityDetailPage() {
 
           <Card className="glass-card border-none rounded-[2.5rem] overflow-hidden">
             <CardHeader className="p-10 pb-0">
-              <h3 className="font-headline text-2xl font-bold">Objective Parameters</h3>
+              <h3 className="font-headline text-2xl font-bold flex items-center gap-3">
+                <Cpu className="w-6 h-6 text-primary" />
+                Objective Parameters
+              </h3>
             </CardHeader>
             <CardContent className="p-10 space-y-10">
               <div className="space-y-6">
@@ -258,7 +316,7 @@ export default function OpportunityDetailPage() {
               {!isTask && (opportunity.data as ProjectDetail).requirements && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary flex items-center gap-2">
-                    <Cpu className="w-4 h-4" /> Technical Requirements
+                    <Shield className="w-4 h-4" /> Strategic Requirements
                   </h4>
                   <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
@@ -271,7 +329,10 @@ export default function OpportunityDetailPage() {
           </Card>
 
           {step === 'active' && (
-            <Card className="glass-card border-none rounded-[2.5rem] ring-4 ring-primary/20 animate-in slide-in-from-bottom-8 duration-700 shadow-2xl">
+            <Card className="glass-card border-none rounded-[2.5rem] ring-4 ring-primary/20 animate-in slide-in-from-bottom-8 duration-700 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <Activity className="w-32 h-32" />
+              </div>
               <CardHeader className="p-10 pb-0">
                 <h3 className="font-headline text-2xl flex items-center gap-3 font-bold">
                   <Send className="w-6 h-6 text-primary" /> 
@@ -280,15 +341,7 @@ export default function OpportunityDetailPage() {
               </CardHeader>
               <CardContent className="p-10 space-y-8">
                 {isTask ? (
-                  <div className="space-y-4">
-                    <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Technical Documentation</Label>
-                    <Textarea 
-                      placeholder="Detail your methodology or provide the required technical output..."
-                      className="min-h-[200px] bg-black/40 border-white/5 rounded-[1.5rem] p-6 text-sm leading-relaxed focus:ring-primary/40"
-                      value={proofText}
-                      onChange={(e) => setProofText(e.target.value)}
-                    />
-                  </div>
+                  renderProofInput((opportunity.data as TaskMini).proof_method)
                 ) : (
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -346,28 +399,37 @@ export default function OpportunityDetailPage() {
                   </div>
                 )}
 
-                <div className="bg-muted/10 p-6 rounded-2xl border border-white/5 space-y-3">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                    <span className="text-muted-foreground">Network Signal Fee</span>
-                    <span>{signalFee.toLocaleString()} SAT</span>
+                <div className="bg-black/60 p-8 rounded-3xl border border-white/10 space-y-4 shadow-inner">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
+                    <span>Protocol Parameters</span>
+                    <span>L2 SIGNAL</span>
                   </div>
-                  {isBoosted && (
-                    <div className="flex justify-between text-[10px] font-bold text-secondary uppercase tracking-widest">
-                      <span>Node Boost Fee</span>
-                      <span>+500 SAT</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                      <span className="text-muted-foreground">Network Signal Fee</span>
+                      <span className="text-foreground">{signalFee.toLocaleString()} SAT</span>
                     </div>
-                  )}
-                  <div className="flex justify-between text-base font-headline font-bold border-t border-white/5 pt-4">
-                    <span>Total Upfront Signal</span>
-                    <span className="text-primary">{totalUpfront.toLocaleString()} SAT</span>
+                    {isBoosted && (
+                      <div className="flex justify-between text-xs font-bold text-secondary uppercase tracking-widest">
+                        <span>Node Boost Fee</span>
+                        <span>+500 SAT</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-end border-t border-white/10 pt-4">
+                      <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Upfront Signal</span>
+                      <div className="text-right">
+                        <span className="text-3xl font-headline font-bold text-primary">{totalUpfront.toLocaleString()}</span>
+                        <span className="text-[10px] font-bold text-primary/50 ml-2 uppercase tracking-widest">SAT</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <Button variant="ghost" onClick={() => setStep('view')} className="flex-1 h-14 rounded-2xl font-bold uppercase tracking-widest text-xs">Abort Mission</Button>
+                  <Button variant="ghost" onClick={() => setStep('view')} className="flex-1 h-14 rounded-2xl font-bold uppercase tracking-widest text-xs">Abort Session</Button>
                   <Button 
                     className={cn(
-                      "flex-1 font-bold h-14 rounded-2xl text-lg transition-all",
+                      "flex-[2] font-bold h-14 rounded-2xl text-lg transition-all",
                       isTask ? "bg-primary neon-glow-primary" : "bg-secondary neon-glow-secondary shadow-lg shadow-secondary/20"
                     )}
                     onClick={handleSubmit}
@@ -376,9 +438,9 @@ export default function OpportunityDetailPage() {
                     {isSubmitting ? (
                       <div className="flex items-center gap-3">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Propagating...
+                        Finalizing Signal...
                       </div>
-                    ) : (isTask ? "Propagate Proof" : "Deploy Proposal")}
+                    ) : (isTask ? "Propagate Proof Signal" : "Deploy Strategic Proposal")}
                   </Button>
                 </div>
               </CardContent>
@@ -390,13 +452,13 @@ export default function OpportunityDetailPage() {
           <Card className="glass-card border-none rounded-[2.5rem] bg-gradient-to-br from-card via-card to-background p-10 overflow-hidden relative">
             <CardContent className="p-0 space-y-8 relative z-10">
               <div className="text-center space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-bold">Yield Potential</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-bold">Node Yield Potential</p>
                 <h2 className={cn(
                   "text-5xl font-headline font-bold tracking-tight",
                   isTask ? "text-emerald-400" : "text-secondary"
                 )}>
                   {isTask 
-                    ? `+${(opportunity.data as TaskMini).reward_amount.toLocaleString()}` 
+                    ? `+${((opportunity.data as TaskMini).reward_amount || 0).toLocaleString()}` 
                     : formatBudget((opportunity.data as ProjectDetail).budget)}
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">SATOSHIS</p>
@@ -404,11 +466,11 @@ export default function OpportunityDetailPage() {
 
               <div className="space-y-5 border-t border-white/5 pt-8">
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-secondary" /> Protocol Limit</span>
+                  <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-secondary" /> Mission Limit</span>
                   <span className="text-foreground">{isTask ? "~15 MINS" : "LONG-TERM"}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Tier Level</span>
+                  <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Technical Class</span>
                   <span className="text-foreground capitalize">{(opportunity.data as any).difficulty || (opportunity.data as any).experience_level} CLASS</span>
                 </div>
               </div>
@@ -421,7 +483,7 @@ export default function OpportunityDetailPage() {
                   )}
                   onClick={() => setStep('active')}
                 >
-                  {isTask ? "Initiate Mission" : "Apply for Project"}
+                  {isTask ? "Initiate Mission" : "Commission Node"}
                 </Button>
               )}
             </CardContent>
