@@ -13,7 +13,9 @@ import {
   UserCheck,
   Globe,
   Lock,
-  Loader2
+  Loader2,
+  ShieldAlert,
+  Info
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +26,7 @@ import { WalletService } from '@/services/wallet-service';
 import { TaskService } from '@/services/task-service';
 import { User, Wallet as WalletType, TaskMini } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function DashboardHome() {
   const [profile, setProfile] = useState<User | null>(null);
@@ -42,7 +45,6 @@ export default function DashboardHome() {
 
         if (profRes.data) setProfile(profRes.data);
         if (walletRes.data) setWallet(walletRes.data);
-        // Ensure tasks is always an array even if the result is empty or null
         if (taskRes.data && Array.isArray(taskRes.data.results)) {
           setTasks(taskRes.data.results);
         } else {
@@ -61,6 +63,13 @@ export default function DashboardHome() {
 
     fetchDashboardData();
   }, []);
+
+  const handleActivateValidator = () => {
+    toast({
+      title: "Validator Signal Requested",
+      description: "Initialize a 30,000 SAT stake in the Financial Hub to activate Audit Permissions.",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -85,8 +94,11 @@ export default function DashboardHome() {
                 />
               </div>
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-1.5 border-4 border-card">
-              <UserCheck className="w-4 h-4" />
+            <div className={cn(
+              "absolute -bottom-2 -right-2 rounded-full p-1.5 border-4 border-card",
+              profile?.is_validator ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+            )}>
+              {profile?.is_validator ? <UserCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
             </div>
           </div>
           <div className="flex-1 space-y-4 text-center md:text-left">
@@ -103,6 +115,11 @@ export default function DashboardHome() {
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
                 <Activity className="w-3.5 h-3.5 text-secondary" /> {profile?.tasks_completed || 0} Objectives Finalized
               </div>
+              {profile?.is_validator && (
+                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20 text-xs font-bold uppercase tracking-widest">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Verified Validator
+                </div>
+              )}
             </div>
           </div>
           <div className="hidden xl:block w-48 space-y-2">
@@ -123,7 +140,7 @@ export default function DashboardHome() {
           </div>
           <h4 className="font-headline font-bold">Initiate Objective</h4>
           <p className="text-xs text-muted-foreground">Secure professional talent for your next project.</p>
-          <Button asChild size="sm" className="w-full rounded-xl bg-primary neon-glow-primary">
+          <Button asChild size="sm" className="w-full rounded-xl bg-primary neon-glow-primary font-bold">
             <Link href="/my-projects/create">Deploy Now</Link>
           </Button>
         </Card>
@@ -234,16 +251,66 @@ export default function DashboardHome() {
             </CardContent>
           </Card>
 
-          <div className="glass-card p-6 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
-            <Activity className="w-8 h-8 text-primary mx-auto relative z-10" />
+          {/* Validator Activation / Status Card */}
+          <div className="glass-card p-6 rounded-[2.5rem] border-emerald-500/20 text-center space-y-5 relative overflow-hidden group">
+            <div className={cn(
+              "absolute inset-0 transition-colors",
+              profile?.is_validator ? "bg-emerald-500/5 group-hover:bg-emerald-500/10" : "bg-primary/5 group-hover:bg-primary/10"
+            )}></div>
+            
             <div className="relative z-10">
-              <h4 className="font-headline font-bold">Node Expansion</h4>
-              <p className="text-xs text-muted-foreground mt-1">Receive 10% yield on referral validation fees for the first quarter.</p>
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl",
+                profile?.is_validator ? "bg-emerald-500/10 text-emerald-400" : "bg-primary/10 text-primary"
+              )}>
+                {profile?.is_validator ? <ShieldCheck className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
+              </div>
+              
+              <div className="space-y-1">
+                <h4 className="font-headline font-bold text-lg">
+                  {profile?.is_validator ? "Validator Mode Active" : "Validator Activation"}
+                </h4>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em]">
+                  {profile?.is_validator ? "Network Integrity Node" : "Audit & Validation Access"}
+                </p>
+              </div>
+              
+              <div className="bg-black/40 border border-white/5 rounded-2xl p-4 mt-4 text-left space-y-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {profile?.is_validator 
+                    ? "Your node is verified. Receive a 10% yield on referral validation fees and maintain network integrity." 
+                    : "Become a Network Validator to audit task proofs and earn high-intensity validation yields."}
+                </p>
+                {!profile?.is_validator && (
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Activation Stake</span>
+                    <span className="text-sm font-bold text-primary">30,000 SAT</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="pt-4 space-y-3">
+                {profile?.is_validator ? (
+                  <Button asChild className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold h-12 shadow-lg shadow-emerald-500/20 gap-2">
+                    <Link href="/audits">
+                      Access Audit Queue <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      className="w-full rounded-2xl bg-primary neon-glow-primary font-bold h-12 shadow-lg shadow-primary/20 gap-2"
+                      onClick={handleActivateValidator}
+                    >
+                      Activate Validator Mode <ArrowRight className="w-4 h-4" />
+                    </Button>
+                    <button className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.3em] hover:text-white transition-colors flex items-center gap-1.5 mx-auto">
+                      <Info className="w-3 h-3" /> Technical Prerequisites
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            <Button variant="ghost" className="w-full rounded-xl border border-white/10 font-bold relative z-10 h-10 text-xs">
-              Copy Invitation Link
-            </Button>
           </div>
         </div>
       </div>
