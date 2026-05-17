@@ -1,30 +1,70 @@
-
 "use client"
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { 
   Wallet, 
-  Briefcase, 
   Zap, 
   ShieldCheck, 
   ArrowRight, 
-  PlusCircle, 
-  Rocket, 
   Sparkles, 
   Trophy,
   Activity,
   UserCheck,
   Globe,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockTasks, mockWallet, mockProfile } from '@/lib/mock-data';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
+import { ProfileService } from '@/services/profile-service';
+import { WalletService } from '@/services/wallet-service';
+import { TaskService } from '@/services/task-service';
+import { User, Wallet as WalletType, TaskMini } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
 
 export default function DashboardHome() {
+  const [profile, setProfile] = useState<User | null>(null);
+  const [wallet, setWallet] = useState<WalletType | null>(null);
+  const [tasks, setTasks] = useState<TaskMini[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        const [profRes, walletRes, taskRes] = await Promise.all([
+          ProfileService.getMyProfile(),
+          WalletService.getWallet(),
+          TaskService.getTasks({ page_size: 3 })
+        ]);
+
+        if (profRes.data) setProfile(profRes.data);
+        if (walletRes.data) setWallet(walletRes.data);
+        if (taskRes.data) setTasks(taskRes.data.results);
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "Synchronization Error",
+          description: "Could not propagate data from the GigaLight node.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="h-[80vh] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Profile Overview */}
@@ -33,7 +73,11 @@ export default function DashboardHome() {
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-secondary p-1">
               <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
-                <img src={mockProfile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img 
+                  src={profile?.profile?.avatar_url || 'https://picsum.photos/seed/node/200/200'} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
             </div>
             <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-1.5 border-4 border-card">
@@ -42,24 +86,26 @@ export default function DashboardHome() {
           </div>
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div>
-              <h2 className="text-3xl font-headline font-bold">{mockProfile.fullName}</h2>
-              <p className="text-muted-foreground text-sm max-w-xl">{mockProfile.bio}</p>
+              <h2 className="text-3xl font-headline font-bold">{profile?.display_name || 'Protocol Node'}</h2>
+              <p className="text-muted-foreground text-sm max-w-xl">
+                {profile?.profile?.bio || 'Strategic node waiting for mission initialization.'}
+              </p>
             </div>
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
-                <Trophy className="w-3.5 h-3.5 text-primary" /> Reputation: {mockProfile.reputation}/100
+                <Trophy className="w-3.5 h-3.5 text-primary" /> Reputation: {profile?.reputation || 0}/100
               </div>
               <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/5 text-xs font-bold">
-                <Activity className="w-3.5 h-3.5 text-secondary" /> {mockProfile.stats.tasksCompleted} Objectives Finalized
+                <Activity className="w-3.5 h-3.5 text-secondary" /> {profile?.tasks_completed || 0} Objectives Finalized
               </div>
             </div>
           </div>
           <div className="hidden xl:block w-48 space-y-2">
             <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
               <span>Expertise Progression</span>
-              <span className="text-primary">75%</span>
+              <span className="text-primary">{(profile?.reputation || 0)}%</span>
             </div>
-            <Progress value={75} className="h-2 bg-white/5" />
+            <Progress value={profile?.reputation || 0} className="h-2 bg-white/5" />
           </div>
         </Card>
         
@@ -82,27 +128,27 @@ export default function DashboardHome() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           label="Available Liquidity" 
-          value={`${mockWallet.available_balance.toLocaleString()} SAT`} 
+          value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} 
           icon={Wallet} 
-          subValue="≈ $18.42 USD"
+          subValue="Ready for Release"
           color="primary"
         />
         <StatCard 
           label="Pending Verification" 
-          value={`${mockWallet.pending_balance.toLocaleString()} SAT`} 
+          value={`${(wallet?.pending_balance || 0).toLocaleString()} SAT`} 
           icon={ShieldCheck} 
           color="emerald"
         />
         <StatCard 
           label="Lifetime Revenue" 
-          value={`${mockWallet.total_rewarded.toLocaleString()} SAT`} 
+          value={`${(wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
           icon={Zap} 
           subValue="Platform Yield"
           color="secondary"
         />
         <StatCard 
           label="Network Trust Index" 
-          value={`${mockProfile.reputation}%`} 
+          value={`${profile?.reputation || 0}%`} 
           icon={Trophy} 
           subValue="Validated Standing"
           color="primary"
@@ -120,7 +166,7 @@ export default function DashboardHome() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockTasks.map((task) => (
+              {tasks.length > 0 ? tasks.map((task) => (
                 <Link key={task.id} href={`/market/${task.id}`}>
                   <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all cursor-pointer group mb-2">
                     <div className="flex items-center gap-4">
@@ -138,7 +184,11 @@ export default function DashboardHome() {
                     </div>
                   </div>
                 </Link>
-              ))}
+              )) : (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground text-sm">No missions propagated in your sector.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -179,7 +229,7 @@ export default function DashboardHome() {
 
           <div className="glass-card p-6 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden group">
             <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
-            <Rocket className="w-8 h-8 text-primary mx-auto relative z-10" />
+            <Activity className="w-8 h-8 text-primary mx-auto relative z-10" />
             <div className="relative z-10">
               <h4 className="font-headline font-bold">Node Expansion</h4>
               <p className="text-xs text-muted-foreground mt-1">Receive 10% yield on referral validation fees for the first quarter.</p>

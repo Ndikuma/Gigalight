@@ -1,12 +1,11 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { UserRole, Notification } from '@/lib/types';
+import { UserRole, Notification as NotificationType } from '@/lib/types';
 import { 
   Bell, 
   Search, 
-  User, 
+  User as UserIcon, 
   Globe, 
   Zap, 
   ChevronDown, 
@@ -15,7 +14,6 @@ import {
   LayoutDashboard,
   Briefcase,
   Wallet as WalletIcon,
-  Search as SearchIcon,
   PlusCircle,
   LogOut,
   Menu,
@@ -25,7 +23,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { 
   DropdownMenu,
@@ -47,33 +45,51 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { mockNotifications } from '@/lib/mock-data';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ProfileService } from '@/services/profile-service';
+import { NotificationService } from '@/services/notification-service';
+import { AuthService } from '@/services/auth-service';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('standard');
   const [mounted, setMounted] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+  const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
+    async function initLayout() {
+      const [profRes, notifRes] = await Promise.all([
+        ProfileService.getMyProfile(),
+        NotificationService.getNotifications({ page_size: 5 })
+      ]);
+      if (profRes.data) {
+        setUser(profRes.data);
+        setRole(profRes.data.is_validator ? 'validator' : 'standard');
+      }
+      if (notifRes.data) setNotifications(notifRes.data.results);
+    }
+    initLayout();
   }, []);
 
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, status: 'read' })));
+  const markAllAsRead = async () => {
+    await NotificationService.markAllRead();
+    setNotifications(notifications.map(n => ({ ...n, status: 'read' as const })));
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, status: 'read' } : n));
+  const handleLogout = async () => {
+    await AuthService.logout();
+    router.push('/login');
   };
 
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Market', icon: SearchIcon, href: '/market' },
-    { name: 'Roles', icon: Globe, href: '/jobs' },
+    { name: 'Market', icon: Globe, href: '/market' },
+    { name: 'Roles', icon: Sparkles, href: '/jobs' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Financials', icon: WalletIcon, href: '/settings?tab=wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
@@ -86,23 +102,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const currentRole = roleConfigs[role] || roleConfigs.standard;
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="h-16 border-b border-white/5 bg-card/50 px-4 md:px-6 flex items-center justify-between" />
-        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-          {children}
-        </main>
-      </div>
-    );
-  }
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Professional Navigation */}
       <header className="h-16 border-b border-white/5 bg-card/50 backdrop-blur-xl sticky top-0 z-50 px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-4 md:gap-10">
-          {/* Mobile Navigation */}
           <div className="xl:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -121,30 +127,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SheetHeader>
                 <div className="p-4 space-y-2">
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href === '/settings?tab=wallet' && pathname === '/settings');
+                    const isActive = pathname === item.href;
                     return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                          isActive 
-                            ? "text-primary bg-primary/10" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                        )}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        {item.name}
+                      <Link key={item.name} href={item.href} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                        <item.icon className="w-5 h-5" /> {item.name}
                       </Link>
                     );
                   })}
-                  <div className="pt-4 mt-4 border-t border-white/5">
-                     <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 gap-2 h-12 font-bold shadow-lg shadow-secondary/20">
-                      <Link href="/my-projects/create">
-                        <PlusCircle className="w-4 h-4" /> Initiate Objective
-                      </Link>
-                    </Button>
-                  </div>
                 </div>
               </SheetContent>
             </Sheet>
@@ -161,18 +150,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href === '/settings?tab=wallet' && pathname === '/settings');
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-                    isActive 
-                      ? "text-primary bg-primary/10" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  )}
-                >
-                  <item.icon className="w-4 h-4" />
-                  {item.name}
+                <Link key={item.name} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                  <item.icon className="w-4 h-4" /> {item.name}
                 </Link>
               );
             })}
@@ -180,19 +159,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-3 bg-muted/30 border border-white/5 rounded-full px-4 py-1.5 w-40 lg:w-48 focus-within:w-64 transition-all focus-within:ring-1 focus-within:ring-primary/40">
-            <Search className="w-3.5 h-3.5 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="bg-transparent text-xs outline-none w-full placeholder:text-muted-foreground"
-            />
-          </div>
-
           <Button asChild variant="outline" size="sm" className="hidden lg:flex rounded-xl border-primary/20 text-primary hover:bg-primary/5 h-9 font-bold gap-2">
-            <Link href="/my-projects/create">
-              <PlusCircle className="w-4 h-4" /> Post Listing
-            </Link>
+            <Link href="/my-projects/create"><PlusCircle className="w-4 h-4" /> Post Listing</Link>
           </Button>
 
           <div className="h-8 w-px bg-white/5 hidden sm:block mx-1 md:mx-2"></div>
@@ -214,17 +182,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <DropdownMenuContent className="w-56 bg-card border-white/10 p-2 shadow-2xl">
               <DropdownMenuItem onClick={() => setRole('standard')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-primary/20 cursor-pointer">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <div>
-                  <p className="font-bold text-sm">Professional Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Strategy & Management</p>
-                </div>
+                <div><p className="font-bold text-sm">Professional Mode</p><p className="text-[10px] text-muted-foreground">Strategy & Ops</p></div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRole('validator')} className="flex items-center gap-3 rounded-lg p-2 focus:bg-emerald-400/20 cursor-pointer">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <div>
-                  <p className="font-bold text-sm">Validator Mode</p>
-                  <p className="text-[10px] text-muted-foreground">Audit & Integrity</p>
-                </div>
+                <div><p className="font-bold text-sm">Validator Mode</p><p className="text-[10px] text-muted-foreground">Audit & Integrity</p></div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,87 +194,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Notification System */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 hidden sm:flex">
+              <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-white/5 hidden sm:flex outline-none">
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-card animate-in zoom-in-50">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-2 right-2 w-4 h-4 bg-primary text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-card animate-in zoom-in-50">{unreadCount}</span>
                 )}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 p-0 glass-card border-white/10 shadow-2xl overflow-hidden">
               <div className="p-4 border-b border-white/5 flex items-center justify-between">
                 <h4 className="font-headline font-bold text-sm">Network Activity</h4>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10"
-                  onClick={markAllAsRead}
-                >
-                  Clear All
-                </Button>
+                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10" onClick={markAllAsRead}>Clear All</Button>
               </div>
               <ScrollArea className="h-80">
                 {notifications.length > 0 ? (
                   <div className="divide-y divide-white/5">
                     {notifications.map((n) => (
-                      <div 
-                        key={n.id} 
-                        className={cn(
-                          "p-4 transition-colors relative group",
-                          n.status === 'unread' ? "bg-primary/5" : "hover:bg-white/5"
-                        )}
-                        onClick={() => markAsRead(n.id)}
-                      >
+                      <div key={n.id} className={cn("p-4 transition-colors relative group cursor-pointer", n.status === 'unread' ? "bg-primary/5" : "hover:bg-white/5")}>
                         <div className="flex gap-3">
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                            n.type === 'reward' ? "bg-emerald-400/10 text-emerald-400" :
-                            n.type === 'audit' ? "bg-primary/10 text-primary" :
-                            n.type === 'bid' ? "bg-secondary/10 text-secondary" : "bg-white/5 text-muted-foreground"
-                          )}>
-                            {n.type === 'reward' ? <Check className="w-4 h-4" /> :
-                             n.type === 'audit' ? <ShieldCheck className="w-4 h-4" /> :
-                             n.type === 'bid' ? <Briefcase className="w-4 h-4" /> : <Network className="w-4 h-4" />}
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", n.type === 'reward' ? "bg-emerald-400/10 text-emerald-400" : "bg-primary/10 text-primary")}>
+                            {n.type === 'reward' ? <Check className="w-4 h-4" /> : <Network className="w-4 h-4" />}
                           </div>
                           <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs font-bold leading-none">{n.title}</p>
-                              {n.status === 'unread' && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground leading-relaxed">{n.description}</p>
-                            <div className="flex items-center justify-between pt-1">
-                              <span className="text-[9px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              {n.link && (
-                                <Link 
-                                  href={n.link} 
-                                  className="text-[9px] font-bold text-primary flex items-center gap-0.5 hover:underline"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  VIEW <ExternalLink className="w-2.5 h-2.5" />
-                                </Link>
-                              )}
-                            </div>
+                            <p className="text-xs font-bold leading-none">{n.title}</p>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">{n.message}</p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center p-8 text-center space-y-2">
-                    <Bell className="w-8 h-8 text-muted-foreground/20" />
-                    <p className="text-xs font-bold text-muted-foreground">All signals clear</p>
-                  </div>
-                )}
+                ) : <div className="h-full flex flex-col items-center justify-center p-8 text-center"><Bell className="w-8 h-8 text-muted-foreground/20" /><p className="text-xs font-bold text-muted-foreground">All signals clear</p></div>}
               </ScrollArea>
-              <div className="p-3 border-t border-white/5 bg-white/5">
-                <Button asChild variant="ghost" className="w-full h-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <Link href="/notifications">View Protocol Logs</Link>
-                </Button>
-              </div>
             </PopoverContent>
           </Popover>
 
@@ -322,54 +234,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <button className="flex items-center gap-3 outline-none group ml-1 md:ml-2">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-secondary p-0.5 shadow-lg group-hover:rotate-6 transition-transform">
                   <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
-                    <User className="w-5 h-5 text-muted-foreground" />
+                    <img src={user?.profile?.avatar_url || 'https://picsum.photos/seed/node/100/100'} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                 </div>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-card border-white/10 p-2 shadow-2xl">
               <div className="p-3">
-                <p className="text-sm font-bold">Alex Lightning</p>
-                <p className="text-xs text-muted-foreground">alex@satoshi.mail</p>
-                <div className="mt-2 flex items-center gap-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                  <Globe className="w-3 h-3" /> Node: Satoshi-01
-                </div>
+                <p className="text-sm font-bold">{user?.display_name || 'Protocol Node'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
               <DropdownMenuSeparator className="bg-white/5" />
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
-                  <User className="w-4 h-4" /> Identity Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings?tab=wallet" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5">
-                  <WalletIcon className="w-4 h-4" /> Financials
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/settings" className="flex items-center gap-2 p-2 rounded-lg cursor-pointer focus:bg-white/5"><UserIcon className="w-4 h-4" /> Identity Settings</Link></DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />
-              <DropdownMenuItem asChild className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
-                <Link href="/" className="flex items-center gap-2 p-2 rounded-lg">
-                  <LogOut className="w-4 h-4" /> Exit Session
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer flex items-center gap-2 p-2 rounded-lg"><LogOut className="w-4 h-4" /> Exit Session</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-          {children}
-        </div>
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">{children}</div>
       </main>
-
-      {/* Quick Action FAB for Mobile */}
-      <div className="fixed bottom-6 right-6 xl:hidden">
-        <Button size="icon" className="w-14 h-14 rounded-full bg-secondary neon-glow-secondary shadow-lg shadow-secondary/20" asChild>
-          <Link href="/my-projects/create"><PlusCircle className="w-6 h-6" /></Link>
-        </Button>
-      </div>
     </div>
   );
 }

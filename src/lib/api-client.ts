@@ -5,7 +5,7 @@
  * Handles JWT authentication, Bearer tokens, and standardized error propagation.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BASE_URL = 'https://broader-yeah-axis-secretariat.trycloudflare.com/api';
 
 export type ApiResponse<T> = {
   data: T | null;
@@ -37,8 +37,9 @@ class ApiClient {
       const response = await fetch(url, { ...options, headers });
       
       if (response.status === 401) {
-        // Potential logic for auto-refresh would go here
         if (typeof window !== 'undefined') {
+          // Attempting to refresh would happen here
+          // For now, clear tokens to prompt re-login if session is dead
           localStorage.removeItem('gigalight_access');
           localStorage.removeItem('gigalight_refresh');
         }
@@ -46,7 +47,11 @@ class ApiClient {
 
       let data = null;
       if (response.status !== 204) {
-        data = await response.json();
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = null;
+        }
       }
 
       if (!response.ok) {

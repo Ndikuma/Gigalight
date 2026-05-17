@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { mockTasks, mockProjects } from '@/lib/mock-data';
-import { Search, Filter, Zap, Briefcase, Globe, Clock, Shield, Sparkles, ArrowRight, SlidersHorizontal, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Search, SlidersHorizontal, Zap, Briefcase, ChevronDown, CheckCircle2, Loader2, Clock, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,40 +16,67 @@ import {
   DropdownMenuCheckboxItem
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { TaskService } from '@/services/task-service';
+import { ProjectService } from '@/services/project-service';
+import { TaskMini, ProjectDetail, Category } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
 
 export default function MarketPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('tasks');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
+  
+  const [tasks, setTasks] = useState<TaskMini[]>([]);
+  const [projects, setProjects] = useState<ProjectDetail[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const categories = useMemo(() => {
-    const all = activeTab === 'tasks' 
-      ? mockTasks.map(t => t.category.name)
-      : mockProjects.map(p => p.skills.map(s => s.name)).flat();
-    return Array.from(new Set(all));
-  }, [activeTab]);
+  useEffect(() => {
+    async function fetchMarket() {
+      setIsLoading(true);
+      try {
+        const [taskRes, projectRes, catRes] = await Promise.all([
+          TaskService.getTasks(),
+          ProjectService.getProjects(),
+          TaskService.getCategories()
+        ]);
+
+        if (taskRes.data) setTasks(taskRes.data.results);
+        if (projectRes.data) setProjects(projectRes.data.results);
+        if (catRes.data) setCategories(catRes.data.results);
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "Discovery Error",
+          description: "The L2 node could not propagate market signals.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchMarket();
+  }, []);
 
   const filteredTasks = useMemo(() => {
-    return mockTasks.filter(task => {
+    return tasks.filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            task.short_description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedCategory || task.category.name === selectedCategory;
       const matchesDifficulty = !selectedDifficulty || task.difficulty === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
-  }, [searchQuery, selectedCategory, selectedDifficulty]);
+  }, [searchQuery, selectedCategory, selectedDifficulty, tasks]);
 
   const filteredProjects = useMemo(() => {
-    return mockProjects.filter(project => {
+    return projects.filter(project => {
       const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            project.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = !selectedCategory || project.skills.some(s => s.name === selectedCategory);
       const matchesDifficulty = !selectedDifficulty || project.experience_level === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
-  }, [searchQuery, selectedCategory, selectedDifficulty]);
+  }, [searchQuery, selectedCategory, selectedDifficulty, projects]);
 
   const resetFilters = () => {
     setSelectedCategory(null);
@@ -69,7 +95,7 @@ export default function MarketPage() {
         </div>
         <div className="flex items-center gap-3">
            <div className="hidden lg:flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-2xl border border-emerald-500/20 text-xs font-bold uppercase tracking-widest">
-            <CheckCircle2 className="w-3.5 h-3.5" /> 1,245 Nodes Active
+            <CheckCircle2 className="w-3.5 h-3.5" /> Network Synchronized
           </div>
         </div>
       </header>
@@ -99,14 +125,14 @@ export default function MarketPage() {
               <DropdownMenuContent className="w-64 bg-card border-white/10 p-2 shadow-2xl">
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Technical Field</DropdownMenuLabel>
                 <div className="space-y-1 mb-2">
-                  {categories.slice(0, 5).map(cat => (
+                  {categories.slice(0, 8).map(cat => (
                     <DropdownMenuCheckboxItem 
-                      key={cat} 
-                      checked={selectedCategory === cat}
-                      onCheckedChange={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                      key={cat.id} 
+                      checked={selectedCategory === cat.name}
+                      onCheckedChange={() => setSelectedCategory(selectedCategory === cat.name ? null : cat.name)}
                       className="rounded-lg"
                     >
-                      {cat}
+                      {cat.name}
                     </DropdownMenuCheckboxItem>
                   ))}
                 </div>
@@ -142,130 +168,136 @@ export default function MarketPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="tasks" onValueChange={setActiveTab} className="w-full">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-          <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-3xl w-fit">
-            <TabsTrigger value="tasks" className="rounded-2xl px-8 py-3 data-[state=active]:bg-primary transition-all font-bold gap-2">
-              <Zap className="w-4 h-4" /> Micro Gigs
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="rounded-2xl px-8 py-3 data-[state=active]:bg-secondary transition-all font-bold gap-2">
-              <Briefcase className="w-4 h-4" /> Strategic Projects
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            Sort Nodes: 
-            <DropdownMenu>
-              <DropdownMenuTrigger className="text-foreground font-bold flex items-center gap-1 hover:text-primary transition-colors">
-                Newest Propagated <ChevronDown className="w-3 h-3" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-card border-white/10">
-                <DropdownMenuItem className="rounded-lg">Highest Revenue First</DropdownMenuItem>
-                <DropdownMenuItem className="rounded-lg">Shortest Timeline</DropdownMenuItem>
-                <DropdownMenuItem className="rounded-lg">Reputation Required</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {isLoading ? (
+        <div className="py-20 flex justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
         </div>
+      ) : (
+        <Tabs defaultValue="tasks" onValueChange={setActiveTab} className="w-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-3xl w-fit">
+              <TabsTrigger value="tasks" className="rounded-2xl px-8 py-3 data-[state=active]:bg-primary transition-all font-bold gap-2">
+                <Zap className="w-4 h-4" /> Micro Gigs
+              </TabsTrigger>
+              <TabsTrigger value="projects" className="rounded-2xl px-8 py-3 data-[state=active]:bg-secondary transition-all font-bold gap-2">
+                <Briefcase className="w-4 h-4" /> Strategic Projects
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="tasks" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTasks.length > 0 ? filteredTasks.map((task) => (
-              <div key={task.id} className="glass-card p-6 rounded-3xl hover:border-primary/40 transition-all flex flex-col h-full group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -z-10 rounded-full group-hover:bg-primary/10 transition-colors"></div>
-                
-                <div className="flex justify-between items-start mb-6">
-                  <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-                    {task.category.name}
-                  </Badge>
-                  <div className="text-right">
-                    <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount.toLocaleString()}</p>
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
-                  </div>
-                </div>
-
-                <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors leading-tight">{task.title}</h3>
-                <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
-                  {task.short_description}
-                </p>
-
-                <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <Shield className="w-3.5 h-3.5 text-primary" /> {task.difficulty}
-                    </span>
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="w-3.5 h-3.5 text-secondary" /> ~15 MIN
-                    </span>
-                  </div>
-                  <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-2xl transition-all font-bold h-12 shadow-sm">
-                    <Link href={`/market/${task.id}`}>Initiate Mission</Link>
-                  </Button>
-                </div>
-              </div>
-            )) : (
-              <EmptyState onReset={resetFilters} />
-            )}
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              Sort Nodes: 
+              <DropdownMenu>
+                <DropdownMenuTrigger className="text-foreground font-bold flex items-center gap-1 hover:text-primary transition-colors outline-none">
+                  Newest Propagated <ChevronDown className="w-3 h-3" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-card border-white/10">
+                  <DropdownMenuItem className="rounded-lg">Highest Revenue First</DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-lg">Shortest Timeline</DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-lg">Reputation Required</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="projects" className="mt-0">
-          <div className="grid grid-cols-1 gap-6">
-            {filteredProjects.length > 0 ? filteredProjects.map((project) => (
-              <div key={project.id} className="glass-card p-8 rounded-[2rem] hover:border-secondary/40 transition-all group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 blur-[100px] -z-10 rounded-full group-hover:bg-secondary/10 transition-colors"></div>
-                
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                  <div className="space-y-6 flex-1">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none px-4 py-1.5 capitalize text-[10px] font-bold tracking-widest">
-                        {project.experience_level} CLASS
-                      </Badge>
-                      <Badge className="bg-white/5 text-muted-foreground border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest">
-                        {project.budget_type} SETTLEMENT
-                      </Badge>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-3xl font-headline font-bold mb-3 group-hover:text-secondary transition-colors tracking-tight">{project.title}</h3>
-                      <p className="text-muted-foreground max-w-3xl leading-relaxed text-sm lg:text-base">{project.short_description}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      {project.skills.map(skill => (
-                        <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
-                          {skill.name}
-                        </span>
-                      ))}
+          <TabsContent value="tasks" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredTasks.length > 0 ? filteredTasks.map((task) => (
+                <div key={task.id} className="glass-card p-6 rounded-3xl hover:border-primary/40 transition-all flex flex-col h-full group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -z-10 rounded-full group-hover:bg-primary/10 transition-colors"></div>
+                  
+                  <div className="flex justify-between items-start mb-6">
+                    <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
+                      {task.category.name}
+                    </Badge>
+                    <div className="text-right">
+                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount.toLocaleString()}</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
                     </div>
                   </div>
 
-                  <div className="lg:w-80 space-y-6 p-8 rounded-[2rem] bg-black/40 border border-white/5 backdrop-blur-sm">
-                    <div className="text-center space-y-1">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mb-2">Technical Budget</p>
-                      <p className="text-3xl font-headline font-bold text-secondary">
-                        {project.budget}
-                      </p>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">SATOSHIS • MULTI-SIG</p>
+                  <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors leading-tight">{task.title}</h3>
+                  <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
+                    {task.short_description}
+                  </p>
+
+                  <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Shield className="w-3.5 h-3.5 text-primary" /> {task.difficulty}
+                      </span>
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="w-3.5 h-3.5 text-secondary" /> ~15 MIN
+                      </span>
                     </div>
-                    <div className="space-y-3 pt-2">
-                       <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                        <span>Signal Density</span>
-                        <span className="text-white">{project.total_bids}</span>
+                    <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-2xl transition-all font-bold h-12 shadow-sm">
+                      <Link href={`/market/${task.id}`}>Initiate Mission</Link>
+                    </Button>
+                  </div>
+                </div>
+              )) : (
+                <EmptyState onReset={resetFilters} />
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="projects" className="mt-0">
+            <div className="grid grid-cols-1 gap-6">
+              {filteredProjects.length > 0 ? filteredProjects.map((project) => (
+                <div key={project.id} className="glass-card p-8 rounded-[2rem] hover:border-secondary/40 transition-all group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 blur-[100px] -z-10 rounded-full group-hover:bg-secondary/10 transition-colors"></div>
+                  
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                    <div className="space-y-6 flex-1">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 border-none px-4 py-1.5 capitalize text-[10px] font-bold tracking-widest">
+                          {project.experience_level} CLASS
+                        </Badge>
+                        <Badge className="bg-white/5 text-muted-foreground border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest">
+                          {project.budget_type} SETTLEMENT
+                        </Badge>
                       </div>
-                      <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-2xl transition-all font-bold h-14 neon-glow-secondary text-lg">
-                        <Link href={`/market/${project.id}`}>Initiate Proposal</Link>
-                      </Button>
+                      
+                      <div>
+                        <h3 className="text-3xl font-headline font-bold mb-3 group-hover:text-secondary transition-colors tracking-tight">{project.title}</h3>
+                        <p className="text-muted-foreground max-w-3xl leading-relaxed text-sm lg:text-base">{project.short_description}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        {project.skills.map(skill => (
+                          <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
+                            {skill.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="lg:w-80 space-y-6 p-8 rounded-[2rem] bg-black/40 border border-white/5 backdrop-blur-sm">
+                      <div className="text-center space-y-1">
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] mb-2">Technical Budget</p>
+                        <p className="text-3xl font-headline font-bold text-secondary">
+                          {project.budget}
+                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">SATOSHIS • MULTI-SIG</p>
+                      </div>
+                      <div className="space-y-3 pt-2">
+                         <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                          <span>Signal Density</span>
+                          <span className="text-white">{project.total_bids}</span>
+                        </div>
+                        <Button asChild className="w-full bg-secondary hover:brightness-110 rounded-2xl transition-all font-bold h-14 neon-glow-secondary text-lg">
+                          <Link href={`/market/${project.id}`}>Initiate Proposal</Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )) : (
-              <EmptyState onReset={resetFilters} />
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+              )) : (
+                <EmptyState onReset={resetFilters} />
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }
