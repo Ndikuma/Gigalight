@@ -22,7 +22,10 @@ import {
   TrendingUp,
   RefreshCcw,
   AlertCircle,
-  Activity
+  Activity,
+  Layers,
+  Network,
+  Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -319,18 +322,42 @@ export default function WalletPage() {
                 <Zap className="w-5 h-5 text-secondary" />
                 Network Channels
               </CardTitle>
-              <CardDescription>Active L2 settlement paths for your node.</CardDescription>
+              <CardDescription>Active settlement paths for your node.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-4">
-              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group cursor-default transition-all hover:bg-white/10">
-                <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary">
+              {/* Lightning Network Channel */}
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group cursor-default transition-all hover:bg-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/5 blur-2xl -z-10" />
+                <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary border border-secondary/20">
                   <Zap className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-white">Lightning Network</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">Lightning Network</p>
+                    <Badge variant="outline" className="text-[8px] h-4 px-1.5 border-secondary/30 text-secondary uppercase font-bold tracking-tighter">L2</Badge>
+                  </div>
                   <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Instant Settlement</p>
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
+              </div>
+
+              {/* Bitcoin On-Chain Channel */}
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group cursor-default transition-all hover:bg-white/10 relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl -z-10" />
+                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+                  <Database className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                   <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">Bitcoin On-Chain</p>
+                    <Badge variant="outline" className="text-[8px] h-4 px-1.5 border-primary/30 text-primary uppercase font-bold tracking-tighter">L1</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Final Settlement</p>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                   <Activity className="w-3 h-3 text-muted-foreground" />
+                   <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Linked</span>
+                </div>
               </div>
 
               <div className="p-6 bg-secondary/5 rounded-2xl border border-secondary/10 space-y-3">
@@ -338,7 +365,7 @@ export default function WalletPage() {
                   <ShieldCheck className="w-3 h-3" /> Protocol Node
                 </h5>
                 <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  GigaLight uses non-custodial L2 rails for all technical yields and strategic escrows.
+                  GigaLight uses non-custodial rails for all technical yields and strategic escrows. Multi-channel support ensures global liquidity propagation.
                 </p>
               </div>
             </CardContent>
@@ -346,13 +373,13 @@ export default function WalletPage() {
 
           <div className="glass-card p-8 rounded-[2rem] border-white/5 text-center space-y-6 relative overflow-hidden group">
             <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-all"></div>
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto relative z-10 shadow-xl shadow-primary/10">
               <TrendingUp className="w-8 h-8 text-primary" />
             </div>
             <div className="relative z-10">
               <h4 className="font-headline font-bold text-xl">Yield Optimization</h4>
               <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                Elite Nodes receive a <span className="text-primary font-bold">12% boost</span> on mission yields.
+                Elite Nodes receive a <span className="text-primary font-bold">12% boost</span> on mission yields through high-intensity network settlement.
               </p>
             </div>
             <Button asChild variant="outline" className="w-full rounded-xl border-white/10 font-bold relative z-10 h-12 text-xs uppercase tracking-widest">
@@ -376,7 +403,7 @@ export default function WalletPage() {
               Fund Node
             </DialogTitle>
             <DialogDescription className="text-sm">
-              Generate a Lightning invoice to fund your protocol node.
+              Generate a Lightning invoice to fund your protocol node instantly.
             </DialogDescription>
           </DialogHeader>
 
