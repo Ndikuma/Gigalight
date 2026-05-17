@@ -63,6 +63,16 @@ export interface Wallet {
   transactions: WalletTransaction[];
 }
 
+export interface DepositInvoiceResponse {
+  transaction_id: string;
+  payment_request: string;
+  payment_hash: string;
+  amount_sats: number;
+  expires_at: string;
+  expires_in: number;
+  qr_code: string;
+}
+
 export type WalletTransactionStatus = 'pending' | 'confirmed' | 'failed' | 'refunded' | 'expired';
 export type WalletTransactionType = 
   | 'deposit' 

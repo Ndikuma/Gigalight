@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { WalletService } from '@/services/wallet-service';
-import { Wallet as WalletType, WalletTransaction } from '@/lib/types';
+import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
   ArrowDownLeft, 
@@ -44,11 +44,11 @@ export default function WalletPage() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   
   const [depositAmount, setDepositAmount] = useState('5000');
-  const [invoice, setInvoice] = useState<string | null>(null);
-  const [paymentHash, setPaymentHash] = useState<string | null>(null);
+  const [invoiceData, setInvoiceData] = useState<DepositInvoiceResponse | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const [withdrawInvoice, setWithdrawInvoice] = useState('');
   const [isDecoding, setIsDecoding] = useState(false);
@@ -56,6 +56,7 @@ export default function WalletPage() {
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
   
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchWalletData = async (silent = false) => {
     if (!silent) setIsRefreshing(true);
@@ -74,23 +75,22 @@ export default function WalletPage() {
     fetchWalletData();
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
   }, []);
 
   // Polling logic for pending deposits
   useEffect(() => {
-    if (isPolling && paymentHash) {
+    if (isPolling && invoiceData?.payment_hash) {
       pollingIntervalRef.current = setInterval(async () => {
         try {
-          const res = await WalletService.pollDepositStatus(paymentHash);
+          const res = await WalletService.pollDepositStatus(invoiceData.payment_hash);
           if (res.data) {
-            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === paymentHash);
+            // Check if any transaction with this hash is confirmed
+            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === invoiceData.payment_hash);
             if (tx?.status === 'confirmed') {
-              clearInterval(pollingIntervalRef.current!);
-              setIsPolling(false);
+              cleanupDeposit();
               setWallet(res.data);
-              setInvoice(null);
-              setPaymentHash(null);
               setIsDepositOpen(false);
               toast({ 
                 title: "Settlement Confirmed", 
@@ -107,25 +107,53 @@ export default function WalletPage() {
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     };
-  }, [isPolling, paymentHash]);
+  }, [isPolling, invoiceData]);
+
+  // Countdown timer logic
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else if (timeLeft === 0) {
+      cleanupDeposit();
+      toast({ variant: "destructive", title: "Invoice Expired", description: "The L2 settlement path has timed out." });
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, [timeLeft]);
+
+  const cleanupDeposit = () => {
+    setInvoiceData(null);
+    setIsPolling(false);
+    setTimeLeft(null);
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
     try {
       const res = await WalletService.generateDepositInvoice(parseInt(depositAmount), "Gigalight deposit", 3600);
       if (res.data) {
-        // Find the newly created pending transaction in the returned wallet
-        const newTx = res.data.transactions?.find(t => t.status === 'pending' && t.type === 'deposit');
-        if (newTx && newTx.lnd_invoice) {
-          setInvoice(newTx.lnd_invoice);
-          setPaymentHash(newTx.lnd_payment_hash);
-          setIsPolling(true);
-          toast({ title: "Invoice Propagated", description: "Waiting for payment signal on Bitcoin L2." });
-        } else {
-           // Fallback if transaction isn't found immediately but wallet is returned
-           fetchWalletData(true);
-           toast({ title: "Protocol Initiated", description: "Check your transaction ledger." });
-        }
+        setInvoiceData(res.data);
+        setIsPolling(true);
+        
+        // Calculate initial time left
+        const expiresAt = new Date(res.data.expires_at).getTime();
+        const now = new Date().getTime();
+        const initialSeconds = Math.floor((expiresAt - now) / 1000);
+        setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
+
+        toast({ title: "Invoice Propagated", description: "Waiting for payment signal on Bitcoin L2." });
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
       }
@@ -340,12 +368,7 @@ export default function WalletPage() {
       {/* Deposit Dialog */}
       <Dialog open={isDepositOpen} onOpenChange={(open) => {
         setIsDepositOpen(open);
-        if (!open) {
-          setInvoice(null);
-          setPaymentHash(null);
-          setIsPolling(false);
-          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-        }
+        if (!open) cleanupDeposit();
       }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden">
           <DialogHeader className="p-4">
@@ -360,7 +383,7 @@ export default function WalletPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {!invoice ? (
+          {!invoiceData ? (
             <div className="space-y-6 p-4">
               <div className="space-y-3">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
@@ -389,43 +412,47 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="space-y-8 p-4 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative">
-                <div className="w-48 h-48 bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <QrCode className="w-40 h-40 text-black opacity-90" />
+              <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden">
+                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
                   {isPolling && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                      <div className="w-14 h-14 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
-                      <p className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] animate-pulse">Monitoring L2</p>
+                    <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] flex flex-col items-center justify-center">
+                      <div className="w-12 h-12 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-2"></div>
+                      <p className="text-[8px] font-bold text-secondary uppercase tracking-[0.2em] animate-pulse">Monitoring Network</p>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-5 overflow-hidden group">
-                  <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 text-left leading-none">{invoice}</p>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
+                  <span className="text-muted-foreground">Expires In</span>
+                  <span className={cn(timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
+                    {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group">
+                  <p className="text-[9px] font-mono text-muted-foreground truncate flex-1 text-left leading-none">
+                    {invoiceData.payment_request}
+                  </p>
                   <Button 
                     size="icon" 
                     variant="ghost" 
-                    className="h-10 w-10 hover:bg-white/10 shrink-0 rounded-xl"
+                    className="h-8 w-8 hover:bg-white/10 shrink-0 rounded-lg"
                     onClick={() => {
-                       navigator.clipboard.writeText(invoice!);
+                       navigator.clipboard.writeText(invoiceData.payment_request);
                        setHasCopied(true);
                        setTimeout(() => setHasCopied(false), 2000);
                        toast({ title: "Signal Copied" });
                     }}
                   >
-                    {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </Button>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em]">Expires in 60 Minutes</p>
               </div>
-              <Button variant="ghost" className="w-full font-bold text-muted-foreground hover:text-white" onClick={() => {
-                setInvoice(null);
-                setPaymentHash(null);
-                setIsPolling(false);
-                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-              }}>
-                Cancel Deposit
+
+              <Button variant="ghost" className="w-full font-bold text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
+                Abort Deposit
               </Button>
             </div>
           )}

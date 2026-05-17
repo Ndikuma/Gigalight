@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api-client';
-import { Wallet } from '@/lib/types';
+import { Wallet, DepositInvoiceResponse } from '@/lib/types';
 
 /**
  * @fileOverview Bitcoin Lightning Wallet and Settlement Services.
@@ -17,7 +17,7 @@ export const WalletService = {
   },
 
   async generateDepositInvoice(amount: number, memo = "Wallet deposit", expiresIn = 3600) {
-    return api.post<any>('/wallet/deposit/', { 
+    return api.post<DepositInvoiceResponse>('/wallet/deposit/', { 
       amount, 
       memo, 
       expires_in: expiresIn 
