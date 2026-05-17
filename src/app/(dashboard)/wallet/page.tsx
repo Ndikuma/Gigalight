@@ -391,7 +391,7 @@ export default function WalletPage() {
                   <ShieldCheck className="w-3 h-3" /> Protocol Node
                 </h5>
                 <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  GigaLight uses non-custodial rails for all technical yields and strategic escrows. Multi-channel support ensures global liquidity propagation.
+                  GigaLight uses custodial rails for all technical yields and strategic escrows. Multi-channel support ensures global liquidity propagation handled by the platform.
                 </p>
               </div>
             </CardContent>
