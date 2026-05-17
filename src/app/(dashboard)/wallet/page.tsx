@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -20,7 +21,8 @@ import {
   ShieldCheck,
   TrendingUp,
   RefreshCcw,
-  AlertCircle
+  AlertCircle,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,14 +81,12 @@ export default function WalletPage() {
     };
   }, []);
 
-  // Polling logic for pending deposits
   useEffect(() => {
     if (isPolling && invoiceData?.payment_hash) {
       pollingIntervalRef.current = setInterval(async () => {
         try {
           const res = await WalletService.pollDepositStatus(invoiceData.payment_hash);
           if (res.data) {
-            // Check if any transaction with this hash is confirmed
             const tx = res.data.transactions?.find(t => t.lnd_payment_hash === invoiceData.payment_hash);
             if (tx?.status === 'confirmed') {
               cleanupDeposit();
@@ -109,7 +109,6 @@ export default function WalletPage() {
     };
   }, [isPolling, invoiceData]);
 
-  // Countdown timer logic
   useEffect(() => {
     if (timeLeft !== null && timeLeft > 0) {
       countdownIntervalRef.current = setInterval(() => {
@@ -147,7 +146,6 @@ export default function WalletPage() {
         setInvoiceData(res.data);
         setIsPolling(true);
         
-        // Calculate initial time left
         const expiresAt = new Date(res.data.expires_at).getTime();
         const now = new Date().getTime();
         const initialSeconds = Math.floor((expiresAt - now) / 1000);
@@ -170,7 +168,6 @@ export default function WalletPage() {
       return;
     }
     setIsDecoding(true);
-    // Simulation for decode logic if backend endpoint is generic
     await new Promise(r => setTimeout(r, 1000));
     setDecodedData({
       amount: 5000,
@@ -413,35 +410,40 @@ export default function WalletPage() {
           ) : (
             <div className="space-y-8 p-4 text-center animate-in zoom-in-95 duration-300">
               <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
-                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative overflow-hidden bg-white">
+                <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
                   <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
-                  {isPolling && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1.5px] flex flex-col items-center justify-center">
-                      <div className="w-14 h-14 rounded-full border-4 border-secondary border-t-transparent animate-spin mb-3"></div>
-                      <p className="text-[9px] font-bold text-secondary uppercase tracking-[0.3em] animate-pulse">Awaiting Signal</p>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-3">
+              {isPolling && (
+                <div className="flex flex-col items-center gap-2 py-2 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
+                    <Activity className="w-3 h-3 text-secondary animate-pulse" />
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting Network Signal</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
                 <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
                   <span className="text-muted-foreground">Session Expiry</span>
-                  <span className={cn(timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
+                  <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
+                    <Clock className="w-3 h-3" />
                     {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden relative">
+
+                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
                   <div className="flex-1 text-left">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Payment Signal</p>
-                    <p className="text-[11px] font-mono text-white/50 truncate leading-none max-w-[200px]">
-                      {invoiceData.payment_request.substring(0, 10)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 10)}
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace</p>
+                    <p className="text-[11px] font-mono text-white/70 truncate leading-none">
+                      {invoiceData.payment_request.substring(0, 12)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 12)}
                     </p>
                   </div>
                   <Button 
                     size="icon" 
                     variant="secondary" 
-                    className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary"
+                    className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
                     onClick={() => {
                        navigator.clipboard.writeText(invoiceData.payment_request);
                        setHasCopied(true);
