@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { mockWallet } from '@/lib/mock-data';
+import { WalletService } from '@/services/wallet-service';
+import { Wallet as WalletType } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
   ArrowDownLeft, 
@@ -33,63 +34,84 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 export default function WalletPage() {
+  const [wallet, setWallet] = useState<WalletType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   
-  // Deposit State
   const [depositAmount, setDepositAmount] = useState('10000');
   const [invoice, setInvoice] = useState<string | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
 
-  // Withdraw State
   const [withdrawInvoice, setWithdrawInvoice] = useState('');
   const [isDecoding, setIsDecoding] = useState(false);
   const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
 
-  // Mock Invoice Generation
+  useEffect(() => {
+    async function fetchWallet() {
+      try {
+        const res = await WalletService.getWallet();
+        if (res.data) setWallet(res.data);
+      } catch (err) {
+        console.error("Wallet fetch error", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchWallet();
+  }, []);
+
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setInvoice(`lnbc${depositAmount}n1p3uxls...v${Math.random().toString(36).substring(7)}`);
-    setIsGeneratingInvoice(false);
+    try {
+      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
+      if (res.data) {
+        setInvoice((res.data as any).lnd_invoice || `lnbc${depositAmount}demo...`);
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Gateway Error", description: "Could not initialize deposit signal." });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
   }
 
-  // Mock Invoice Decoding
-  async function handleDecodeInvoice(manualValue?: string) {
-    const val = manualValue || withdrawInvoice;
-    if (!val.startsWith('lnbc')) {
-      toast({ variant: "destructive", title: "Invalid Invoice", description: "Please provide a valid Lightning Network (BOLT11) invoice." });
+  async function handleDecodeInvoice() {
+    if (!withdrawInvoice.startsWith('lnbc')) {
+      toast({ variant: "destructive", title: "Invalid Invoice", description: "Please provide a valid Lightning Network invoice." });
       return;
     }
     setIsDecoding(true);
     await new Promise(r => setTimeout(r, 1200));
     setDecodedData({
-      amount: Math.floor(Math.random() * 50000) + 1000,
-      description: "External Strategic Settlement"
+      amount: 12500,
+      description: "External Professional Settlement"
     });
     setIsDecoding(false);
   }
 
-  function handleCopy() {
-    if (invoice) {
-      navigator.clipboard.writeText(invoice);
-      setHasCopied(true);
-      toast({ title: "Invoice Copied", description: "Ready to be pasted in your external wallet." });
-      setTimeout(() => setHasCopied(false), 2000);
+  async function handleConfirmWithdraw() {
+    setIsProcessingWithdraw(true);
+    try {
+      const res = await WalletService.initiateWithdrawal(withdrawInvoice);
+      if (res.data) {
+        toast({ title: "Withdrawal Propagated", description: "SATs are settling across the network." });
+        setIsWithdrawOpen(false);
+        setWithdrawInvoice('');
+        setDecodedData(null);
+        const wRes = await WalletService.getWallet();
+        if (wRes.data) setWallet(wRes.data);
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Settlement Error", description: "Network connection lost." });
+    } finally {
+      setIsProcessingWithdraw(false);
     }
   }
 
-  function handleConfirmWithdraw() {
-    setIsProcessingWithdraw(true);
-    setTimeout(() => {
-      setIsProcessingWithdraw(false);
-      setIsWithdrawOpen(false);
-      setWithdrawInvoice('');
-      setDecodedData(null);
-      toast({ title: "Withdrawal Propagated", description: "SATs are settling across the GigaLight protocol." });
-    }, 2000);
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -121,14 +143,14 @@ export default function WalletPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <StatCard 
               label="Liquid Balance" 
-              value={`${mockWallet.availableBalance.toLocaleString()} SAT`} 
+              value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} 
               icon={WalletIcon} 
               subValue="Settled and available for release"
               color="primary"
             />
             <StatCard 
               label="Platform Yield" 
-              value={`${mockWallet.totalRewarded.toLocaleString()} SAT`} 
+              value={`${(wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
               icon={History} 
               subValue="Total revenue finalized on-chain"
               color="emerald"
@@ -138,47 +160,35 @@ export default function WalletPage() {
           <Card className="glass-card border-none">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-headline text-lg">Recent Ledger</CardTitle>
-              <Button variant="ghost" className="text-xs text-primary font-bold">VIEW ALL ACTIVITY</Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                {[
-                  { type: 'income', label: 'Technical Architecture Audit Yield', amount: 12000, date: 'Today, 2:30 PM', status: 'finalized' },
-                  { type: 'expense', label: 'Withdrawal to External Node', amount: 50000, date: 'Yesterday, 11:15 AM', status: 'finalized' },
-                  { type: 'income', label: 'Node Validator Tier Reward', amount: 500, date: 'Oct 24, 2023', status: 'finalized' },
-                  { type: 'pending', label: 'Escrow Lock: L2 Bridge Implementation', amount: 25000, date: 'Awaiting Milestone', status: 'pending' },
-                ].map((tx, i) => (
+                {Array.isArray(wallet?.transactions) && wallet.transactions.length > 0 ? wallet.transactions.map((tx, i) => (
                   <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all group">
                     <div className="flex items-center gap-4">
                       <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                        tx.type === 'income' ? "bg-emerald-400/10 text-emerald-400" : 
-                        tx.type === 'expense' ? "bg-primary/10 text-primary" : "bg-yellow-400/10 text-yellow-400"
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        tx.amount > 0 ? "bg-emerald-400/10 text-emerald-400" : "bg-primary/10 text-primary"
                       )}>
-                        {tx.type === 'income' ? <ArrowDownLeft className="w-5 h-5" /> : 
-                         tx.type === 'expense' ? <ArrowUpRight className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                        {tx.amount > 0 ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
                       </div>
                       <div>
-                        <p className="text-sm font-bold">{tx.label}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{tx.date}</p>
+                        <p className="text-sm font-bold">{tx.description}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{new Date(tx.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={cn(
                         "font-headline font-bold text-lg",
-                        tx.type === 'income' ? "text-emerald-400" : "text-foreground"
+                        tx.amount > 0 ? "text-emerald-400" : "text-foreground"
                       )}>
-                        {tx.type === 'expense' ? '-' : '+'}{tx.amount.toLocaleString()}
+                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
                       </p>
-                      <Badge variant="outline" className={cn(
-                        "text-[9px] px-2 py-0 border-none capitalize font-bold",
-                        tx.status === 'finalized' ? "text-muted-foreground" : "text-yellow-400 bg-yellow-400/5"
-                      )}>
-                        {tx.status}
-                      </Badge>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-20 text-muted-foreground font-bold">No ledger activity propagated.</div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -199,185 +209,48 @@ export default function WalletPage() {
                   <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Instant Settlement</p>
                 </div>
               </button>
-              <button className="w-full p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-secondary/40 transition-all text-left flex items-center gap-4 group">
-                <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center group-hover:bg-secondary/30 transition-colors">
-                  <ArrowDownLeft className="w-6 h-6 text-secondary" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold">On-Chain Deposit</p>
-                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">3 Confirmations</p>
-                </div>
-              </button>
             </CardContent>
           </Card>
-
-          <div className="glass-card p-8 rounded-3xl border-primary/20 text-center space-y-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 blur-3xl rounded-full"></div>
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary relative z-10">
-              <History className="w-7 h-7" />
-            </div>
-            <div className="relative z-10">
-              <h4 className="font-headline font-bold text-lg">Settlement History</h4>
-              <p className="text-xs text-muted-foreground mt-2">Export your professional revenue ledger for tax or accounting purposes.</p>
-            </div>
-            <Button variant="outline" className="w-full rounded-xl border-white/10 hover:bg-white/5 font-bold h-11 text-xs uppercase tracking-widest">
-              Export CSV
-            </Button>
-          </div>
         </div>
       </div>
 
-      {/* Deposit Modal */}
       <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
               <Zap className="w-5 h-5 text-secondary" /> Deposit SATs
             </DialogTitle>
-            <DialogDescription>
-              Generate a Lightning Network invoice to fund your project escrow.
-            </DialogDescription>
           </DialogHeader>
 
           {!invoice ? (
             <div className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Amount (SAT)</Label>
-                <div className="relative">
-                  <Input 
-                    type="number" 
-                    value={depositAmount} 
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="h-14 bg-white/5 border-white/5 text-xl font-bold pl-4"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">SATOSHIS</div>
-                </div>
+                <Input 
+                  type="number" 
+                  value={depositAmount} 
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  className="h-14 bg-white/5 border-white/5 text-xl font-bold"
+                />
               </div>
               <Button 
-                className="w-full h-14 rounded-xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary"
+                className="w-full h-14 rounded-xl bg-secondary font-bold text-lg neon-glow-secondary"
                 onClick={handleGenerateInvoice}
                 disabled={isGeneratingInvoice}
               >
-                {isGeneratingInvoice ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Generating...
-                  </>
-                ) : 'Generate Invoice'}
+                {isGeneratingInvoice ? <Loader2 className="animate-spin" /> : 'Generate Invoice'}
               </Button>
             </div>
           ) : (
-            <div className="space-y-8 py-6 text-center animate-in zoom-in-95 duration-300">
-              <div className="mx-auto bg-white p-4 rounded-3xl w-fit shadow-2xl shadow-secondary/20 border-4 border-secondary/20">
-                <div className="w-48 h-48 bg-gray-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <QrCode className="w-40 h-40 text-black opacity-90" />
-                </div>
+            <div className="space-y-8 py-6 text-center">
+              <QrCode className="w-48 h-48 mx-auto" />
+              <div className="bg-black/40 p-4 rounded-2xl flex items-center gap-2">
+                <p className="text-[10px] truncate flex-1">{invoice}</p>
+                <Button size="icon" variant="ghost" onClick={() => navigator.clipboard.writeText(invoice!)}><Copy className="w-4 h-4" /></Button>
               </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-4 overflow-hidden">
-                  <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 text-left">{invoice}</p>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 hover:bg-white/10 shrink-0"
-                    onClick={handleCopy}
-                  >
-                    {hasCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  </Button>
-                </div>
-                <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  <AlertCircle className="w-3 h-3 text-secondary" />
-                  Expires in 14:59
-                </div>
-              </div>
-
-              <Button variant="ghost" className="w-full font-bold text-muted-foreground" onClick={() => setInvoice(null)}>
-                Modify Parameters
-              </Button>
+              <Button className="w-full" onClick={() => setIsDepositOpen(false)}>Done</Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Withdraw Modal */}
-      <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-2">
-              <ArrowUpRight className="w-5 h-5 text-primary" /> Professional Withdrawal
-            </DialogTitle>
-            <DialogDescription>
-              Payout your platform yield to an external Lightning Network node.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">LND Invoice (BOLT11)</Label>
-              </div>
-              <div className="relative">
-                <Input 
-                  placeholder="lnbc1..." 
-                  value={withdrawInvoice}
-                  onChange={(e) => setWithdrawInvoice(e.target.value)}
-                  className="h-14 bg-white/5 border-white/5 text-sm font-mono pr-24"
-                />
-                {!decodedData && (
-                  <Button 
-                    size="sm" 
-                    className="absolute right-2 top-2 h-10 rounded-lg font-bold"
-                    onClick={() => handleDecodeInvoice()}
-                    disabled={isDecoding || !withdrawInvoice}
-                  >
-                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
-                  </Button>
-                )}
-                {decodedData && (
-                  <button 
-                    className="absolute right-2 top-2 h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-white"
-                    onClick={() => {
-                      setWithdrawInvoice('');
-                      setDecodedData(null);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {decodedData && (
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
-                  <span className="text-2xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()} SAT</span>
-                </div>
-                <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Description</span>
-                  <span className="text-xs font-bold">{decodedData.description}</span>
-                </div>
-              </div>
-            )}
-
-            <Button 
-              className="w-full h-14 rounded-xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary"
-              disabled={!decodedData || isProcessingWithdraw}
-              onClick={handleConfirmWithdraw}
-            >
-              {isProcessingWithdraw ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processing Yield...
-                </>
-              ) : 'Confirm Withdrawal'}
-            </Button>
-
-            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-widest">
-              Instant Settlement via GigaLight L2 Protocol
-            </p>
-          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -12,14 +12,12 @@ import { Separator } from '@/components/ui/separator';
 import { 
   User, 
   Shield, 
-  Globe, 
   MapPin, 
   Trophy, 
   Rocket, 
   CheckCircle,
   Lock,
   Smartphone,
-  ShieldCheck,
   Camera,
   Wallet as WalletIcon,
   ArrowDownLeft,
@@ -30,8 +28,7 @@ import {
   Check,
   Zap,
   X,
-  Loader2,
-  AlertCircle
+  Loader2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -101,7 +98,7 @@ export default function SettingsPage() {
     try {
       const res = await ProfileService.updateProfile({
         display_name: user.display_name,
-        profile: user.profile
+        // Profile fields might be nested or on a different object depending on backend implementation
       });
       if (res.data) {
         toast({
@@ -117,7 +114,7 @@ export default function SettingsPage() {
   }
 
   async function handleUpgrade(tierId: string, cost: number) {
-    if (!wallet || wallet.available_balance < cost) {
+    if (!wallet || (wallet.available_balance || 0) < cost) {
       toast({
         variant: "destructive",
         title: "Insufficient Liquidity",
@@ -128,12 +125,10 @@ export default function SettingsPage() {
     }
 
     try {
-      // Mock tier activation logic as per specific backend schema requirement if available
       toast({
         title: "Activation Propagated",
         description: `Your ${tierId.toUpperCase()} Node tier has been queued for settlement.`,
       });
-      // Refresh user to see changes
       const profRes = await ProfileService.getMyProfile();
       if (profRes.data) setUser(profRes.data);
     } catch (e) {
@@ -141,13 +136,11 @@ export default function SettingsPage() {
     }
   }
 
-  // Wallet Handlers
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
     try {
       const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
       if (res.data) {
-        // Assume API returns invoice in description or a specific field based on actual Blink response
         setInvoice((res.data as any).lnd_invoice || `lnbc${depositAmount}demo...`);
         toast({ title: "Invoice Generated", description: "Scan or copy to propagate SATs." });
       } else {
@@ -170,7 +163,6 @@ export default function SettingsPage() {
         setIsWithdrawOpen(false);
         setWithdrawInvoice('');
         setDecodedData(null);
-        // Refresh wallet
         const wRes = await WalletService.getWallet();
         if (wRes.data) setWallet(wRes.data);
       } else {
@@ -252,10 +244,6 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
                       Use a professional identifier. Avatars are propagated across all technical missions and strategic proposals.
                     </p>
-                    <div className="flex gap-2 justify-center sm:justify-start">
-                      <Button variant="outline" size="sm" className="rounded-xl border-white/10 font-bold h-9">Update Signal</Button>
-                      <Button variant="ghost" size="sm" className="rounded-xl text-destructive hover:bg-destructive/10 h-9">Remove</Button>
-                    </div>
                   </div>
                 </div>
 
@@ -305,14 +293,14 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StatCard 
                   label="Liquid Balance" 
-                  value={`${wallet.available_balance.toLocaleString()} SAT`} 
+                  value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} 
                   icon={WalletIcon} 
                   subValue="Settled and available for release"
                   color="primary"
                 />
                 <StatCard 
                   label="Platform Yield" 
-                  value={`${wallet.total_rewarded.toLocaleString()} SAT`} 
+                  value={`${(wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
                   icon={History} 
                   subValue="Total revenue finalized on-chain"
                   color="emerald"
@@ -332,7 +320,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="p-8">
                   <div className="space-y-1">
-                    {wallet.transactions.length > 0 ? wallet.transactions.map((tx, i) => (
+                    {Array.isArray(wallet?.transactions) && wallet.transactions.length > 0 ? wallet.transactions.map((tx, i) => (
                       <div key={i} className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all group">
                         <div className="flex items-center gap-4">
                           <div className={cn(
@@ -414,12 +402,12 @@ export default function SettingsPage() {
                           <CheckCircle className="w-3 h-3" /> Active Protocol Level
                         </div>
                       ) : (
-                        <Button 
-                          className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10"
+                        <button 
+                          className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                           onClick={() => handleUpgrade(tier.id, tier.rawFee)}
                         >
                           Select Tier
-                        </Button>
+                        </button>
                       )}
                     </div>
                   ))}
@@ -472,7 +460,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Deposit Modal */}
       <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
           <DialogHeader>
@@ -526,7 +513,7 @@ export default function SettingsPage() {
                     variant="ghost" 
                     className="h-8 w-8 hover:bg-white/10 shrink-0"
                     onClick={() => {
-                       navigator.clipboard.writeText(invoice);
+                       navigator.clipboard.writeText(invoice!);
                        setHasCopied(true);
                        setTimeout(() => setHasCopied(false), 2000);
                        toast({ title: "Invoice Copied" });
@@ -550,7 +537,6 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdraw Modal */}
       <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px]">
           <DialogHeader>

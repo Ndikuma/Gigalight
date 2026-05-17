@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,31 +10,51 @@ import {
   Settings2, 
   Users, 
   Search, 
-  Sparkles, 
   AlertCircle, 
   Layers,
-  Zap,
   CheckCircle,
   Clock,
-  ArrowRight,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
-import { mockProjects, mockTasks, mockProfile } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { ProjectService } from '@/services/project-service';
+import { TaskService } from '@/services/task-service';
+import { ProjectDetail, Submission } from '@/lib/types';
+import { toast } from '@/hooks/use-toast';
 
 export default function ManagementHubPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Hiring: Listings created by me
-  const myHiringProjects = mockProjects.filter(p => p.creator === mockProfile.id);
-  // Using creator_id as simulated for tasks since mockData didn't have it explicitly mapped in TaskMini
-  const myHiringTasks = mockTasks.filter(t => (t as any).creator_id === mockProfile.id);
+  const [projects, setProjects] = useState<ProjectDetail[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Working: Projects I'm involved in as a worker/contractor
-  const myWorkingProjects = mockProjects.filter(p => p.status === 'in_progress' && p.creator !== mockProfile.id);
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const [projRes, subRes] = await Promise.all([
+          ProjectService.getMyProjects(),
+          TaskService.getMySubmissions()
+        ]);
+        // Note: The schema might return a list or a paginated object depending on current node status
+        if (Array.isArray(projRes.data)) setProjects(projRes.data as any);
+        if (Array.isArray(subRes.data)) setSubmissions(subRes.data);
+      } catch (e) {
+        toast({ variant: "destructive", title: "Synchronization Lost", description: "Could not fetch your professional history." });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -56,37 +77,20 @@ export default function ManagementHubPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit">
             <TabsTrigger value="hiring" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-secondary transition-all">
-              <Layers className="w-4 h-4 mr-2" /> Hiring ({myHiringProjects.length + myHiringTasks.length})
+              <Layers className="w-4 h-4 mr-2" /> Hiring ({projects.length})
             </TabsTrigger>
             <TabsTrigger value="working" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary transition-all">
-              <Briefcase className="w-4 h-4 mr-2" /> Working ({myWorkingProjects.length})
+              <Briefcase className="w-4 h-4 mr-2" /> Working ({submissions.length})
             </TabsTrigger>
           </TabsList>
-
-          <div className="flex items-center gap-4 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="Filter listings..." 
-                className="w-full bg-white/5 border border-white/5 rounded-2xl py-2 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button variant="outline" size="icon" className="rounded-xl border-white/5 bg-white/5"><Filter className="w-4 h-4" /></Button>
-          </div>
         </div>
 
         <TabsContent value="hiring" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 gap-4">
-            {myHiringProjects.map((project) => (
+            {projects.map((project) => (
               <ProjectManagementCard key={project.id} item={project} type="project" />
             ))}
-            {myHiringTasks.map((task) => (
-              <ProjectManagementCard key={task.id} item={task} type="task" />
-            ))}
-            {myHiringProjects.length === 0 && myHiringTasks.length === 0 && (
+            {projects.length === 0 && (
               <EmptyState title="No active listings" desc="You haven't initiated any objectives yet." />
             )}
           </div>
@@ -94,38 +98,32 @@ export default function ManagementHubPage() {
 
         <TabsContent value="working" className="space-y-6 mt-0">
           <div className="grid grid-cols-1 gap-4">
-            {myWorkingProjects.map((project) => (
-              <Card key={project.id} className="glass-card border-none overflow-hidden group hover:border-primary/30 transition-all">
+            {submissions.map((sub) => (
+              <Card key={sub.id} className="glass-card border-none overflow-hidden group hover:border-primary/30 transition-all">
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                         <Briefcase className="w-7 h-7" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xl">{project.title}</h4>
+                          <h4 className="font-bold text-xl">{sub.task_title}</h4>
                           <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
-                            Active Contract
+                            {sub.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground font-medium">Client: {project.client_name} • Strategic Partner</p>
+                        <p className="text-sm text-muted-foreground font-medium">Submitted {new Date(sub.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden md:block">
-                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Locked Yield</p>
-                        <p className="text-lg font-bold text-primary">{project.budget}</p>
-                      </div>
-                      <Button asChild size="lg" className="rounded-xl bg-primary neon-glow-primary font-bold h-12 px-8">
-                        <Link href={`/my-projects/${project.id}`}>Enter Workspace</Link>
-                      </Button>
-                    </div>
+                    <Button asChild className="rounded-xl bg-primary neon-glow-primary font-bold h-12 px-8">
+                      <Link href={`/market/${sub.task}`}>View Mission</Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            {myWorkingProjects.length === 0 && (
+            {submissions.length === 0 && (
               <EmptyState title="No active contracts" desc="Browse the market to find professional opportunities to perform." />
             )}
           </div>
@@ -151,7 +149,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 "border-none uppercase text-[9px] tracking-widest font-bold",
                 isProject ? "bg-secondary/10 text-secondary" : "bg-emerald-400/10 text-emerald-400"
               )}>
-                {item.status.replace('_', ' ')}
+                {item.status?.replace('_', ' ') || 'OPEN'}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground capitalize text-[9px] font-bold">
                 {item.experience_level || item.difficulty}
@@ -178,7 +176,7 @@ function ProjectManagementCard({ item, type }: { item: any, type: 'project' | 't
                 <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Protocol Yield</span>
               </div>
               <span className="text-sm font-bold text-secondary">
-                {isProject ? `${item.budget}` : `${item.reward_amount.toLocaleString()} SAT`}
+                {isProject ? `${item.budget || (item.budget_max + ' SAT')}` : `${(item.reward_amount || 0).toLocaleString()} SAT`}
               </span>
             </div>
 
