@@ -16,7 +16,9 @@ import {
   ChevronDown,
   PlusCircle,
   Sparkles,
-  Layers
+  Layers,
+  Wrench,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
@@ -38,10 +40,11 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Market', icon: Search, href: '/market' },
+    { name: 'Market', icon: Globe, href: '/market' },
     { name: 'My Work', icon: Zap, href: '/my-contributions' },
     { name: 'My Gigs', icon: Layers, href: '/my-tasks' },
     { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
+    { name: 'My Services', icon: Wrench, href: '/my-services' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
     { name: 'Settings', icon: Settings, href: '/settings' },
@@ -127,6 +130,12 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
                 <Link href="/my-projects/create" className="flex items-center gap-3">
                   <Briefcase className="w-4 h-4 text-secondary" />
                   <div><p className="font-bold text-xs">Initiate Project</p><p className="text-[10px] text-muted-foreground">Strategic milestones</p></div>
+                </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-3 mt-1">
+                <Link href="/my-services/create" className="flex items-center gap-3">
+                  <Wrench className="w-4 h-4 text-emerald-400" />
+                  <div><p className="font-bold text-xs">Public Service Offering</p><p className="text-[10px] text-muted-foreground">Expert capability</p></div>
                 </Link>
              </DropdownMenuItem>
           </DropdownMenuContent>

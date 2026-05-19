@@ -268,6 +268,23 @@ export interface Skill {
   icon?: string;
 }
 
+export interface ProfessionalService {
+  id: string;
+  creator: number | string;
+  creator_display: string;
+  title: string;
+  description: string;
+  short_description: string;
+  price_sats: number;
+  delivery_days: number;
+  category: string;
+  skills: Skill[];
+  is_active: boolean;
+  views_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type NotificationType = 'reward' | 'audit' | 'bid' | 'system' | 'milestone' | 'payment';
 
 export interface Notification {

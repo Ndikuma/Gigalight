@@ -23,7 +23,8 @@ import {
   Clock,
   ExternalLink,
   Loader2,
-  Layers
+  Layers,
+  Wrench
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -135,6 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'My Work', icon: Zap, href: '/my-contributions' },
     { name: 'My Gigs', icon: Layers, href: '/my-tasks' },
     { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
+    { name: 'My Services', icon: Wrench, href: '/my-services' },
     { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(user?.is_validator && role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
