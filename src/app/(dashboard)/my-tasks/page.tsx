@@ -54,7 +54,7 @@ export default function MyTasksPage() {
           <p className="text-muted-foreground">Manage your high-volume proof audit channels.</p>
         </div>
         <Button asChild className="rounded-xl bg-primary hover:brightness-110 gap-2 neon-glow-primary font-bold h-12 px-6">
-          <Link href="/my-projects/create"><PlusCircle className="w-4 h-4" /> Deploy Gig</Link>
+          <Link href="/my-tasks/create"><PlusCircle className="w-4 h-4" /> Deploy Gig</Link>
         </Button>
       </header>
 
@@ -99,7 +99,7 @@ export default function MyTasksPage() {
               <Layers className="w-8 h-8 text-muted-foreground/30" />
             </div>
             <h3 className="text-xl font-bold text-white">No active gigs</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto mt-2 text-sm">Deploy high-volume tasks for rapid technical scaling.</p>
+            <p className="text-muted-foreground max-sm mx-auto mt-2 text-sm">Deploy high-volume tasks for rapid technical scaling.</p>
           </div>
         )}
       </div>

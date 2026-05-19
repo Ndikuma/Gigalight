@@ -110,11 +110,28 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
       </nav>
 
       <div className="p-4 mt-auto border-t border-white/5 space-y-3">
-        <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2 neon-glow-secondary">
-          <Link href="/my-projects/create">
-            <PlusCircle className="w-4 h-4" /> Post a Listing
-          </Link>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+             <Button className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2 neon-glow-secondary">
+              <PlusCircle className="w-4 h-4" /> Post a Listing
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" className="w-56 bg-card border-white/5 p-2 mb-10">
+             <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-3">
+                <Link href="/my-tasks/create" className="flex items-center gap-3">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <div><p className="font-bold text-xs">Deploy Micro Gig</p><p className="text-[10px] text-muted-foreground">High-volume tasks</p></div>
+                </Link>
+             </DropdownMenuItem>
+             <DropdownMenuItem asChild className="cursor-pointer rounded-lg p-3 mt-1">
+                <Link href="/my-projects/create" className="flex items-center gap-3">
+                  <Briefcase className="w-4 h-4 text-secondary" />
+                  <div><p className="font-bold text-xs">Initiate Project</p><p className="text-[10px] text-muted-foreground">Strategic milestones</p></div>
+                </Link>
+             </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button variant="ghost" asChild className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all justify-start">
           <Link href="/">
             <LogOut className="w-5 h-5" />
