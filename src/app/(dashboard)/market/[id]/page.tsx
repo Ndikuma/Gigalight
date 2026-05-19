@@ -22,7 +22,10 @@ import {
   FileText,
   Activity,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Target,
+  CheckCircle2,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +42,7 @@ import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
-import { TaskMini, ProjectDetail, User, Budget } from '@/lib/types';
+import { User, ProjectDetail } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
 
@@ -75,7 +78,7 @@ export default function OpportunityDetailPage() {
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
-          // Fetch workbench for tasks if user is not creator
+          // If the current user is NOT the creator, they might have worker progression
           if (profRes.data && taskRes.data.creator !== profRes.data.id) {
              const wb = await TaskService.getTaskWorkbench(id as string);
              if (wb.data) setWorkbench(wb.data);
@@ -165,9 +168,17 @@ export default function OpportunityDetailPage() {
     try {
       let res;
       if (isTask) {
-        res = await TaskService.submitProof(opportunity.data.id, {
-          proof_text: proofText
-        });
+        // If subtasks mode, use the specific subtask submit path
+        if (workbench?.next_subtask) {
+          res = await TaskService.submitProof(opportunity.data.id, {
+            subtask_id: workbench.next_subtask.id,
+            proof_text: proofText
+          });
+        } else {
+          res = await TaskService.submitProof(opportunity.data.id, {
+            proof_text: proofText
+          });
+        }
       } else {
         res = await BidService.submitBid({
           project: opportunity.data.id,
@@ -311,14 +322,14 @@ export default function OpportunityDetailPage() {
 
           {/* Mission Workbench for Workers */}
           {isTask && workbench && (
-            <Card className="glass-card border-none bg-gradient-to-br from-primary/5 to-transparent rounded-[2.5rem]">
-               <CardHeader className="p-8">
+            <Card className="glass-card border-none bg-gradient-to-br from-primary/5 to-transparent rounded-[2.5rem] overflow-hidden">
+               <CardHeader className="p-8 pb-4">
                   <div className="flex items-center justify-between">
                      <h3 className="font-headline font-bold text-xl flex items-center gap-2">
                         <Activity className="w-5 h-5 text-primary" /> Node Workbench
                      </h3>
                      <Badge className="bg-emerald-400/10 text-emerald-400 border-none uppercase text-[8px] font-bold tracking-widest">
-                        {workbench.approved_steps} / {workbench.total_steps} Completed
+                        {workbench.approved_steps} / {workbench.total_steps} Milestones Verified
                      </Badge>
                   </div>
                </CardHeader>
@@ -326,17 +337,57 @@ export default function OpportunityDetailPage() {
                   <div className="space-y-2">
                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         <span>Technical Progression</span>
-                        <span>{Math.round((workbench.approved_steps / workbench.total_steps) * 100)}%</span>
+                        <span className="text-emerald-400">{Math.round((workbench.approved_steps / workbench.total_steps) * 100)}%</span>
                      </div>
-                     <Progress value={(workbench.approved_steps / workbench.total_steps) * 100} className="h-1.5 bg-white/5" />
+                     <Progress value={(workbench.approved_steps / workbench.total_steps) * 100} className="h-2 bg-white/5" />
                   </div>
 
-                  {workbench.next_subtask && (
-                    <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-3">
-                       <h5 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                          <ChevronRight className="w-3.5 h-3.5" /> Current Objective: {workbench.next_subtask.title}
-                       </h5>
+                  {workbench.next_subtask ? (
+                    <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-4 animate-in slide-in-from-bottom-2">
+                       <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                            <Target className="w-3.5 h-3.5" /> Next Objective: {workbench.next_subtask.title}
+                          </h5>
+                          <span className="text-[10px] font-bold text-emerald-400">+{workbench.next_subtask.reward_amount} SAT</span>
+                       </div>
                        <p className="text-sm text-muted-foreground leading-relaxed">{workbench.next_subtask.description}</p>
+                    </div>
+                  ) : workbench.approved_steps === workbench.total_steps ? (
+                    <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-4">
+                       <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                       <div>
+                          <p className="text-sm font-bold text-white uppercase tracking-widest">Protocol Fully Propagated</p>
+                          <p className="text-xs text-muted-foreground">All subtasks for this mission have been finalized and settled.</p>
+                       </div>
+                    </div>
+                  ) : null}
+
+                  {workbench.submissions && workbench.submissions.length > 0 && (
+                    <div className="space-y-3 mt-4">
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                         <History className="w-3 h-3" /> Technical Signal History
+                       </p>
+                       {workbench.submissions.map((sub: any) => (
+                         <div key={sub.id} className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group">
+                            <div className="flex items-center gap-3">
+                               <div className={cn(
+                                 "w-8 h-8 rounded-lg flex items-center justify-center border",
+                                 sub.status === 'approved' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : 
+                                 sub.status === 'rejected' ? "bg-destructive/10 text-destructive border-destructive/20" :
+                                 "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                               )}>
+                                 {sub.status === 'approved' ? <CheckCircle className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                               </div>
+                               <div>
+                                 <p className="text-xs font-bold text-white">{sub.subtask_title || 'Main Protocol'}</p>
+                                 <p className="text-[8px] text-muted-foreground uppercase tracking-tighter">{sub.status}</p>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-xs font-bold">{sub.reward_amount} SAT</p>
+                            </div>
+                         </div>
+                       ))}
                     </div>
                   )}
                </CardContent>
@@ -393,7 +444,7 @@ export default function OpportunityDetailPage() {
               <CardHeader className="p-10 pb-0">
                 <h3 className="font-headline text-2xl flex items-center gap-3 font-bold">
                   <Send className="w-6 h-6 text-primary" /> 
-                  {isTask ? "Submit Proof Signal" : "Initiate Proposal Node"}
+                  {isTask ? (workbench?.next_subtask ? `Submit Proof: ${workbench.next_subtask.title}` : "Submit Proof Signal") : "Initiate Proposal Node"}
                 </h3>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
@@ -543,8 +594,9 @@ export default function OpportunityDetailPage() {
                     isTask ? "bg-primary neon-glow-primary" : "bg-secondary neon-glow-secondary shadow-lg shadow-secondary/20"
                   )}
                   onClick={() => setStep('active')}
+                  disabled={isTask && workbench?.approved_steps === workbench?.total_steps && workbench?.total_steps > 0}
                 >
-                  {isTask ? "Initiate Mission" : "Commission Node"}
+                  {isTask ? (workbench?.approved_steps === workbench?.total_steps && workbench?.total_steps > 0 ? "Mission Finalized" : "Initiate Mission") : "Commission Node"}
                 </Button>
               )}
             </CardContent>
@@ -554,3 +606,4 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
+

@@ -99,6 +99,16 @@ export interface Category {
   created_at: string;
 }
 
+export interface SubTask {
+  id: string | number;
+  title: string;
+  description: string;
+  order: number;
+  reward_amount: number;
+  submissions_count: number;
+  approved_count: number;
+}
+
 export interface TaskMini {
   id: string;
   title: string;
@@ -112,8 +122,9 @@ export interface TaskMini {
   proof_method: ProofMethod;
   boost_multiplier: number;
   boost_ends_at: string | null;
-  boosted: string;
+  boosted: boolean;
   created_at: string;
+  subtasks?: SubTask[];
 }
 
 export type BudgetType = 'fixed' | 'hourly';
@@ -155,7 +166,7 @@ export interface ProjectDetail {
   bid_cost: number;
   max_bids: number;
   bids_count: number;
-  total_bids: number;
+  total_bids: number | string;
   avg_bid: number;
   available_slots: number;
   status: ProjectStatus;
@@ -181,17 +192,26 @@ export interface ProjectDetail {
 export interface Submission {
   id: string;
   task: string;
-  user: number | string;
-  user_name: string;
   task_title: string;
-  status: 'pending' | 'approved' | 'rejected' | 'disputed';
+  subtask?: string | number;
+  subtask_title?: string;
+  user: number | string;
+  worker_name: string;
+  status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'needs_revision';
+  reward_amount: number;
+  is_paid: boolean;
   proof_text: string;
+  proof_image_uri: string;
+  proof_link: string;
+  proof_file_uri: string;
+  proof_metadata: any;
   ai_audit_result: any;
   ai_score: number | null;
-  ai_notes: string;
   validator_notes: string;
-  reviewer_name: string;
+  assigned_validator: any;
+  submitted_at: string;
   reviewed_at: string | null;
+  paid_at: string | null;
   created_at: string;
   updated_at: string;
 }

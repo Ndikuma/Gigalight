@@ -17,7 +17,8 @@ import {
   Activity,
   ArrowRight,
   Package,
-  TrendingUp
+  TrendingUp,
+  Target
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -64,7 +65,7 @@ export default function ManagementHubPage() {
 
   const formatBudget = (budget: any) => {
     if (!budget) return 'TBD';
-    if (typeof budget === 'object') {
+    if (typeof budget === 'object' && budget !== null) {
       return `${(budget.min || 0).toLocaleString()} - ${(budget.max || 0).toLocaleString()} SAT`;
     }
     return budget;
@@ -95,10 +96,10 @@ export default function ManagementHubPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit">
             <TabsTrigger value="projects" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-secondary transition-all font-bold gap-2">
-              <Briefcase className="w-4 h-4" /> Strategic Projects ({projects.length})
+              <Briefcase className="w-4 h-4" /> Created Projects ({projects.length})
             </TabsTrigger>
             <TabsTrigger value="tasks" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-primary transition-all font-bold gap-2">
-              <Zap className="w-4 h-4" /> Micro Gigs ({tasks.length})
+              <Zap className="w-4 h-4" /> Created Gigs ({tasks.length})
             </TabsTrigger>
             <TabsTrigger value="contributions" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-emerald-500 transition-all font-bold gap-2">
               <Activity className="w-4 h-4" /> My Contributions ({submissions.length})
@@ -112,7 +113,7 @@ export default function ManagementHubPage() {
               <ProjectManagementCard key={project.id} item={project} onFormatBudget={formatBudget} />
             ))}
             {projects.length === 0 && (
-              <EmptyState title="No strategic projects" desc="Initiate high-value objectives for specialized especialistas." />
+              <EmptyState title="No strategic projects created" desc="Initiate high-value objectives for specialized network nodes." />
             )}
           </div>
         </TabsContent>
@@ -123,7 +124,7 @@ export default function ManagementHubPage() {
               <TaskManagementCard key={task.id} task={task} />
             ))}
             {tasks.length === 0 && (
-              <EmptyState title="No micro gigs" desc="Deploy high-volume tasks for rapid technical scaling." />
+              <EmptyState title="No micro gigs created" desc="Deploy high-volume tasks for rapid technical scaling." />
             )}
           </div>
         </TabsContent>
@@ -141,15 +142,25 @@ export default function ManagementHubPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-xl text-white">{sub.task_title}</h4>
-                          <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
+                          <Badge className={cn(
+                            "border-none text-[9px] uppercase tracking-widest font-bold",
+                            sub.status === 'approved' ? "bg-emerald-400/10 text-emerald-400" :
+                            sub.status === 'rejected' ? "bg-destructive/10 text-destructive" :
+                            "bg-amber-400/10 text-amber-400"
+                          )}>
                             {sub.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground font-medium">Received: {new Date(sub.created_at).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-3">
+                          <p className="text-sm text-muted-foreground font-medium">Received: {new Date(sub.created_at).toLocaleDateString()}</p>
+                          {sub.is_paid && (
+                             <Badge variant="outline" className="text-[8px] border-emerald-500/30 text-emerald-400 font-bold uppercase tracking-tighter">Settled on L2</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Button asChild variant="outline" className="rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10 font-bold h-12 px-8 gap-2">
-                      <Link href={`/market/${sub.task}`}>View Mission <ArrowRight className="w-4 h-4" /></Link>
+                    <Button asChild variant="outline" className="rounded-xl border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 font-bold h-12 px-8 gap-2">
+                      <Link href={`/market/${sub.task}`}>View Workbench <ArrowRight className="w-4 h-4" /></Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -174,7 +185,8 @@ function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBu
             <div className="flex items-center gap-2">
               <Badge className={cn(
                 "border-none uppercase text-[9px] tracking-widest font-bold",
-                item.status === 'in_progress' ? "bg-emerald-400/10 text-emerald-400" : "bg-secondary/10 text-secondary"
+                item.status === 'in_progress' ? "bg-emerald-400/10 text-emerald-400" : 
+                item.status === 'open' ? "bg-primary/10 text-primary" : "bg-white/10 text-muted-foreground"
               )}>
                 {item.status?.replace('_', ' ') || 'OPEN'}
               </Badge>
@@ -191,8 +203,8 @@ function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBu
           <div className="lg:w-80 bg-white/5 border-l border-white/5 p-6 flex flex-col justify-between gap-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Signals</span>
-                <span className="text-sm font-bold text-white">{item.total_bids || 0} Proposals</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Node Signals</span>
+                <span className="text-sm font-bold text-white">{item.bids_count || 0} Propositions</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Yield Range</span>
@@ -217,7 +229,7 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
           <div className="flex-1 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] tracking-widest font-bold">
-                Active Protocol
+                Created Gig
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[9px] font-bold">
                 {task.difficulty} Class
@@ -232,11 +244,11 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
           <div className="lg:w-80 bg-white/5 border-l border-white/5 p-6 flex flex-col justify-between gap-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Proofs</span>
-                <span className="text-lg font-bold text-white">{task.submissions_count || 0}</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Audit Queue</span>
+                <span className="text-lg font-bold text-white">{task.submissions_count || 0} Proofs</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Release</span>
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Yield / Node</span>
                 <span className="text-sm font-bold text-primary">{task.reward_amount?.toLocaleString()} SAT</span>
               </div>
             </div>
@@ -254,7 +266,7 @@ function EmptyState({ title, desc }: { title: string, desc: string }) {
   return (
     <div className="text-center py-20 glass-card rounded-3xl border-dashed bg-white/[0.02] border-white/10">
       <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-        <AlertCircle className="w-8 h-8 text-muted-foreground/30" />
+        <Target className="w-8 h-8 text-muted-foreground/30" />
       </div>
       <h3 className="text-xl font-bold text-white">{title}</h3>
       <p className="text-muted-foreground max-w-sm mx-auto mt-2 text-sm">{desc}</p>

@@ -5,7 +5,7 @@
  * Handles JWT authentication, Bearer tokens, and standardized unwrapping of { success, data } envelopes.
  */
 
-const BASE_URL = 'https://broader-yeah-axis-secretariat.trycloudflare.com/api';
+const BASE_URL = 'https://trial-further-strengthen-mold.trycloudflare.com/api';
 
 export type ApiResponse<T> = {
   data: T | null;

@@ -18,7 +18,11 @@ import {
   TrendingUp,
   BarChart3,
   Layers,
-  Search
+  Search,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  MoreVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,10 +31,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { TaskService } from '@/services/task-service';
-import { TaskMini, Submission } from '@/lib/types';
+import { Submission } from '@/lib/types';
 import { aiSubmissionAuditor } from '@/ai/flows/ai-submission-auditor';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 export default function TaskManagementWorkspace() {
   const { id } = useParams();
@@ -54,16 +64,20 @@ export default function TaskManagementWorkspace() {
     fetchTaskMgmt();
   }, [id]);
 
-  async function handleAction(submissionId: string, action: 'approve' | 'reject') {
+  async function handleAction(submissionId: string, action: 'approve' | 'reject' | 'needs_revision') {
     if (!mgmt?.task) return;
     setIsActioning(submissionId);
     try {
-      const res = action === 'approve' 
-        ? await TaskService.approveSubmission(mgmt.task.id, submissionId, "Verified by mission creator.")
-        : await TaskService.rejectSubmission(mgmt.task.id, submissionId, "Proof rejected by mission creator.");
+      const notes = action === 'approve' 
+        ? "Verified by mission creator." 
+        : action === 'reject' 
+          ? "Proof rejected by mission creator."
+          : "Revision requested by mission creator.";
+          
+      const res = await TaskService.approveSubmission(mgmt.task.id, submissionId, notes);
       
       if (res.data) {
-        toast({ title: `Proof ${action}d`, description: `L2 yield release status updated.` });
+        toast({ title: `Proof ${action.replace('_', ' ')}d`, description: `L2 yield release status updated.` });
         // Local refresh
         const refresh = await TaskService.getTaskManagement(id as string);
         if (refresh.data) setMgmt(refresh.data);
@@ -186,12 +200,23 @@ export default function TaskManagementWorkspace() {
                     </Avatar>
                     <div className="space-y-1">
                       <h4 className="font-bold text-white">{sub.worker_name || 'Node Operator'}</h4>
-                      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
-                        <Clock className="w-3 h-3" /> Received: {new Date(sub.created_at).toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
+                          <Clock className="w-3 h-3" /> Received: {new Date(sub.created_at).toLocaleString()}
+                        </p>
+                        {sub.subtask_title && (
+                          <Badge variant="outline" className="text-[8px] font-bold uppercase h-4 px-1.5 border-white/10 text-primary">
+                            Subtask: {sub.subtask_title}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <Badge className="bg-amber-500/10 text-amber-500 uppercase text-[9px] font-bold tracking-widest border-none px-3">
+                  <Badge className={cn(
+                    "uppercase text-[9px] font-bold tracking-widest border-none px-3",
+                    sub.status === 'submitted' ? "bg-amber-500/10 text-amber-500" :
+                    sub.status === 'approved' ? "bg-emerald-500/10 text-emerald-400" : "bg-destructive/10 text-destructive"
+                  )}>
                     {sub.status}
                   </Badge>
                 </div>
@@ -200,6 +225,13 @@ export default function TaskManagementWorkspace() {
                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed relative z-10 font-mono">
                      {sub.proof_text}
                    </p>
+                   {sub.proof_link && (
+                     <div className="mt-4 pt-4 border-t border-white/5">
+                        <a href={sub.proof_link} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-primary flex items-center gap-2 hover:underline">
+                          <ExternalLink className="w-3 h-3" /> Protocol URL Propagation
+                        </a>
+                     </div>
+                   )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -212,20 +244,27 @@ export default function TaskManagementWorkspace() {
                     <Sparkles className="w-4 h-4" /> AI Audit
                   </Button>
                   <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="rounded-xl text-muted-foreground hover:bg-white/5 h-10 w-10 p-0">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-card border-white/10">
+                        <DropdownMenuItem onClick={() => handleAction(sub.id, 'needs_revision')} className="gap-2 cursor-pointer">
+                          <HelpCircle className="w-4 h-4 text-amber-500" /> Request Revision
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleAction(sub.id, 'reject')} className="gap-2 text-destructive cursor-pointer">
+                          <XCircle className="w-4 h-4" /> Reject Proof
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button 
-                      variant="ghost" 
-                      className="flex-1 sm:flex-none rounded-xl text-destructive hover:bg-destructive/10 font-bold h-10 px-6"
-                      onClick={() => handleAction(sub.id, 'reject')}
-                      disabled={isActioning === sub.id}
-                    >
-                      Reject
-                    </Button>
-                    <Button 
-                      className="flex-1 sm:flex-none rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold h-10 px-8"
+                      className="flex-1 sm:flex-none rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold h-10 px-8 gap-2"
                       onClick={() => handleAction(sub.id, 'approve')}
                       disabled={isActioning === sub.id}
                     >
-                      Release SATs
+                      <CheckCircle2 className="w-4 h-4" /> Release SATs
                     </Button>
                   </div>
                 </div>
