@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { 
   Wallet, 
@@ -18,7 +18,10 @@ import {
   ShieldAlert,
   Info,
   Network,
-  Cpu
+  Copy,
+  Check,
+  Clock,
+  Activity as PulseIcon
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +30,17 @@ import { Progress } from '@/components/ui/progress';
 import { ProfileService } from '@/services/profile-service';
 import { WalletService } from '@/services/wallet-service';
 import { TaskService } from '@/services/task-service';
-import { User, Wallet as WalletType, TaskMini } from '@/lib/types';
+import { User, Wallet as WalletType, TaskMini, TierPaymentResponse } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { StarRating } from '@/components/ui/star-rating';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription
+} from '@/components/ui/dialog';
 
 export default function DashboardHome() {
   const [profile, setProfile] = useState<User | null>(null);
@@ -38,6 +48,17 @@ export default function DashboardHome() {
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nodeStatus, setNodeStatus] = useState<'active' | 'syncing'>('active');
+
+  // Validator Activation States
+  const [isValidatorOpen, setIsValidatorOpen] = useState(false);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [paymentData, setPaymentData] = useState<TierPaymentResponse | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [hasCopied, setHasCopied] = useState(false);
+
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -69,11 +90,87 @@ export default function DashboardHome() {
     fetchDashboardData();
   }, []);
 
-  const handleActivateValidator = () => {
-    toast({
-      title: "Validator Signal Requested",
-      description: "Initialize a 30,000 SAT stake in the Financial Hub to activate Audit Permissions.",
-    });
+  // Validator Status Polling
+  useEffect(() => {
+    if (isPolling) {
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await ProfileService.checkValidatorStatus();
+          if (res.data?.is_complete || res.data?.status === 'confirmed') {
+            cleanupValidatorPath();
+            setIsValidatorOpen(false);
+            toast({ 
+              title: "Validator Activated", 
+              description: "Your node identity has been upgraded with network audit permissions." 
+            });
+            // Refresh profile to show active validator state
+            const profRes = await ProfileService.getMyProfile();
+            if (profRes.data) setProfile(profRes.data);
+          }
+        } catch (e) {
+          console.error("Validator poll error", e);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
+  }, [isPolling]);
+
+  // Countdown Timer
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else if (timeLeft === 0) {
+      cleanupValidatorPath();
+      toast({ variant: "destructive", title: "Path Timed Out", description: "The activation session has expired." });
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, [timeLeft]);
+
+  const cleanupValidatorPath = () => {
+    setPaymentData(null);
+    setIsPolling(false);
+    setTimeLeft(null);
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleActivateValidator = async () => {
+    setIsGeneratingInvoice(true);
+    try {
+      const res = await ProfileService.getValidatorInvoice();
+      if (res.data) {
+        setPaymentData(res.data);
+        setIsValidatorOpen(true);
+        setIsPolling(true);
+        
+        const expiresAt = new Date(res.data.expires_at).getTime();
+        const now = new Date().getTime();
+        const initialSeconds = Math.floor((expiresAt - now) / 1000);
+        setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
+
+        toast({ title: "Activation Signal Sent", description: "Waiting for Lightning stake settlement." });
+      } else {
+        toast({ variant: "destructive", title: "Signal Error", description: res.error || "Could not initialize activation path." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "Protocol gateway timeout." });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
   };
 
   if (isLoading) {
@@ -333,8 +430,9 @@ export default function DashboardHome() {
                     <Button 
                       className="w-full rounded-2xl bg-primary neon-glow-primary font-bold h-12 shadow-lg shadow-primary/20 gap-2"
                       onClick={handleActivateValidator}
+                      disabled={isGeneratingInvoice}
                     >
-                      Activate Validator Mode <ArrowRight className="w-4 h-4" />
+                      {isGeneratingInvoice ? <Loader2 className="w-4 h-4 animate-spin" /> : "Activate Validator Mode"} <ArrowRight className="w-4 h-4" />
                     </Button>
                     <button className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.3em] hover:text-white transition-colors flex items-center gap-1.5 mx-auto">
                       <Info className="w-3 h-3" /> Technical Prerequisites
@@ -346,6 +444,82 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+
+      {/* Validator Payment Dialog */}
+      <Dialog open={isValidatorOpen} onOpenChange={(open) => {
+        setIsValidatorOpen(open);
+        if (!open) cleanupValidatorPath();
+      }}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                Validator Stake
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Propagate 30,000 SAT via Lightning to activate network audit permissions.
+              </DialogDescription>
+            </DialogHeader>
+
+            {paymentData && (
+              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/20 border-8 border-emerald-500/10 relative overflow-hidden group">
+                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
+                    <img src={paymentData.qr_code} alt="Validator QR" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                    <PulseIcon className="w-3 h-3 text-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.2em]">Awaiting Audit Stake</span>
+                  </div>
+                  <p className="text-2xl font-headline font-bold text-white">30,000 SAT</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
+                    <span className="text-muted-foreground">Path Expiry</span>
+                    <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-emerald-400")}>
+                      <Clock className="w-3 h-3" />
+                      {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
+                    <div className="flex-1 text-left">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
+                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
+                        {paymentData.payment_request.substring(0, 12)}...{paymentData.payment_request.substring(paymentData.payment_request.length - 12)}
+                      </p>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500 hover:bg-emerald-600 neon-glow-emerald hover:scale-105 transition-transform"
+                      onClick={() => {
+                         navigator.clipboard.writeText(paymentData.payment_request);
+                         setHasCopied(true);
+                         setTimeout(() => setHasCopied(false), 2000);
+                         toast({ title: "Stake Trace Copied" });
+                      }}
+                    >
+                      {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupValidatorPath}>
+                  Abort Activation
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
