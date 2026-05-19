@@ -309,7 +309,7 @@ export default function MarketPage() {
                   >
                     {task.boosted && (
                       <div className="absolute -top-1 -right-1 z-10">
-                        <div className="bg-primary text-white text-[8px] font-bold px-3 py-1.5 rounded-bl-xl uppercase tracking-[0.2em] flex items-center gap-1.5 shadow-lg neon-glow-primary">
+                        <div className="bg-primary text-white text-[8px] font-bold px-3 py-1.5 rounded-bl-xl uppercase tracking-[0.2em] flex items-center gap-1.5 shadow-lg neon-glow-primary animate-pulse">
                           <TrendingUp className="w-2.5 h-2.5" /> Boosted {task.boost_multiplier}x
                         </div>
                       </div>
@@ -383,8 +383,11 @@ export default function MarketPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-3">
-                        {(project.skills || []).map(skill => (
-                          <span key={skill.id} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5">
+                        {(project.skills || []).map((skill, sIdx) => (
+                          <span 
+                            key={skill.id || `skill-${sIdx}`} 
+                            className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5"
+                          >
                             {skill.name}
                           </span>
                         ))}

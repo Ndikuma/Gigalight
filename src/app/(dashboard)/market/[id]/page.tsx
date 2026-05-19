@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -78,7 +79,6 @@ export default function OpportunityDetailPage() {
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
-          // If the current user is NOT the creator, they might have worker progression
           if (profRes.data && taskRes.data.creator !== profRes.data.id) {
              const wb = await TaskService.getTaskWorkbench(id as string);
              if (wb.data) setWorkbench(wb.data);
@@ -168,7 +168,6 @@ export default function OpportunityDetailPage() {
     try {
       let res;
       if (isTask) {
-        // If subtasks mode, use the specific subtask submit path
         if (workbench?.next_subtask) {
           res = await TaskService.submitProof(opportunity.data.id, {
             subtask_id: workbench.next_subtask.id,
@@ -320,7 +319,6 @@ export default function OpportunityDetailPage() {
             </h1>
           </header>
 
-          {/* Mission Workbench for Workers */}
           {isTask && workbench && (
             <Card className="glass-card border-none bg-gradient-to-br from-primary/5 to-transparent rounded-[2.5rem] overflow-hidden">
                <CardHeader className="p-8 pb-4">
@@ -584,6 +582,17 @@ export default function OpportunityDetailPage() {
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Slots Remaining</span>
                   <span className="text-foreground">{isTask ? (opportunity.data.target_completions - opportunity.data.submissions_count) : (opportunity.data.available_slots || 1)} Nodes</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-6 border-t border-white/5">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Skills Signal</p>
+                <div className="flex flex-wrap gap-2">
+                  {(opportunity.data.skills || []).map((skill: any, idx: number) => (
+                    <Badge key={skill.id || `skill-det-${idx}`} variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
+                      {skill.name}
+                    </Badge>
+                  ))}
                 </div>
               </div>
 
