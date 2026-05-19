@@ -33,6 +33,34 @@ export interface ProfileData {
   total_spent: number;
 }
 
+export interface Tier {
+  id: string;
+  name: string;
+  display_label: string;
+  fee_task: number;
+  fee_project: number;
+  cost_sats: number;
+  sort_order: number;
+  is_active: boolean;
+  description: string;
+  benefits: string;
+  icon: string;
+  user_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TierPaymentResponse {
+  transaction_id: string;
+  payment_request: string;
+  payment_hash: string;
+  amount_sats: number;
+  expires_at: string;
+  expires_in: number;
+  qr_code: string;
+  tier: Partial<Tier>;
+}
+
 export interface Wallet {
   available_balance: number;
   pending_balance: number;

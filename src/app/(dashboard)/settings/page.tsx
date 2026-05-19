@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,13 +18,27 @@ import {
   Lock,
   Smartphone,
   Camera,
-  Loader2
+  Loader2,
+  Zap,
+  Activity,
+  Clock,
+  Copy,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ProfileService } from '@/services/profile-service';
-import { User as UserType } from '@/lib/types';
+import { TierService } from '@/services/tier-service';
+import { User as UserType, Tier, TierPaymentResponse } from '@/lib/types';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription
+} from '@/components/ui/dialog';
 
 type SettingsSection = 'identity' | 'tiers' | 'security';
 
@@ -33,21 +47,37 @@ export default function SettingsPage() {
   const initialTab = searchParams.get('tab') as SettingsSection || 'identity';
   
   const [user, setUser] = useState<UserType | null>(null);
+  const [tiers, setTiers] = useState<Tier[]>([]);
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialTab);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Payment states
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentData, setPaymentData] = useState<TierPaymentResponse | null>(null);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setMounted(true);
-    if (initialTab && initialTab !== 'wallet') {
+    if (initialTab) {
       setActiveSection(initialTab);
     }
 
     async function fetchData() {
       setIsLoading(true);
       try {
-        const profRes = await ProfileService.getMyProfile();
+        const [profRes, tierRes] = await Promise.all([
+          ProfileService.getMyProfile(),
+          TierService.listTiers()
+        ]);
         if (profRes.data) setUser(profRes.data);
+        if (tierRes.data) setTiers(tierRes.data.results || []);
       } catch (err) {
         toast({ variant: "destructive", title: "Protocol Signal Lost", description: "Could not fetch configuration data." });
       } finally {
@@ -55,7 +85,68 @@ export default function SettingsPage() {
       }
     }
     fetchData();
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
   }, [initialTab]);
+
+  useEffect(() => {
+    if (isPolling && paymentData?.transaction_id) {
+      pollingIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await TierService.checkPaymentStatus(paymentData.transaction_id);
+          if (res.data?.is_complete || res.data?.status === 'confirmed') {
+            cleanupPayment();
+            setIsPaymentOpen(false);
+            toast({ 
+              title: "Activation Confirmed", 
+              description: `Your node has been upgraded to ${paymentData.tier?.display_label} Class.` 
+            });
+            // Refresh profile to update tier badge
+            const profRes = await ProfileService.getMyProfile();
+            if (profRes.data) setUser(profRes.data);
+          }
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
+  }, [isPolling, paymentData]);
+
+  useEffect(() => {
+    if (timeLeft !== null && timeLeft > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    } else if (timeLeft === 0) {
+      cleanupPayment();
+      toast({ variant: "destructive", title: "Invoice Expired", description: "The L2 activation path has timed out." });
+    }
+
+    return () => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    };
+  }, [timeLeft]);
+
+  const cleanupPayment = () => {
+    setPaymentData(null);
+    setIsPolling(false);
+    setTimeLeft(null);
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   if (!mounted) return null;
 
@@ -78,11 +169,34 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleUpgrade(tierId: string, cost: number) {
-    toast({
-      title: "Activation Propagated",
-      description: `Your upgrade request to ${tierId.toUpperCase()} Node has been queued. Please finalize in the Wallet Hub.`,
-    });
+  async function handleUpgrade(tier: Tier) {
+    if (tier.cost_sats === 0) {
+       toast({ title: "Base Protocol", description: "This is your default node standing." });
+       return;
+    }
+    
+    setIsGeneratingInvoice(true);
+    try {
+      const res = await TierService.generateTierInvoice(tier.id);
+      if (res.data) {
+        setPaymentData(res.data);
+        setIsPaymentOpen(true);
+        setIsPolling(true);
+        
+        const expiresAt = new Date(res.data.expires_at).getTime();
+        const now = new Date().getTime();
+        const initialSeconds = Math.floor((expiresAt - now) / 1000);
+        setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
+
+        toast({ title: "Invoice Propagated", description: `Waiting for ${tier.display_label} activation signal.` });
+      } else {
+        toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "The protocol node is unreachable." });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
   }
 
   const navItems = [
@@ -147,7 +261,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 justify-center sm:justify-start">
                       <h4 className="font-bold">Protocol Avatar</h4>
                       <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] font-bold tracking-widest">
-                        {user.tier || 'Standard'} Node
+                        {tiers.find(t => t.id === user.tier)?.display_label || 'Standard'} Node
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
@@ -212,13 +326,9 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[
-                    { id: 'basic', name: 'Basic Node', fee: 'Free', rawFee: 0, color: 'bg-muted', perks: ['Standard Yield', 'Public Discovery'] },
-                    { id: 'pro', name: 'Pro Node', fee: '50k SAT/yr', rawFee: 50000, color: 'bg-primary', perks: ['Reduced Signal Fees', 'Priority Discovery', 'Pro Badge'] },
-                    { id: 'elite', name: 'Elite Node', fee: '250k SAT/yr', rawFee: 250000, color: 'bg-amber-500', perks: ['Zero Signal Fees', 'Expert Only Gigs', 'Enterprise Tier'] }
-                  ].map((tier) => (
+                  {tiers.map((tier) => (
                     <div key={tier.id} className={cn(
-                      "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-[300px] relative overflow-hidden group",
+                      "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-auto min-h-[320px] relative overflow-hidden group",
                       user?.tier === tier.id 
                         ? "border-secondary/40 bg-secondary/5 ring-1 ring-secondary/20 shadow-2xl" 
                         : "border-white/5 bg-black/40 hover:border-white/10"
@@ -230,28 +340,41 @@ export default function SettingsPage() {
                       )}
                       <div className="space-y-4">
                         <div>
-                          <Badge className={cn("text-[9px] uppercase font-bold tracking-widest px-3", tier.color)}>{tier.name}</Badge>
-                          <p className="text-2xl font-headline font-bold mt-2">{tier.fee}</p>
+                          <Badge className={cn(
+                            "text-[9px] uppercase font-bold tracking-widest px-3",
+                            tier.name === 'elite' ? "bg-amber-500" : tier.name === 'pro' ? "bg-primary" : "bg-muted"
+                          )}>
+                             {tier.icon} {tier.display_label}
+                          </Badge>
+                          <p className="text-2xl font-headline font-bold mt-2">{tier.cost_sats > 0 ? `${tier.cost_sats.toLocaleString()} SAT` : 'Free'}</p>
                         </div>
-                        <ul className="space-y-2">
-                          {tier.perks.map((perk, i) => (
-                            <li key={i} className="text-[10px] text-muted-foreground flex items-center gap-2">
-                              <div className="w-1 h-1 rounded-full bg-muted-foreground/50" /> {perk}
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-xs text-muted-foreground leading-relaxed italic">{tier.description}</p>
+                        <div className="space-y-2">
+                           <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Benefits Signal</p>
+                           <ul className="space-y-2">
+                              {tier.benefits.split('\n').map((benefit, i) => (
+                                <li key={i} className="text-[10px] text-white/70 flex items-start gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {benefit.replace('- ', '')}
+                                </li>
+                              ))}
+                              <li className="text-[10px] text-white/70 flex items-start gap-2">
+                                <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_task}% Task Fee Signal
+                              </li>
+                           </ul>
+                        </div>
                       </div>
                       
                       {user?.tier === tier.id ? (
-                        <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                        <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1 mt-6">
                           <CheckCircle className="w-3 h-3" /> Active Protocol Level
                         </div>
                       ) : (
                         <button 
-                          className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-                          onClick={() => handleUpgrade(tier.id, tier.rawFee)}
+                          className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 transition-colors mt-6 disabled:opacity-50"
+                          onClick={() => handleUpgrade(tier)}
+                          disabled={isGeneratingInvoice}
                         >
-                          Select Tier
+                          {isGeneratingInvoice ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Select Tier'}
                         </button>
                       )}
                     </div>
@@ -304,6 +427,82 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={isPaymentOpen} onOpenChange={(open) => {
+        setIsPaymentOpen(open);
+        if (!open) cleanupPayment();
+      }}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+                  <Zap className="w-6 h-6" />
+                </div>
+                Activation Path
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Propagate SATs via Lightning to activate {paymentData?.tier?.display_label} Class status.
+              </DialogDescription>
+            </DialogHeader>
+
+            {paymentData && (
+              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
+                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
+                    <img src={paymentData.qr_code} alt="Activation QR" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2">
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
+                    <Activity className="w-3 h-3 text-secondary animate-pulse" />
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting Activation Signal</span>
+                  </div>
+                  <p className="text-2xl font-headline font-bold text-white">{paymentData.amount_sats.toLocaleString()} SAT</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
+                    <span className="text-muted-foreground">Session Expiry</span>
+                    <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
+                      <Clock className="w-3 h-3" />
+                      {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
+                    <div className="flex-1 text-left">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
+                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
+                        {paymentData.payment_request.substring(0, 12)}...{paymentData.payment_request.substring(paymentData.payment_request.length - 12)}
+                      </p>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="secondary" 
+                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
+                      onClick={() => {
+                         navigator.clipboard.writeText(paymentData.payment_request);
+                         setHasCopied(true);
+                         setTimeout(() => setHasCopied(false), 2000);
+                         toast({ title: "Signal Copied to Node" });
+                      }}
+                    >
+                      {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupPayment}>
+                  Abort Activation Path
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
