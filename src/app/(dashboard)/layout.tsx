@@ -22,7 +22,8 @@ import {
   Check,
   Clock,
   ExternalLink,
-  Loader2
+  Loader2,
+  Layers
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -86,7 +87,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         if (profRes.data) {
           setUser(profRes.data);
-          // Auto-set role based on validator status
           setRole(profRes.data.is_validator ? 'validator' : 'standard');
         }
         
@@ -132,8 +132,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Market', icon: Globe, href: '/market' },
-    { name: 'Tasks', icon: Zap, href: '/my-projects?tab=contributions' },
-    { name: 'Listings', icon: Briefcase, href: '/my-projects' },
+    { name: 'My Work', icon: Zap, href: '/my-contributions' },
+    { name: 'My Gigs', icon: Layers, href: '/my-tasks' },
+    { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
     { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(user?.is_validator && role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
@@ -180,7 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SheetHeader>
                 <div className="p-4 space-y-2">
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
+                    const isActive = pathname === item.href;
                     return (
                       <Link key={item.name} href={item.href} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                         <item.icon className="w-5 h-5" /> {item.name}
@@ -201,7 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <nav className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
+              const isActive = pathname === item.href;
               return (
                 <Link key={item.name} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <item.icon className="w-4 h-4" /> {item.name}
@@ -218,7 +219,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="h-8 w-px bg-white/5 hidden sm:block mx-1 md:mx-2"></div>
 
-          {/* Mode Switcher - Gated by user.is_validator */}
           {user?.is_validator ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

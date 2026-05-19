@@ -15,7 +15,8 @@ import {
   LogOut,
   ChevronDown,
   PlusCircle,
-  Sparkles
+  Sparkles,
+  Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
@@ -37,9 +38,10 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { name: 'Gigs Market', icon: Search, href: '/market' },
-    { name: 'Tasks', icon: Zap, href: '/my-projects?tab=contributions' },
-    { name: 'My Listings', icon: Briefcase, href: '/my-projects' },
+    { name: 'Market', icon: Search, href: '/market' },
+    { name: 'My Work', icon: Zap, href: '/my-contributions' },
+    { name: 'My Gigs', icon: Layers, href: '/my-tasks' },
+    { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
     { name: 'Settings', icon: Settings, href: '/settings' },
@@ -50,7 +52,6 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
     validator: { label: 'Validator Mode', color: 'text-emerald-400', icon: ShieldCheck, desc: 'Audit Network' },
   };
 
-  // Fallback to standard if role is invalid or missing
   const currentRole = roleConfigs[role] || roleConfigs.standard;
 
   return (
@@ -89,7 +90,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
       <nav className="flex-1 px-4 space-y-1">
         {menuItems.map((item) => {
-          const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
