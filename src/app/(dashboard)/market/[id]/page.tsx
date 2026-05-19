@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -21,7 +20,9 @@ import {
   Code,
   Link as LinkIcon,
   FileText,
-  Activity
+  Activity,
+  Layers,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
 import { TaskMini, ProjectDetail, User, Budget } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
+import { Progress } from '@/components/ui/progress';
 
 export default function OpportunityDetailPage() {
   const { id } = useParams();
@@ -49,7 +51,8 @@ export default function OpportunityDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [opportunity, setOpportunity] = useState<{ data: TaskMini | ProjectDetail, type: 'task' | 'project' } | null>(null);
+  const [opportunity, setOpportunity] = useState<{ data: any, type: 'task' | 'project' } | null>(null);
+  const [workbench, setWorkbench] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
 
   const [proofText, setProofText] = useState('');
@@ -72,6 +75,11 @@ export default function OpportunityDetailPage() {
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
+          // Fetch workbench for tasks if user is not creator
+          if (profRes.data && taskRes.data.creator !== profRes.data.id) {
+             const wb = await TaskService.getTaskWorkbench(id as string);
+             if (wb.data) setWorkbench(wb.data);
+          }
         } else if (projectRes.data) {
           setOpportunity({ data: projectRes.data, type: 'project' });
         }
@@ -157,8 +165,7 @@ export default function OpportunityDetailPage() {
     try {
       let res;
       if (isTask) {
-        res = await TaskService.submitProof({
-          task: opportunity.data.id,
+        res = await TaskService.submitProof(opportunity.data.id, {
           proof_text: proofText
         });
       } else {
@@ -294,13 +301,47 @@ export default function OpportunityDetailPage() {
                 {isTask ? "Micro Mission" : "Strategic Project"}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[10px] font-bold tracking-widest px-4 py-1.5 bg-white/5">
-                {isTask ? (opportunity.data as TaskMini).category?.name : (opportunity.data as ProjectDetail).client_name}
+                {isTask ? opportunity.data.category?.name : opportunity.data.client_name}
               </Badge>
             </div>
             <h1 className="text-5xl md:text-6xl font-headline font-bold tracking-tight leading-[0.95]">
               {opportunity.data.title}
             </h1>
           </header>
+
+          {/* Mission Workbench for Workers */}
+          {isTask && workbench && (
+            <Card className="glass-card border-none bg-gradient-to-br from-primary/5 to-transparent rounded-[2.5rem]">
+               <CardHeader className="p-8">
+                  <div className="flex items-center justify-between">
+                     <h3 className="font-headline font-bold text-xl flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-primary" /> Node Workbench
+                     </h3>
+                     <Badge className="bg-emerald-400/10 text-emerald-400 border-none uppercase text-[8px] font-bold tracking-widest">
+                        {workbench.approved_steps} / {workbench.total_steps} Completed
+                     </Badge>
+                  </div>
+               </CardHeader>
+               <CardContent className="p-8 pt-0 space-y-6">
+                  <div className="space-y-2">
+                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <span>Technical Progression</span>
+                        <span>{Math.round((workbench.approved_steps / workbench.total_steps) * 100)}%</span>
+                     </div>
+                     <Progress value={(workbench.approved_steps / workbench.total_steps) * 100} className="h-1.5 bg-white/5" />
+                  </div>
+
+                  {workbench.next_subtask && (
+                    <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-3">
+                       <h5 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
+                          <ChevronRight className="w-3.5 h-3.5" /> Current Objective: {workbench.next_subtask.title}
+                       </h5>
+                       <p className="text-sm text-muted-foreground leading-relaxed">{workbench.next_subtask.description}</p>
+                    </div>
+                  )}
+               </CardContent>
+            </Card>
+          )}
 
           <Card className="glass-card border-none rounded-[2.5rem] overflow-hidden">
             <CardHeader className="p-10 pb-0">
@@ -316,14 +357,27 @@ export default function OpportunityDetailPage() {
                 </p>
               </div>
 
-              {!isTask && (opportunity.data as ProjectDetail).requirements && (
+              {!isTask && opportunity.data.requirements && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary flex items-center gap-2">
                     <Shield className="w-4 h-4" /> Strategic Requirements
                   </h4>
                   <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                      {(opportunity.data as ProjectDetail).requirements}
+                      {opportunity.data.requirements}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {isTask && opportunity.data.validator_guidelines && (
+                <div className="space-y-4">
+                   <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4" /> Proof Standards
+                  </h4>
+                  <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {opportunity.data.validator_guidelines}
                     </p>
                   </div>
                 </div>
@@ -344,7 +398,7 @@ export default function OpportunityDetailPage() {
               </CardHeader>
               <CardContent className="p-10 space-y-8">
                 {isTask ? (
-                  renderProofInput((opportunity.data as TaskMini).proof_method)
+                  renderProofInput(opportunity.data.proof_method)
                 ) : (
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -461,8 +515,8 @@ export default function OpportunityDetailPage() {
                   isTask ? "text-emerald-400" : "text-secondary"
                 )}>
                   {isTask 
-                    ? `+${((opportunity.data as TaskMini).reward_amount || 0).toLocaleString()}` 
-                    : formatBudget((opportunity.data as ProjectDetail).budget)}
+                    ? `+${(opportunity.data.reward_amount || 0).toLocaleString()}` 
+                    : formatBudget(opportunity.data.budget)}
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">SATOSHIS</p>
               </div>
@@ -474,7 +528,11 @@ export default function OpportunityDetailPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Technical Class</span>
-                  <span className="text-foreground capitalize">{(opportunity.data as any).difficulty || (opportunity.data as any).experience_level} CLASS</span>
+                  <span className="text-foreground capitalize">{opportunity.data.difficulty || opportunity.data.experience_level} CLASS</span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
+                  <span className="text-muted-foreground flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Slots Remaining</span>
+                  <span className="text-foreground">{isTask ? (opportunity.data.target_completions - opportunity.data.submissions_count) : (opportunity.data.available_slots || 1)} Nodes</span>
                 </div>
               </div>
 

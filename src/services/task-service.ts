@@ -15,7 +15,7 @@ export const TaskService = {
   },
 
   async getTask(id: string) {
-    return api.get<TaskMini>(`/tasks/${id}/`);
+    return api.get<any>(`/tasks/${id}/`);
   },
 
   async createTask(data: any) {
@@ -32,27 +32,35 @@ export const TaskService = {
 
   // My Actions
   async getMyTasks() {
-    // Matches: path("my/", TaskViewSet.as_view({"get": "my_tasks"}), name="task-my")
     return api.get<TaskMini[]>('/tasks/my/');
   },
 
   async getMySubmissions() {
-    // Matches: path("my/submissions/", TaskViewSet.as_view({"get": "my_submissions"}), name="task-my-submissions")
     return api.get<Submission[]>('/tasks/my/submissions/');
+  },
+
+  // Specialized Views
+  async getTaskManagement(taskId: string) {
+    // Matches: path("<str:pk>/management/", TaskViewSet.as_view({"get": "management"}), name="task-management")
+    return api.get<any>(`/tasks/${taskId}/management/`);
+  },
+
+  async getTaskWorkbench(taskId: string) {
+    // Matches: path("<str:pk>/workbench/", TaskViewSet.as_view({"get": "workbench"}), name="task-workbench")
+    return api.get<any>(`/tasks/${taskId}/workbench/`);
   },
 
   // Submissions & Audits
   async submitProof(taskId: string, data: any) {
+    // Matches: path("<str:pk>/submit/", TaskViewSet.as_view({"post": "submit"}), name="task-submit")
     return api.post<Submission>(`/tasks/${taskId}/submit/`, data);
   },
 
   async getSubmissionsForTask(taskId: string) {
-    // Matches: path("<str:pk>/submissions/", TaskViewSet.as_view({"get": "submissions"}), name="task-submissions")
     return api.get<Submission[]>(`/tasks/${taskId}/submissions/`);
   },
 
   async approveSubmission(taskId: string, submissionId: string, notes: string) {
-    // Matches: path("<str:pk>/submissions/<str:submission_pk>/review/", TaskViewSet.as_view({"post": "review_submission"}), name="task-submission-review")
     return api.post(`/tasks/${taskId}/submissions/${submissionId}/review/`, { 
       status: 'approved',
       validator_notes: notes 
@@ -67,7 +75,6 @@ export const TaskService = {
   },
 
   async getAuditQueue() {
-    // For general validators, uses the dashboard review queue logic
     return api.get<any>('/tasks/dashboard/').then(res => ({
       ...res,
       data: res.data?.review_queue || []
