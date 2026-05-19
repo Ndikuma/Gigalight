@@ -38,6 +38,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Gigs Market', icon: Search, href: '/market' },
+    { name: 'Tasks', icon: Zap, href: '/my-projects?tab=contributions' },
     { name: 'My Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
@@ -88,7 +89,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
       <nav className="flex-1 px-4 space-y-1">
         {menuItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
           return (
             <Link
               key={item.name}
@@ -109,7 +110,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
 
       <div className="p-4 mt-auto border-t border-white/5 space-y-3">
         <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2 neon-glow-secondary">
-          <Link href="/my-projects">
+          <Link href="/my-projects/create">
             <PlusCircle className="w-4 h-4" /> Post a Listing
           </Link>
         </Button>

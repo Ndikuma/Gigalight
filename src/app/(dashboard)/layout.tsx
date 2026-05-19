@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         if (profRes.data) {
           setUser(profRes.data);
-          // Auto-set role based on validator status, but default to standard for strategy
+          // Auto-set role based on validator status
           setRole(profRes.data.is_validator ? 'validator' : 'standard');
         }
         
@@ -132,7 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
     { name: 'Market', icon: Globe, href: '/market' },
-    { name: 'Roles', icon: Sparkles, href: '/jobs' },
+    { name: 'Tasks', icon: Zap, href: '/my-projects?tab=contributions' },
     { name: 'Listings', icon: Briefcase, href: '/my-projects' },
     { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(user?.is_validator && role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
@@ -180,7 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SheetHeader>
                 <div className="p-4 space-y-2">
                   {navItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
                     return (
                       <Link key={item.name} href={item.href} className={cn("flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                         <item.icon className="w-5 h-5" /> {item.name}
@@ -201,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <nav className="hidden xl:flex items-center gap-1">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href.includes('tab=contributions') && pathname === '/my-projects');
               return (
                 <Link key={item.name} href={item.href} className={cn("flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all", isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <item.icon className="w-4 h-4" /> {item.name}

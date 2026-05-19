@@ -1,6 +1,8 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,10 +33,14 @@ import { toast } from '@/hooks/use-toast';
 import { StarRating } from '@/components/ui/star-rating';
 
 export default function ManagementHubPage() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'projects';
+  
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {
     async function fetchData() {
@@ -62,6 +68,12 @@ export default function ManagementHubPage() {
     }
     fetchData();
   }, []);
+
+  // Update active tab when search param changes
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   const formatBudget = (budget: any) => {
     if (!budget) return 'TBD';
@@ -92,7 +104,7 @@ export default function ManagementHubPage() {
         </Button>
       </header>
 
-      <Tabs defaultValue="projects" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit">
             <TabsTrigger value="projects" className="rounded-xl px-8 py-2.5 data-[state=active]:bg-secondary transition-all font-bold gap-2">
