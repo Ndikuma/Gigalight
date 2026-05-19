@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -352,7 +353,7 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                            <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Benefits Signal</p>
                            <ul className="space-y-2">
-                              {tier.benefits.split('\n').map((benefit, i) => (
+                              {(tier.benefits || "").split('\n').map((benefit, i) => (
                                 <li key={i} className="text-[10px] text-white/70 flex items-start gap-2">
                                   <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {benefit.replace('- ', '')}
                                 </li>

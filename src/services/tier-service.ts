@@ -1,3 +1,4 @@
+
 'use client';
 
 import { api } from '@/lib/api-client';
@@ -13,8 +14,8 @@ export const TierService = {
   },
 
   async generateTierInvoice(tierId: string) {
-    // Matches: POST /api/tiers/{tier_id}/
-    return api.post<TierPaymentResponse>(`/tiers/${tierId}/`);
+    // Matches: POST /api/tiers/{tier_id}/payment-request/
+    return api.post<TierPaymentResponse>(`/tiers/${tierId}/payment-request/`);
   },
 
   async checkPaymentStatus(transactionId: string) {
