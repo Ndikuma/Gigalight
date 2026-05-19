@@ -13,7 +13,8 @@ import {
   Clock,
   ExternalLink,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import Link from 'next/link';
 import { TaskService } from '@/services/task-service';
 import { TaskMini, Submission } from '@/lib/types';
 import { aiSubmissionAuditor } from '@/ai/flows/ai-submission-auditor';
+import { cn } from '@/lib/utils';
 
 export default function TaskManagementWorkspace() {
   const { id } = useParams();
@@ -53,14 +55,15 @@ export default function TaskManagementWorkspace() {
   }, [id]);
 
   async function handleAction(submissionId: string, action: 'approve' | 'reject') {
+    if (!task) return;
     setIsActioning(submissionId);
     try {
       const res = action === 'approve' 
-        ? await TaskService.approveSubmission(submissionId, "Verified by mission creator.")
-        : await TaskService.rejectSubmission(submissionId, "Proof rejected by mission creator.");
+        ? await TaskService.approveSubmission(task.id, submissionId, "Verified by mission creator.")
+        : await TaskService.rejectSubmission(task.id, submissionId, "Proof rejected by mission creator.");
       
       if (res.data) {
-        toast({ title: `Proof ${action}d`, description: `L2 yield releasing status: ${action}.` });
+        toast({ title: `Proof ${action}d`, description: `L2 yield release status updated.` });
         setSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, status: action === 'approve' ? 'approved' : 'rejected' } : s));
       } else {
         toast({ variant: "destructive", title: "Action Failed", description: res.error || "Protocol error." });
@@ -119,18 +122,16 @@ export default function TaskManagementWorkspace() {
             <Badge className="bg-primary/10 text-primary border-none text-[10px] uppercase tracking-widest font-bold">Micro Gig</Badge>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="rounded-xl border-white/5 gap-2 h-10 px-4 font-bold">
-            <ExternalLink className="w-4 h-4" /> View Mission
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="rounded-xl border-white/5 gap-2 h-10 px-4 font-bold">
+          <ExternalLink className="w-4 h-4" /> View Mission
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-headline font-bold">Proof Signals ({submissions.length})</h2>
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Awaiting Verification</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Queue Status</span>
           </div>
 
           {submissions.length > 0 ? submissions.map((sub) => (
@@ -143,7 +144,7 @@ export default function TaskManagementWorkspace() {
                       <AvatarFallback><User className="w-6 h-6" /></AvatarFallback>
                     </Avatar>
                     <div className="space-y-1">
-                      <h4 className="font-bold text-white">{sub.user_name}</h4>
+                      <h4 className="font-bold text-white">{sub.user_name || 'Node Operator'}</h4>
                       <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-2">
                         <Clock className="w-3 h-3" /> Received: {new Date(sub.created_at).toLocaleString()}
                       </p>
@@ -151,23 +152,20 @@ export default function TaskManagementWorkspace() {
                   </div>
                   <Badge className={cn(
                     "uppercase text-[9px] font-bold tracking-widest border-none px-3",
-                    sub.status === 'pending' ? "bg-amber-500/10 text-amber-500" :
-                    sub.status === 'approved' ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"
+                    sub.status === 'pending' || sub.status === 'submitted' ? "bg-amber-500/10 text-amber-500" :
+                    sub.status === 'approved' ? "bg-emerald-500/10 text-emerald-400" : "bg-destructive/10 text-destructive"
                   )}>
                     {sub.status}
                   </Badge>
                 </div>
 
                 <div className="bg-background/60 p-5 rounded-2xl border border-white/5 relative overflow-hidden">
-                   <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
-                     <ShieldCheck className="w-20 h-20" />
-                   </div>
                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed relative z-10 font-mono">
                      {sub.proof_text}
                    </p>
                 </div>
 
-                {sub.status === 'pending' && (
+                {(sub.status === 'pending' || sub.status === 'submitted') && (
                   <div className="flex flex-col sm:flex-row items-center gap-3">
                     <Button 
                       variant="outline" 
@@ -175,7 +173,7 @@ export default function TaskManagementWorkspace() {
                       onClick={() => runAiAudit(sub)}
                       disabled={isAuditing === sub.id}
                     >
-                      <Sparkles className="w-4 h-4" /> {isAuditing === sub.id ? 'Analyzing...' : 'AI secondary Audit'}
+                      <Sparkles className="w-4 h-4" /> AI Audit
                     </Button>
                     <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto">
                       <Button 
@@ -184,7 +182,7 @@ export default function TaskManagementWorkspace() {
                         onClick={() => handleAction(sub.id, 'reject')}
                         disabled={isActioning === sub.id}
                       >
-                        Reject Proof
+                        Reject
                       </Button>
                       <Button 
                         className="flex-1 sm:flex-none rounded-xl bg-emerald-500 hover:bg-emerald-600 font-bold h-10 px-8"
@@ -214,12 +212,12 @@ export default function TaskManagementWorkspace() {
             <CardContent className="p-0 space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Reward</span>
+                  <span className="text-muted-foreground">Reward</span>
                   <span className="text-white">+{task.reward_amount?.toLocaleString()} SAT</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-400" /> Density</span>
-                  <span className="text-white">{task.submissions_count} Submissions</span>
+                  <span className="text-muted-foreground">Density</span>
+                  <span className="text-white">{task.submissions_count} Proofs</span>
                 </div>
               </div>
               <div className="h-px bg-white/5" />

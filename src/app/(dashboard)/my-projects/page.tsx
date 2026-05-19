@@ -16,7 +16,8 @@ import {
   Zap,
   Activity,
   ArrowRight,
-  Package
+  Package,
+  TrendingUp
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -26,6 +27,7 @@ import { ProjectService } from '@/services/project-service';
 import { TaskService } from '@/services/task-service';
 import { ProjectDetail, Submission, TaskMini } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function ManagementHubPage() {
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
@@ -43,20 +45,9 @@ export default function ManagementHubPage() {
           TaskService.getMySubmissions()
         ]);
         
-        // Defensive check for projects
-        if (projRes.data) {
-          setProjects(Array.isArray(projRes.data) ? projRes.data : []);
-        }
-
-        // Defensive check for tasks (handle PaginatedList vs Array)
-        if (taskRes.data) {
-          setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
-        }
-
-        // Defensive check for submissions
-        if (subRes.data) {
-          setSubmissions(Array.isArray(subRes.data) ? subRes.data : []);
-        }
+        if (projRes.data) setProjects(Array.isArray(projRes.data) ? projRes.data : []);
+        if (taskRes.data) setTasks(Array.isArray(taskRes.data) ? taskRes.data : []);
+        if (subRes.data) setSubmissions(Array.isArray(subRes.data) ? subRes.data : []);
         
       } catch (e) {
         toast({ 
@@ -73,13 +64,10 @@ export default function ManagementHubPage() {
 
   const formatBudget = (budget: any) => {
     if (!budget) return 'TBD';
-    if (typeof budget === 'string') return budget;
-    if (typeof budget === 'object' && budget !== null) {
-      if ('min' in budget && 'max' in budget) {
-        return `${(budget.min || 0).toLocaleString()} - ${(budget.max || 0).toLocaleString()} SAT`;
-      }
+    if (typeof budget === 'object') {
+      return `${(budget.min || 0).toLocaleString()} - ${(budget.max || 0).toLocaleString()} SAT`;
     }
-    return 'TBD';
+    return budget;
   };
 
   if (isLoading) {
@@ -118,19 +106,17 @@ export default function ManagementHubPage() {
           </TabsList>
         </div>
 
-        {/* Strategic Projects Management (Owner View) */}
         <TabsContent value="projects" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {projects.map((project) => (
               <ProjectManagementCard key={project.id} item={project} onFormatBudget={formatBudget} />
             ))}
             {projects.length === 0 && (
-              <EmptyState title="No strategic projects" desc="Initiate high-value objectives for specialized specialists." />
+              <EmptyState title="No strategic projects" desc="Initiate high-value objectives for specialized especialistas." />
             )}
           </div>
         </TabsContent>
 
-        {/* Micro Gigs Management (Owner View) */}
         <TabsContent value="tasks" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {tasks.map((task) => (
@@ -142,7 +128,6 @@ export default function ManagementHubPage() {
           </div>
         </TabsContent>
 
-        {/* My Performance (Work I've done) */}
         <TabsContent value="contributions" className="space-y-4 mt-0">
           <div className="grid grid-cols-1 gap-4">
             {submissions.map((sub) => (
@@ -153,14 +138,14 @@ export default function ManagementHubPage() {
                       <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                         <Activity className="w-7 h-7" />
                       </div>
-                      <div>
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-xl text-white">{sub.task_title}</h4>
                           <Badge className="bg-emerald-400/10 text-emerald-400 border-none text-[9px] uppercase tracking-widest font-bold">
                             {sub.status}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground font-medium">Verified Signal: {new Date(sub.created_at).toLocaleDateString()}</p>
+                        <p className="text-sm text-muted-foreground font-medium">Received: {new Date(sub.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <Button asChild variant="outline" className="rounded-xl border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10 font-bold h-12 px-8 gap-2">
@@ -194,56 +179,29 @@ function ProjectManagementCard({ item, onFormatBudget }: { item: any, onFormatBu
                 {item.status?.replace('_', ' ') || 'OPEN'}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground capitalize text-[9px] font-bold">
-                {item.experience_level || 'Intermediate'}
+                {item.experience_level} Class
               </Badge>
             </div>
             <div>
               <h3 className="text-xl font-headline font-bold text-white group-hover:text-secondary transition-colors">{item.title}</h3>
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.short_description || item.description}</p>
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              {(item.skills || []).slice(0, 3).map((skill: any) => (
-                <span key={skill.id} className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 bg-white/5 rounded-md text-muted-foreground">
-                  {skill.name}
-                </span>
-              ))}
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">{item.short_description}</p>
             </div>
           </div>
 
           <div className="lg:w-80 bg-white/5 border-l border-white/5 p-6 flex flex-col justify-between gap-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Active Nodes</span>
-                </div>
-                <span className="text-sm font-bold text-white">{item.total_bids || item.bids_count || 0}</span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Signals</span>
+                <span className="text-sm font-bold text-white">{item.total_bids || 0} Proposals</span>
               </div>
-              
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Deliverables</span>
-                </div>
-                <span className="text-sm font-bold text-white">{item.delivery_count || 0}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Budget</span>
-                </div>
-                <span className="text-sm font-bold text-secondary">
-                  {onFormatBudget(item.budget)}
-                </span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Yield Range</span>
+                <span className="text-sm font-bold text-secondary">{onFormatBudget(item.budget)}</span>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 gap-2 mt-2">
-              <Button asChild size="sm" className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 shadow-sm shadow-secondary/20 gap-2">
-                <Link href={`/my-projects/${item.id}`}>Manage Workspace <ArrowRight className="w-4 h-4" /></Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full rounded-xl bg-secondary hover:brightness-110 font-bold h-11 gap-2">
+              <Link href={`/my-projects/${item.id}`}>Workspace <ArrowRight className="w-4 h-4" /></Link>
+            </Button>
           </div>
         </div>
       </CardContent>
@@ -259,10 +217,10 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
           <div className="flex-1 p-6 space-y-4">
             <div className="flex items-center gap-2">
               <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] tracking-widest font-bold">
-                ACTIVE SIGNAL
+                Active Protocol
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[9px] font-bold">
-                {task.difficulty} CLASS
+                {task.difficulty} Class
               </Badge>
             </div>
             <div>
@@ -272,29 +230,19 @@ function TaskManagementCard({ task }: { task: TaskMini }) {
           </div>
 
           <div className="lg:w-80 bg-white/5 border-l border-white/5 p-6 flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Submissions</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Proofs</span>
+                <span className="text-lg font-bold text-white">{task.submissions_count || 0}</span>
               </div>
-              <span className="text-lg font-bold text-white">{task.submissions_count || 0}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Fixed Reward</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground uppercase font-bold tracking-widest">Release</span>
+                <span className="text-sm font-bold text-primary">{task.reward_amount?.toLocaleString()} SAT</span>
               </div>
-              <span className="text-sm font-bold text-primary">
-                {task.reward_amount?.toLocaleString()} SAT
-              </span>
             </div>
-
-            <div className="grid grid-cols-1 gap-2 mt-2">
-              <Button asChild size="sm" className="w-full rounded-xl bg-primary hover:brightness-110 font-bold h-11 shadow-sm shadow-primary/20 gap-2">
-                <Link href={`/my-tasks/${task.id}`}>Review Proofs <ArrowRight className="w-4 h-4" /></Link>
-              </Button>
-            </div>
+            <Button asChild className="w-full rounded-xl bg-primary hover:brightness-110 font-bold h-11 gap-2 shadow-lg shadow-primary/20">
+              <Link href={`/my-tasks/${task.id}`}>Review Center <ArrowRight className="w-4 h-4" /></Link>
+            </Button>
           </div>
         </div>
       </CardContent>

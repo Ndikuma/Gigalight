@@ -5,6 +5,7 @@ import { TaskMini, PaginatedList, Category, Submission } from '@/lib/types';
 
 /**
  * @fileOverview Micro-task and Technical Proof Auditing Services.
+ * Synchronized with Django TaskViewSet and Submission endpoints.
  */
 
 export const TaskService = {
@@ -25,54 +26,51 @@ export const TaskService = {
     return api.patch<TaskMini>(`/tasks/${id}/`, data);
   },
 
-  async boostTask(id: string) {
-    return api.post(`/tasks/${id}/boost/`);
-  },
-
-  async unboostTask(id: string) {
-    return api.post(`/tasks/${id}/unboost/`);
-  },
-
   async getCategories() {
     return api.get<PaginatedList<Category>>('/tasks/categories/');
   },
 
-  // Submissions & Audits
-  async submitProof(data: any) {
-    return api.post<Submission>('/submissions/', data);
+  // My Actions
+  async getMyTasks() {
+    // Matches: path("my/", TaskViewSet.as_view({"get": "my_tasks"}), name="task-my")
+    return api.get<TaskMini[]>('/tasks/my/');
   },
 
   async getMySubmissions() {
-    return api.get<Submission[]>('/submissions/my/');
+    // Matches: path("my/submissions/", TaskViewSet.as_view({"get": "my_submissions"}), name="task-my-submissions")
+    return api.get<Submission[]>('/tasks/my/submissions/');
   },
 
-  async getMyTasks() {
-    // If /my/ is 404, we assume user's tasks are filtered by creator or handled in a different way.
-    // We'll fallback to the general list which usually returns relevant items for the session in standard Django filter setups.
-    return api.get<PaginatedList<TaskMini>>('/tasks/').then(res => ({
-      ...res,
-      data: res.data?.results || [] // Return array for consistency
-    }));
+  // Submissions & Audits
+  async submitProof(taskId: string, data: any) {
+    return api.post<Submission>(`/tasks/${taskId}/submit/`, data);
   },
 
   async getSubmissionsForTask(taskId: string) {
-    // Fetches submissions specifically for a task the user created
-    return api.get<Submission[]>(`/submissions/?task=${taskId}`);
+    // Matches: path("<str:pk>/submissions/", TaskViewSet.as_view({"get": "submissions"}), name="task-submissions")
+    return api.get<Submission[]>(`/tasks/${taskId}/submissions/`);
+  },
+
+  async approveSubmission(taskId: string, submissionId: string, notes: string) {
+    // Matches: path("<str:pk>/submissions/<str:submission_pk>/review/", TaskViewSet.as_view({"post": "review_submission"}), name="task-submission-review")
+    return api.post(`/tasks/${taskId}/submissions/${submissionId}/review/`, { 
+      status: 'approved',
+      validator_notes: notes 
+    });
+  },
+
+  async rejectSubmission(taskId: string, submissionId: string, notes: string) {
+    return api.post(`/tasks/${taskId}/submissions/${submissionId}/review/`, { 
+      status: 'rejected',
+      validator_notes: notes 
+    });
   },
 
   async getAuditQueue() {
-    return api.get<Submission[]>('/submissions/queue/');
-  },
-
-  async approveSubmission(id: string, notes: string) {
-    return api.post(`/submissions/${id}/approve/`, { validator_notes: notes });
-  },
-
-  async rejectSubmission(id: string, notes: string) {
-    return api.post(`/submissions/${id}/reject/`, { validator_notes: notes });
-  },
-
-  async runAiAudit(id: string) {
-    return api.post(`/submissions/${id}/audit_ai/`);
+    // For general validators, uses the dashboard review queue logic
+    return api.get<any>('/tasks/dashboard/').then(res => ({
+      ...res,
+      data: res.data?.review_queue || []
+    }));
   }
 };
