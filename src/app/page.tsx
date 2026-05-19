@@ -60,15 +60,15 @@ export default function LandingPage() {
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary/10 blur-[140px] rounded-full -z-10"></div>
         
         <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.3em] text-primary animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Activity className="w-3.5 h-3.5" /> Protocol v2.1 • Live on L2 Satoshi Network
+          <Activity className="w-3.5 h-3.5" /> Omni-Gig Protocol v2.1 • Live on L2 Satoshi Network
         </div>
         
         <h1 className="text-6xl md:text-9xl font-headline font-bold tracking-tighter max-w-5xl mx-auto leading-[0.85] animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          Accelerate your <span className="text-gradient">Technical Yield.</span>
+          Accelerate your <span className="text-gradient">Workforce Yield.</span>
         </h1>
         
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
-          The global Omni-Gig protocol for elite specialists. Deploy strategic projects, execute micro-missions, and settle instantly in Satoshis.
+          The global electronic job protocol for elite specialists. Deploy strategic projects, execute micro-missions, and settle instantly in Satoshis via borderless L2 rails.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-500">
@@ -104,8 +104,8 @@ export default function LandingPage() {
       {/* Dual Engine Marketplace */}
       <section id="missions" className="py-32 px-8 max-w-7xl mx-auto space-y-20">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-6xl font-headline font-bold">The Dual-Engine Protocol</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">GigaLight powers two distinct mission classes to maximize node utilization and yield potential.</p>
+          <h2 className="text-4xl md:text-6xl font-headline font-bold">The E-Job Engine</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">GigaLight powers two distinct mission classes to maximize node utilization and professional yield potential.</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -120,7 +120,7 @@ export default function LandingPage() {
             <div className="space-y-4">
               <h3 className="text-4xl font-headline font-bold">Micro Missions</h3>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                High-volume, technical tasks for rapid scaling. Audit documentation, verify code snippets, or validate protocol signals in minutes.
+                High-volume, technical electronic tasks for rapid scaling. Audit documentation, verify code snippets, or validate protocol signals in minutes.
               </p>
             </div>
             <ul className="space-y-4">
@@ -151,7 +151,7 @@ export default function LandingPage() {
             <div className="space-y-4">
               <h3 className="text-4xl font-headline font-bold">Strategic Projects</h3>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Long-term, milestone-based objectives for elite specialist nodes. Architect L2 infrastructure, design secure protocols, or lead network squads.
+                Long-term, milestone-based objectives for elite E-Job specialists. Architect L2 infrastructure, design secure protocols, or lead network squads.
               </p>
             </div>
             <ul className="space-y-4">
@@ -183,22 +183,22 @@ export default function LandingPage() {
             </Badge>
             <h2 className="text-5xl md:text-7xl font-headline font-bold tracking-tight">The Validator Network.</h2>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Maintain the protocol's high-security standards. Active nodes can stake 30,000 SAT to activate **Validator Mode**, gaining access to the Audit Queue.
+              Maintain the protocol's high-security standards. Active nodes can stake 30,000 SAT to activate **Validator Mode**, gaining access to the Audit Queue for all platform submissions.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <TrendingUp className="w-6 h-6" />
                 </div>
-                <h4 className="font-bold">referral Yield</h4>
-                <p className="text-sm text-muted-foreground">Receive a 10% yield on all validation fees for verified task completions.</p>
+                <h4 className="font-bold">Referral Yield</h4>
+                <p className="text-sm text-muted-foreground">Receive a 10% yield on all validation fees for verified electronic job completions.</p>
               </div>
               <div className="space-y-3">
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <Cpu className="w-6 h-6" />
                 </div>
                 <h4 className="font-bold">AI Assistance</h4>
-                <p className="text-sm text-muted-foreground">Leverage the AI Submission Auditor to accelerate your technical proof verification.</p>
+                <p className="text-sm text-muted-foreground">Leverage the AI Submission Auditor to accelerate your technical proof verification process.</p>
               </div>
             </div>
             <Button asChild className="rounded-2xl h-16 px-10 font-bold bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 text-lg">
@@ -239,7 +239,7 @@ export default function LandingPage() {
       <section id="infrastructure" className="py-32 px-8 max-w-7xl mx-auto text-center space-y-20">
         <div className="space-y-4">
           <h2 className="text-4xl md:text-6xl font-headline font-bold">Institutional Rails.</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Powered by custodial Bitcoin settlement infrastructure for global scale.</p>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Powered by custodial Bitcoin settlement infrastructure for global E-Job scaling.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -289,10 +289,9 @@ export default function LandingPage() {
               <span className="font-headline font-bold text-xl tracking-tight">Giga<span className="text-primary">light</span></span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed font-medium">
-              The professional L2 protocol for decentralized workforces. Secure your node, execute missions, and scale your technical standing on the Satoshi network.
+              The professional Omni-Gig protocol for the decentralized E-Job workforce. Secure your node, execute missions, and scale your technical standing on the Satoshi network.
             </p>
             <div className="flex gap-4">
-               {/* Mock Socials */}
                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"><Globe className="w-4 h-4 text-muted-foreground" /></div>
                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/20 transition-colors cursor-pointer"><Network className="w-4 h-4 text-muted-foreground" /></div>
             </div>
