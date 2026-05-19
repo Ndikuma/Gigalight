@@ -41,18 +41,20 @@ export const TaskService = {
 
   // Specialized Views
   async getTaskManagement(taskId: string) {
-    // Matches: path("<str:pk>/management/", TaskViewSet.as_view({"get": "management"}), name="task-management")
     return api.get<any>(`/tasks/${taskId}/management/`);
   },
 
   async getTaskWorkbench(taskId: string) {
-    // Matches: path("<str:pk>/workbench/", TaskViewSet.as_view({"get": "workbench"}), name="task-workbench")
     return api.get<any>(`/tasks/${taskId}/workbench/`);
   },
 
   // Submissions & Audits
-  async submitProof(taskId: string, data: any) {
-    // Matches: path("<str:pk>/submit/", TaskViewSet.as_view({"post": "submit"}), name="task-submit")
+  async submitProof(taskId: string, data: { subtask_id?: string | number, proof_text: string }) {
+    if (data.subtask_id) {
+      return api.post<Submission>(`/tasks/${taskId}/subtasks/${data.subtask_id}/submit/`, { 
+        proof_text: data.proof_text 
+      });
+    }
     return api.post<Submission>(`/tasks/${taskId}/submit/`, data);
   },
 
