@@ -1,8 +1,33 @@
+
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Search, SlidersHorizontal, Zap, Briefcase, ChevronDown, CheckCircle2, Loader2, Clock, Shield } from 'lucide-react';
+import { 
+  Search, 
+  SlidersHorizontal, 
+  Zap, 
+  Briefcase, 
+  ChevronDown, 
+  CheckCircle2, 
+  Loader2, 
+  Clock, 
+  Shield, 
+  TrendingUp,
+  Filter,
+  ArrowRight,
+  Code,
+  Lock,
+  Search as SearchIcon,
+  Mic,
+  Video,
+  Database,
+  Languages,
+  Megaphone,
+  PenTool,
+  Palette,
+  Share2
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +47,20 @@ import { TaskMini, ProjectDetail, Category } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+const CATEGORY_ICONS: Record<string, any> = {
+  'coding': Code,
+  'security': Lock,
+  'research': SearchIcon,
+  'audio': Mic,
+  'video': Video,
+  'data': Database,
+  'translation': Languages,
+  'marketing': Megaphone,
+  'writing': PenTool,
+  'design': Palette,
+  'social-media': Share2,
+};
+
 export default function MarketPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('tasks');
@@ -31,19 +70,39 @@ export default function MarketPage() {
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [nextTaskPage, setNextTaskPage] = useState<number | null>(1);
+  const [totalTasks, setTotalTasks] = useState(0);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastTaskRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isFetchingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && nextTaskPage) {
+        loadMoreTasks();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLoading, isFetchingMore, nextTaskPage]);
 
   useEffect(() => {
-    async function fetchMarket() {
+    async function initMarket() {
       setIsLoading(true);
       try {
         const [taskRes, projectRes, catRes] = await Promise.all([
-          TaskService.getTasks(),
+          TaskService.getTasks({ page: 1 }),
           ProjectService.getProjects(),
           TaskService.getCategories()
         ]);
 
-        if (taskRes.data) setTasks(taskRes.data.results || []);
+        if (taskRes.data) {
+          setTasks(taskRes.data.results || []);
+          setTotalTasks(taskRes.data.count);
+          setNextTaskPage(taskRes.data.next ? 2 : null);
+        }
         if (projectRes.data) setProjects(projectRes.data.results || []);
         if (catRes.data) setCategories(catRes.data.results || []);
       } catch (e) {
@@ -56,8 +115,24 @@ export default function MarketPage() {
         setIsLoading(false);
       }
     }
-    fetchMarket();
+    initMarket();
   }, []);
+
+  async function loadMoreTasks() {
+    if (!nextTaskPage || isFetchingMore) return;
+    setIsFetchingMore(true);
+    try {
+      const res = await TaskService.getTasks({ page: nextTaskPage });
+      if (res.data) {
+        setTasks(prev => [...prev, ...res.data!.results]);
+        setNextTaskPage(res.data.next ? nextTaskPage + 1 : null);
+      }
+    } catch (e) {
+      console.error("Failed to propagate more tasks", e);
+    } finally {
+      setIsFetchingMore(false);
+    }
+  }
 
   const formatBudget = (budget: any) => {
     if (!budget) return 'TBD';
@@ -94,6 +169,15 @@ export default function MarketPage() {
     setSelectedCategory(null);
     setSelectedDifficulty(null);
     setSearchQuery('');
+  };
+
+  const getDifficultyColor = (diff: string) => {
+    switch (diff.toLowerCase()) {
+      case 'easy': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+      case 'medium': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+      case 'hard': return 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+      default: return 'text-muted-foreground bg-white/5 border-white/5';
+    }
   };
 
   return (
@@ -151,7 +235,7 @@ export default function MarketPage() {
                 <DropdownMenuSeparator className="bg-white/5" />
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">Expertise Class</DropdownMenuLabel>
                 <div className="space-y-1">
-                  {['entry', 'intermediate', 'expert', 'easy', 'medium', 'hard'].map(level => (
+                  {['easy', 'medium', 'hard'].map(level => (
                     <DropdownMenuCheckboxItem 
                       key={level} 
                       checked={selectedDifficulty === level}
@@ -185,7 +269,7 @@ export default function MarketPage() {
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
         </div>
       ) : (
-        <Tabs defaultValue="tasks" onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
             <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-3xl w-fit">
               <TabsTrigger value="tasks" className="rounded-2xl px-8 py-3 data-[state=active]:bg-primary transition-all font-bold gap-2">
@@ -213,43 +297,67 @@ export default function MarketPage() {
 
           <TabsContent value="tasks" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTasks.length > 0 ? filteredTasks.map((task) => (
-                <div key={task.id} className="glass-card p-6 rounded-3xl hover:border-primary/40 transition-all flex flex-col h-full group relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -z-10 rounded-full group-hover:bg-primary/10 transition-colors"></div>
-                  
-                  <div className="flex justify-between items-start mb-6">
-                    <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-                      {task.category?.name || 'General'}
-                    </Badge>
-                    <div className="text-right">
-                      <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount?.toLocaleString() || 0}</p>
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
+              {filteredTasks.length > 0 ? filteredTasks.map((task, index) => {
+                const isLast = index === filteredTasks.length - 1;
+                const CatIcon = CATEGORY_ICONS[task.category?.slug] || Zap;
+                
+                return (
+                  <div 
+                    key={task.id} 
+                    ref={isLast ? lastTaskRef : null}
+                    className="glass-card p-6 rounded-3xl hover:border-primary/40 transition-all flex flex-col h-full group relative overflow-hidden"
+                  >
+                    {task.boosted && (
+                      <div className="absolute -top-1 -right-1 z-10">
+                        <div className="bg-primary text-white text-[8px] font-bold px-3 py-1.5 rounded-bl-xl uppercase tracking-[0.2em] flex items-center gap-1.5 shadow-lg neon-glow-primary">
+                          <TrendingUp className="w-2.5 h-2.5" /> Boosted {task.boost_multiplier}x
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-start mb-6">
+                      <Badge variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-3 py-1 text-[9px] font-bold uppercase tracking-widest flex items-center gap-2">
+                        <CatIcon className="w-3 h-3 text-primary" />
+                        {task.category?.name || 'General'}
+                      </Badge>
+                      <div className="text-right">
+                        <p className="font-headline font-bold text-2xl text-emerald-400">+{task.reward_amount?.toLocaleString() || 0}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">SATOSHIS</p>
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors leading-tight min-h-[3rem] line-clamp-2">
+                      {task.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
+                      {task.short_description || task.description}
+                    </p>
+
+                    <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
+                      <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest">
+                        <Badge className={cn("border px-2 py-0.5 capitalize", getDifficultyColor(task.difficulty))}>
+                          <Shield className="w-2.5 h-2.5 mr-1" /> {task.difficulty}
+                        </Badge>
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5 text-secondary" /> ~15 MIN
+                        </span>
+                      </div>
+                      <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-2xl transition-all font-bold h-12 shadow-sm group-hover:neon-glow-primary">
+                        <Link href={`/market/${task.id}`}>Initiate Mission</Link>
+                      </Button>
                     </div>
                   </div>
-
-                  <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors leading-tight">{task.title}</h3>
-                  <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
-                    {task.short_description}
-                  </p>
-
-                  <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
-                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-                      <span className="flex items-center gap-2 text-muted-foreground">
-                        <Shield className="w-3.5 h-3.5 text-primary" /> {task.difficulty}
-                      </span>
-                      <span className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 text-secondary" /> ~15 MIN
-                      </span>
-                    </div>
-                    <Button asChild className="w-full bg-white/5 hover:bg-primary rounded-2xl transition-all font-bold h-12 shadow-sm">
-                      <Link href={`/market/${task.id}`}>Initiate Mission</Link>
-                    </Button>
-                  </div>
-                </div>
-              )) : (
+                );
+              }) : (
                 <EmptyState onReset={resetFilters} />
               )}
             </div>
+            {isFetchingMore && (
+              <div className="py-10 flex flex-col items-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Propagating more gigs...</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="projects" className="mt-0">
@@ -318,7 +426,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="col-span-full py-24 text-center glass-card rounded-[2rem] bg-white/[0.02] border-dashed">
       <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-        <SlidersHorizontal className="w-10 h-10 text-muted-foreground/30" />
+        <Filter className="w-10 h-10 text-muted-foreground/30" />
       </div>
       <h3 className="text-2xl font-bold mb-2">No missions propagated</h3>
       <p className="text-muted-foreground max-sm mx-auto mb-8 leading-relaxed">
