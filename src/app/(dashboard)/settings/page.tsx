@@ -171,8 +171,13 @@ export default function SettingsPage() {
   }
 
   async function handleUpgrade(tier: Tier) {
+    if (user?.tier === tier.id) {
+       toast({ title: "Tier Active", description: "Your node is already operating at this protocol level." });
+       return;
+    }
+
     if (tier.cost_sats === 0) {
-       toast({ title: "Base Protocol", description: "This is your default node standing." });
+       toast({ title: "Base Protocol", description: "This is a default node standing." });
        return;
     }
     
