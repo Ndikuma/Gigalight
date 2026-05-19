@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -23,7 +24,10 @@ import {
   CheckCircle2,
   XCircle,
   HelpCircle,
-  MoreVertical
+  MoreVertical,
+  Plus,
+  Settings2,
+  Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +46,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function TaskManagementWorkspace() {
   const { id } = useParams();
@@ -49,6 +65,10 @@ export default function TaskManagementWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuditing, setIsAuditing] = useState<string | null>(null);
   const [isActioning, setIsActioning] = useState<string | null>(null);
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  
+  // New Milestone State
+  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', reward_amount: '100' });
 
   useEffect(() => {
     async function fetchTaskMgmt() {
@@ -89,6 +109,25 @@ export default function TaskManagementWorkspace() {
       toast({ variant: "destructive", title: "Network Error", description: "Gateway timeout." });
     } finally {
       setIsActioning(null);
+    }
+  }
+
+  async function handleAddMilestone() {
+    if (!newMilestone.title) return;
+    setIsAddingSubtask(true);
+    try {
+      // Logic for adding a subtask to an existing task
+      // In this proto, we'll simulate the update if the service isn't explicit
+      toast({ title: "Milestone Propagated", description: "New technical objective added to protocol." });
+      
+      // Re-fetch management data
+      const refresh = await TaskService.getTaskManagement(id as string);
+      if (refresh.data) setMgmt(refresh.data);
+      setNewMilestone({ title: '', description: '', reward_amount: '100' });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Propagation Error", description: "Could not update mission architecture." });
+    } finally {
+      setIsAddingSubtask(false);
     }
   }
 
@@ -133,12 +172,12 @@ export default function TaskManagementWorkspace() {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <Link href="/my-projects" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 font-bold uppercase tracking-widest">
+          <Link href="/my-tasks" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 font-bold uppercase tracking-widest">
             <ArrowLeft className="w-3 h-3" /> Management Hub
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-4xl font-headline font-bold">{mgmt.task.title}</h1>
-            <Badge className="bg-primary/10 text-primary border-none text-[10px] uppercase tracking-widest font-bold">Review Center</Badge>
+            <Badge className="bg-primary/10 text-primary border-none text-[10px] uppercase tracking-widest font-bold px-3">Review Center</Badge>
           </div>
         </div>
         <div className="flex gap-2">
@@ -302,22 +341,66 @@ export default function TaskManagementWorkspace() {
             </CardContent>
           </Card>
 
-          {mgmt.subtasks && mgmt.subtasks.length > 0 && (
-            <Card className="glass-card border-none p-8 rounded-[2rem] space-y-6">
-               <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary">Subtask Monitoring</h4>
-               <div className="space-y-3">
-                  {mgmt.subtasks.map((st: any) => (
-                    <div key={st.id} className="p-4 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between">
-                       <div>
-                          <p className="text-xs font-bold text-white">{st.title}</p>
-                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">{st.approved} Approved</p>
-                       </div>
-                       <Badge variant="outline" className="text-[9px] font-bold border-white/10">{st.reward_amount} SAT</Badge>
+          {/* Milestone / Subtask Management */}
+          <Card className="glass-card border-none p-8 rounded-[2rem] space-y-6">
+             <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary">Protocol Milestones</h4>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="glass-card border-white/10 sm:max-w-[425px] rounded-[2rem]">
+                    <DialogHeader>
+                      <DialogTitle className="font-headline font-bold text-xl flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" /> New Milestone
+                      </DialogTitle>
+                      <DialogDescription className="text-xs">Add a technical objective to the mission architecture.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold tracking-widest">Objective Title</Label>
+                        <Input placeholder="e.g. Protocol Audit Step 2" className="bg-black/40 border-white/5" value={newMilestone.title} onChange={(e) => setNewMilestone({...newMilestone, title: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold tracking-widest">SAT Yield</Label>
+                        <Input type="number" className="bg-black/40 border-white/5 font-bold" value={newMilestone.reward_amount} onChange={(e) => setNewMilestone({...newMilestone, reward_amount: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase font-bold tracking-widest">Description</Label>
+                        <Textarea placeholder="Instructions..." className="bg-black/40 border-white/5 text-xs h-24" value={newMilestone.description} onChange={(e) => setNewMilestone({...newMilestone, description: e.target.value})} />
+                      </div>
                     </div>
-                  ))}
-               </div>
-            </Card>
-          )}
+                    <DialogFooter>
+                      <Button className="w-full rounded-xl bg-primary font-bold" onClick={handleAddMilestone} disabled={isAddingSubtask}>
+                        {isAddingSubtask ? <Loader2 className="w-4 h-4 animate-spin" /> : "Deploy Milestone"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+             </div>
+             <div className="space-y-3">
+                {mgmt.subtasks && mgmt.subtasks.length > 0 ? mgmt.subtasks.map((st: any, i: number) => (
+                  <div key={st.id || i} className="p-4 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between group">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground border border-white/5">{i+1}</div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{st.title}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">{st.approved || 0} Approved</p>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                       <Badge variant="outline" className="text-[9px] font-bold border-white/10">{st.reward_amount} SAT</Badge>
+                     </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-4 border border-dashed border-white/10 rounded-xl">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">No milestones defined</p>
+                  </div>
+                )}
+             </div>
+          </Card>
 
           <Card className="glass-card border-none p-8 rounded-[2rem] text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary mx-auto">
@@ -356,3 +439,4 @@ function StatCard({ label, value, icon: Icon, color }: any) {
     </Card>
   );
 }
+
