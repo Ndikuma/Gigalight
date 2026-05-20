@@ -26,7 +26,10 @@ import {
   Megaphone,
   PenTool,
   Palette,
-  Share2
+  Share2,
+  Wrench,
+  Trophy,
+  Eye
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,7 +46,8 @@ import {
 import Link from 'next/link';
 import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
-import { TaskMini, ProjectDetail, Category } from '@/lib/types';
+import { ServiceService } from '@/services/service-service';
+import { TaskMini, ProjectDetail, Category, ProfessionalService } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -69,6 +73,7 @@ export default function MarketPage() {
   
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [projects, setProjects] = useState<ProjectDetail[]>([]);
+  const [services, setServices] = useState<ProfessionalService[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -92,9 +97,10 @@ export default function MarketPage() {
     async function initMarket() {
       setIsLoading(true);
       try {
-        const [taskRes, projectRes, catRes] = await Promise.all([
+        const [taskRes, projectRes, serviceRes, catRes] = await Promise.all([
           TaskService.getTasks({ page: 1 }),
           ProjectService.getProjects(),
+          ServiceService.listServices(),
           TaskService.getCategories()
         ]);
 
@@ -104,6 +110,7 @@ export default function MarketPage() {
           setNextTaskPage(taskRes.data.next ? 2 : null);
         }
         if (projectRes.data) setProjects(projectRes.data.results || []);
+        if (serviceRes.data) setServices(serviceRes.data.results || []);
         if (catRes.data) setCategories(catRes.data.results || []);
       } catch (e) {
         toast({
@@ -159,11 +166,20 @@ export default function MarketPage() {
     return (projects || []).filter(project => {
       const matchesSearch = project.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            project.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !selectedCategory || project.skills?.some(s => s.name === selectedCategory);
+      const matchesCategory = !selectedCategory || project.skills?.some(s => (typeof s === 'string' ? s : s.name) === selectedCategory);
       const matchesDifficulty = !selectedDifficulty || project.experience_level === selectedDifficulty;
       return matchesSearch && matchesCategory && matchesDifficulty;
     });
   }, [searchQuery, selectedCategory, selectedDifficulty, projects]);
+
+  const filteredServices = useMemo(() => {
+    return (services || []).filter(service => {
+      const matchesSearch = service.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           service.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !selectedCategory || service.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, selectedCategory, services]);
 
   const resetFilters = () => {
     setSelectedCategory(null);
@@ -271,12 +287,15 @@ export default function MarketPage() {
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-            <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-3xl w-fit">
-              <TabsTrigger value="tasks" className="rounded-2xl px-8 py-3 data-[state=active]:bg-primary transition-all font-bold gap-2">
+            <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-3xl w-fit flex flex-wrap">
+              <TabsTrigger value="tasks" className="rounded-2xl px-6 md:px-8 py-3 data-[state=active]:bg-primary transition-all font-bold gap-2">
                 <Zap className="w-4 h-4" /> Micro Gigs
               </TabsTrigger>
-              <TabsTrigger value="projects" className="rounded-2xl px-8 py-3 data-[state=active]:bg-secondary transition-all font-bold gap-2">
+              <TabsTrigger value="projects" className="rounded-2xl px-6 md:px-8 py-3 data-[state=active]:bg-secondary transition-all font-bold gap-2">
                 <Briefcase className="w-4 h-4" /> Strategic Projects
+              </TabsTrigger>
+              <TabsTrigger value="services" className="rounded-2xl px-6 md:px-8 py-3 data-[state=active]:bg-emerald-500 transition-all font-bold gap-2">
+                <Wrench className="w-4 h-4" /> Expert Services
               </TabsTrigger>
             </TabsList>
 
@@ -385,10 +404,10 @@ export default function MarketPage() {
                       <div className="flex flex-wrap gap-3">
                         {(project.skills || []).map((skill, sIdx) => (
                           <span 
-                            key={skill.id || `skill-${sIdx}`} 
+                            key={typeof skill === 'string' ? `${skill}-${sIdx}` : (skill.id || `skill-${sIdx}`)} 
                             className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 bg-white/5 rounded-xl text-muted-foreground border border-white/5"
                           >
-                            {skill.name}
+                            {typeof skill === 'string' ? skill : skill.name}
                           </span>
                         ))}
                       </div>
@@ -419,6 +438,57 @@ export default function MarketPage() {
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="services" className="mt-0">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredServices.length > 0 ? filteredServices.map((service) => (
+                  <div key={service.id} className="glass-card p-6 rounded-3xl hover:border-emerald-400/40 transition-all flex flex-col h-full group relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-6">
+                      <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-none px-3 py-1 text-[9px] font-bold uppercase tracking-widest flex items-center gap-2">
+                        <Wrench className="w-3 h-3" />
+                        {service.category}
+                      </Badge>
+                      <div className="text-right">
+                        <p className="font-headline font-bold text-2xl text-emerald-400">{service.price_sats.toLocaleString()}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">BASE SAT</p>
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-emerald-400 transition-colors leading-tight min-h-[3rem] line-clamp-2">
+                      {service.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground flex-1 line-clamp-3 mb-8 leading-relaxed">
+                      {service.short_description || service.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-2 mb-6">
+                       {service.skills?.slice(0, 3).map((skill, idx) => (
+                         <span key={idx} className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 bg-white/5 rounded-lg text-muted-foreground border border-white/5">
+                           {typeof skill === 'string' ? skill : skill.name}
+                         </span>
+                       ))}
+                       {(service.skills?.length || 0) > 3 && <span className="text-[8px] font-bold text-muted-foreground mt-1">+{service.skills!.length - 3}</span>}
+                    </div>
+
+                    <div className="space-y-4 border-t border-white/5 pt-6 mt-auto">
+                      <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Eye className="w-3.5 h-3.5 text-primary" /> {service.views_count || 0} Nodes
+                        </div>
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5 text-secondary" /> {service.delivery_days} DAYS
+                        </span>
+                      </div>
+                      <Button asChild className="w-full bg-white/5 hover:bg-emerald-500 rounded-2xl transition-all font-bold h-12 shadow-sm group-hover:neon-glow-emerald">
+                        <Link href={`/services/${service.id}`}>Commission Node</Link>
+                      </Button>
+                    </div>
+                  </div>
+                )) : (
+                  <EmptyState onReset={resetFilters} />
+                )}
+             </div>
+          </TabsContent>
         </Tabs>
       )}
     </div>
@@ -431,7 +501,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
         <Filter className="w-10 h-10 text-muted-foreground/30" />
       </div>
-      <h3 className="text-2xl font-bold mb-2">No missions propagated</h3>
+      <h3 className="text-2xl font-bold mb-2">No nodes propagated</h3>
       <p className="text-muted-foreground max-sm mx-auto mb-8 leading-relaxed">
         Adjust your technical parameters or search keywords to discover active network objectives.
       </p>
