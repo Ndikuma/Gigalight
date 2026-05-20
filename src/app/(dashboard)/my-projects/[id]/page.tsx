@@ -249,8 +249,8 @@ export default function ProjectWorkspacePage() {
             </TabsList>
 
             <TabsContent value="applicants" className="space-y-4 mt-0">
-              {project.bids?.map((bid: Bid) => (
-                <Card key={bid.id} className={cn(
+              {project.bids?.map((bid: Bid, index: number) => (
+                <Card key={bid.id || `bid-${index}`} className={cn(
                   "glass-card border-none transition-all relative overflow-hidden group",
                   bid.is_boosted ? "ring-2 ring-secondary/30" : ""
                 )}>
@@ -386,7 +386,7 @@ export default function ProjectWorkspacePage() {
                 </div>
                 <div className="space-y-3">
                   {project.milestones?.map((m: Milestone, i: number) => (
-                    <div key={m.id} className="p-6 glass-card rounded-2xl flex items-center justify-between group hover:border-secondary/30 transition-all">
+                    <div key={m.id || `milestone-${i}`} className="p-6 glass-card rounded-2xl flex items-center justify-between group hover:border-secondary/30 transition-all">
                       <div className="flex items-center gap-4">
                         <div className={cn(
                           "w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm border",
@@ -433,8 +433,8 @@ export default function ProjectWorkspacePage() {
                     <div className="space-y-4">
                        <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-400">Node Expertise</h3>
                        <div className="flex flex-wrap gap-2">
-                          {project.skills?.map((s: any) => (
-                            <Badge key={s.id || s.name} variant="secondary" className="bg-white/5 text-white border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+                          {(project.skills || []).map((s: any, idx: number) => (
+                            <Badge key={s.id || s.name || `skill-${idx}`} variant="secondary" className="bg-white/5 text-white border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
                                {s.name}
                             </Badge>
                           ))}
