@@ -150,7 +150,8 @@ function CreateServiceContent() {
         price_sats: parseInt(formData.price_sats),
         delivery_days: parseInt(formData.delivery_days),
         category: formData.category_id || categories[0]?.name || 'General',
-        skills: formData.skills,
+        // Backend expects objects for nested serializers
+        skills: formData.skills.map(name => ({ name })),
         is_active: true
       };
 

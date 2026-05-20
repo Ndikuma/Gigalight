@@ -131,7 +131,8 @@ export default function CreateProjectPage() {
         budget_max: parseInt(formData.budget_max),
         budget_type: formData.budget_type,
         experience_level: formData.experience_level,
-        skills: formData.skills,
+        // Backend expects objects for nested serializers
+        skills: formData.skills.map(name => ({ name })),
       });
 
       if (response.data) {

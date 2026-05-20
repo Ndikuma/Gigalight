@@ -177,7 +177,8 @@ export default function CreateGigPage() {
         difficulty: formData.difficulty as any,
         validator_guidelines: formData.validatorGuidelines,
         category: formData.category_id,
-        skills: formData.skills,
+        // Backend expects objects for nested serializers
+        skills: formData.skills.map(name => ({ name })),
         subtasks: formData.subtasks
       });
 
