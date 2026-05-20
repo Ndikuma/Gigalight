@@ -27,21 +27,33 @@ import {
   Target,
   Trash2,
   ChevronRight,
-  GripVertical
+  GripVertical,
+  Search
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ProofMethod, Category } from '@/lib/types';
+import { ProofMethod, Category, Skill } from '@/lib/types';
 import { TaskService } from '@/services/task-service';
+import { SkillService } from '@/services/skill-service';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function CreateGigPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [isLoadingSkills, setIsLoadingSkills] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -62,16 +74,26 @@ export default function CreateGigPage() {
   useEffect(() => {
     async function fetchTaxonomy() {
       try {
-        const catRes = await TaskService.getCategories();
-        if (catRes.data?.results) {
-          setCategories(catRes.data.results);
-        }
+        const [catRes, skillRes] = await Promise.all([
+          TaskService.getCategories(),
+          SkillService.listSkills({ page_size: 100 })
+        ]);
+
+        if (catRes.data?.results) setCategories(catRes.data.results);
+        if (skillRes.data?.results) setAvailableSkills(skillRes.data.results);
       } catch (e) {
         console.error("Failed to fetch protocol taxonomy");
+      } finally {
+        setIsLoadingSkills(false);
       }
     }
     fetchTaxonomy();
   }, []);
+
+  const filteredAvailableSkills = availableSkills.filter(s => 
+    s.name.toLowerCase().includes(skillSearch.toLowerCase()) && 
+    !formData.skills.includes(s.name)
+  );
 
   const totalRewardPerNode = useMemo(() => {
     if (formData.subtasks.length > 0) {
@@ -112,6 +134,17 @@ export default function CreateGigPage() {
     }
   }
 
+  function addSkill(skillName: string) {
+    if (skillName && !formData.skills.includes(skillName)) {
+      setFormData({ ...formData, skills: [...formData.skills, skillName] });
+      setSkillSearch('');
+    }
+  }
+
+  function removeSkill(s: string) {
+    setFormData({ ...formData, skills: formData.skills.filter(skill => skill !== s) });
+  }
+
   function addSubtask() {
     if (!newSubtask.title) {
       toast({ variant: "destructive", title: "Incomplete Protocol", description: "Milestone title is mandatory." });
@@ -144,8 +177,7 @@ export default function CreateGigPage() {
         difficulty: formData.difficulty as any,
         validator_guidelines: formData.validatorGuidelines,
         category: formData.category_id,
-        // Backend usually handles subtasks as a separate update or via nested serializer
-        // We'll pass them in the initial create payload
+        skills: formData.skills,
         subtasks: formData.subtasks
       });
 
@@ -237,21 +269,60 @@ export default function CreateGigPage() {
                     </Select>
                  </div>
                  <div className="space-y-3">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Difficulty Class</Label>
-                    <Select value={formData.difficulty} onValueChange={(val) => setFormData({...formData, difficulty: val})}>
-                       <SelectTrigger className="bg-black/40 border-white/5 h-14 rounded-2xl"><SelectValue /></SelectTrigger>
-                       <SelectContent>
-                          <SelectItem value="easy">Easy (Low Intensity)</SelectItem>
-                          <SelectItem value="medium">Medium (Standard)</SelectItem>
-                          <SelectItem value="hard">Hard (Elite Node)</SelectItem>
-                       </SelectContent>
-                    </Select>
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Node Capability (Skills)</Label>
+                    <div className="relative">
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                             <div className="relative group cursor-pointer">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input 
+                                   placeholder="Search skill signal..." 
+                                   className="h-14 bg-black/40 border-white/5 pl-11 rounded-2xl focus:ring-primary/40"
+                                   value={skillSearch}
+                                   onChange={(e) => setSkillSearch(e.target.value)}
+                                />
+                             </div>
+                          </DropdownMenuTrigger>
+                          {filteredAvailableSkills.length > 0 && (
+                             <DropdownMenuContent className="w-[300px] bg-card border-white/10 max-h-[300px] overflow-y-auto shadow-2xl p-2" align="start">
+                                {filteredAvailableSkills.map(skill => (
+                                   <DropdownMenuItem 
+                                      key={skill.id} 
+                                      onClick={() => addSkill(skill.name)}
+                                      className="rounded-lg p-3 cursor-pointer focus:bg-primary/20 flex items-center justify-between group"
+                                   >
+                                      <div className="flex items-center gap-3">
+                                         <Cpu className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
+                                         <span className="font-bold text-sm">{skill.name}</span>
+                                      </div>
+                                      <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                   </DropdownMenuItem>
+                                ))}
+                             </DropdownMenuContent>
+                          )}
+                       </DropdownMenu>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3 min-h-[40px]">
+                       {formData.skills.map(s => (
+                          <Badge key={s} className="bg-primary/10 text-primary border-primary/20 px-3 py-1.5 gap-2 font-bold uppercase text-[9px] tracking-widest animate-in zoom-in-95">
+                             <Cpu className="w-3 h-3" />
+                             {s}
+                             <button onClick={() => removeSkill(s)} className="hover:text-white transition-colors">
+                                <X className="w-3 h-3" />
+                             </button>
+                          </Badge>
+                       ))}
+                       {formData.skills.length === 0 && !isLoadingSkills && (
+                          <p className="text-[10px] text-muted-foreground italic ml-1">No skills added.</p>
+                       )}
+                       {isLoadingSkills && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground ml-1" />}
+                    </div>
                  </div>
               </div>
 
               <div className="space-y-3">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Proof Verification Guidelines</Label>
-                <Textarea placeholder="Tell validators exactly how to verify technical proof..." className="min-h-[120px] bg-black/40 border-white/5 rounded-2xl p-6 italic" value={formData.validatorGuidelines} onChange={(e) => setFormData({...formData, validatorGuidelines: e.target.value})} />
+                <Textarea placeholder="Tell validators exactly how to verify technical proof..." className="min-h-[120px] bg-black/40 border-white/5 rounded-2xl p-6 italic leading-relaxed" value={formData.validatorGuidelines} onChange={(e) => setFormData({...formData, validatorGuidelines: e.target.value})} />
               </div>
 
               <div className="flex justify-between pt-6 border-t border-white/5">
@@ -286,16 +357,16 @@ export default function CreateGigPage() {
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="md:col-span-2 space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Milestone Objective</Label>
-                        <Input placeholder="Objective title..." value={newSubtask.title} onChange={(e) => setNewSubtask({...newSubtask, title: e.target.value})} className="h-12 bg-white/5 border-white/10" />
+                        <Input placeholder="Objective title..." value={newSubtask.title} onChange={(e) => setNewSubtask({...newSubtask, title: e.target.value})} className="h-12 bg-white/5 border-white/10 rounded-xl" />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Milestone Yield (SAT)</Label>
-                        <Input type="number" value={newSubtask.reward_amount} onChange={(e) => setNewSubtask({...newSubtask, reward_amount: e.target.value})} className="h-12 bg-white/5 border-white/10 font-bold" />
+                        <Input type="number" value={newSubtask.reward_amount} onChange={(e) => setNewSubtask({...newSubtask, reward_amount: e.target.value})} className="h-12 bg-white/5 border-white/10 font-bold rounded-xl" />
                       </div>
                    </div>
                    <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Execution Parameters</Label>
-                      <Textarea placeholder="Specific instructions for this milestone..." value={newSubtask.description} onChange={(e) => setNewSubtask({...newSubtask, description: e.target.value})} className="min-h-[80px] bg-white/5 border-white/10 text-xs" />
+                      <Textarea placeholder="Specific instructions for this milestone..." value={newSubtask.description} onChange={(e) => setNewSubtask({...newSubtask, description: e.target.value})} className="min-h-[80px] bg-white/5 border-white/10 text-xs rounded-xl" />
                    </div>
                    <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10 font-bold h-12 rounded-xl gap-2" onClick={addSubtask}>
                       <Plus className="w-4 h-4" /> Add Protocol Milestone
@@ -318,7 +389,7 @@ export default function CreateGigPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className="bg-black/40 border border-white/5 p-8 space-y-6 rounded-[2rem]">
+                <Card className="bg-black/40 border-white/5 p-8 space-y-6 rounded-[2rem]">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary"><BadgeDollarSign className="w-7 h-7" /></div>
                     <div><h4 className="font-bold text-lg">Reward Signal</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Multi-sig Performance Payout</p></div>
@@ -333,7 +404,7 @@ export default function CreateGigPage() {
                         onChange={(e) => setFormData({...formData, reward_amount: e.target.value})}
                         disabled={formData.subtasks.length > 0}
                       />
-                      {formData.subtasks.length > 0 && <p className="text-[8px] text-emerald-400 font-bold uppercase">Locked to Milestones</p>}
+                      {formData.subtasks.length > 0 && <p className="text-[8px] text-emerald-400 font-bold uppercase ml-1">Locked to Milestones</p>}
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Worker Slots</Label>
@@ -346,9 +417,9 @@ export default function CreateGigPage() {
                   </div>
                 </Card>
 
-                <Card className="bg-black/40 border border-white/5 p-8 space-y-6 rounded-[2rem]">
+                <Card className="bg-black/40 border-white/5 p-8 space-y-6 rounded-[2rem]">
                    <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500"><ShieldCheck className="w-7 h-7" /></div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-500"><ShieldCheck className="w-7 h-7" /></div>
                     <div><h4 className="font-bold text-lg">Proof Method</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Signal Class</p></div>
                   </div>
                   <div className="space-y-4">
@@ -402,4 +473,3 @@ export default function CreateGigPage() {
     </div>
   );
 }
-

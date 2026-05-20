@@ -22,7 +22,8 @@ import {
   Loader2,
   Cpu,
   Shield,
-  ChevronRight
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
@@ -30,7 +31,14 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ServiceService } from '@/services/service-service';
 import { TaskService } from '@/services/task-service';
-import { Category } from '@/lib/types';
+import { SkillService } from '@/services/skill-service';
+import { Category, Skill } from '@/lib/types';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 function CreateServiceContent() {
   const router = useRouter();
@@ -40,7 +48,11 @@ function CreateServiceContent() {
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [categories, setCategories] = useState<Category[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
+  const [skillSearch, setSkillSearch] = useState('');
+  const [isLoadingSkills, setIsLoadingSkills] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -50,14 +62,18 @@ function CreateServiceContent() {
     price_sats: '10000',
     delivery_days: '3',
     skills: [] as string[],
-    newSkill: ''
   });
 
   useEffect(() => {
     async function init() {
       try {
-        const catRes = await TaskService.getCategories();
+        const [catRes, skillRes] = await Promise.all([
+          TaskService.getCategories(),
+          SkillService.listSkills({ page_size: 100 })
+        ]);
+
         if (catRes.data?.results) setCategories(catRes.data.results);
+        if (skillRes.data?.results) setAvailableSkills(skillRes.data.results);
         
         if (editId) {
           const res = await ServiceService.getService(editId);
@@ -66,20 +82,26 @@ function CreateServiceContent() {
               title: res.data.title,
               description: res.data.description,
               short_description: res.data.short_description || '',
-              category_id: '', // Would need matching from name/slug usually
+              category_id: '', // Matching logic usually needed for IDs
               price_sats: res.data.price_sats.toString(),
               delivery_days: res.data.delivery_days.toString(),
               skills: res.data.skills?.map((s: any) => typeof s === 'string' ? s : s.name) || [],
-              newSkill: ''
             });
           }
         }
       } catch (e) {
         console.error("Init error");
+      } finally {
+        setIsLoadingSkills(false);
       }
     }
     init();
   }, [editId]);
+
+  const filteredAvailableSkills = availableSkills.filter(s => 
+    s.name.toLowerCase().includes(skillSearch.toLowerCase()) && 
+    !formData.skills.includes(s.name)
+  );
 
   async function handleAIAssist() {
     if (!formData.title && !formData.description) {
@@ -107,10 +129,10 @@ function CreateServiceContent() {
     }
   }
 
-  function addSkill() {
-    const s = formData.newSkill.trim();
-    if (s && !formData.skills.includes(s)) {
-      setFormData({ ...formData, skills: [...formData.skills, s], newSkill: '' });
+  function addSkill(skillName: string) {
+    if (skillName && !formData.skills.includes(skillName)) {
+      setFormData({ ...formData, skills: [...formData.skills, skillName] });
+      setSkillSearch('');
     }
   }
 
@@ -164,9 +186,9 @@ function CreateServiceContent() {
         </div>
       </header>
 
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4 mb-8 overflow-x-auto pb-2">
         {[1, 2, 3].map((s) => (
-          <div key={s} className="flex items-center gap-2">
+          <div key={s} className="flex items-center gap-2 shrink-0">
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all",
               step === s ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : 
@@ -225,12 +247,52 @@ function CreateServiceContent() {
                  </div>
                  <div className="space-y-3">
                     <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Node Capability (Skills)</Label>
-                    <div className="flex gap-2">
-                       <Input placeholder="Add skill signal..." className="bg-black/40 border-white/5 h-14 rounded-2xl" value={formData.newSkill} onChange={(e) => setFormData({...formData, newSkill: e.target.value})} onKeyDown={(e) => e.key === 'Enter' && addSkill()} />
-                       <Button variant="outline" size="icon" onClick={addSkill} className="h-14 w-14 rounded-2xl shrink-0"><Plus className="w-5 h-5" /></Button>
+                    <div className="relative">
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                             <div className="relative group cursor-pointer">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-emerald-400 transition-colors" />
+                                <Input 
+                                   placeholder="Search skill signal..." 
+                                   className="h-14 bg-black/40 border-white/5 pl-11 rounded-2xl focus:ring-emerald-400/40"
+                                   value={skillSearch}
+                                   onChange={(e) => setSkillSearch(e.target.value)}
+                                />
+                             </div>
+                          </DropdownMenuTrigger>
+                          {filteredAvailableSkills.length > 0 && (
+                             <DropdownMenuContent className="w-[300px] bg-card border-white/10 max-h-[300px] overflow-y-auto shadow-2xl p-2" align="start">
+                                {filteredAvailableSkills.map(skill => (
+                                   <DropdownMenuItem 
+                                      key={skill.id} 
+                                      onClick={() => addSkill(skill.name)}
+                                      className="rounded-lg p-3 cursor-pointer focus:bg-emerald-500/20 flex items-center justify-between group"
+                                   >
+                                      <div className="flex items-center gap-3">
+                                         <Cpu className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400" />
+                                         <span className="font-bold text-sm">{skill.name}</span>
+                                      </div>
+                                      <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                   </DropdownMenuItem>
+                                ))}
+                             </DropdownMenuContent>
+                          )}
+                       </DropdownMenu>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                       {formData.skills.map(s => <Badge key={s} className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1.5 gap-2 font-bold uppercase text-[9px] tracking-widest"><Cpu className="w-3 h-3" />{s}<button onClick={() => removeSkill(s)}><X className="w-3 h-3" /></button></Badge>)}
+                    <div className="flex flex-wrap gap-2 mt-3 min-h-[40px]">
+                       {formData.skills.map(s => (
+                          <Badge key={s} className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1.5 gap-2 font-bold uppercase text-[9px] tracking-widest animate-in zoom-in-95">
+                             <Cpu className="w-3 h-3" />
+                             {s}
+                             <button onClick={() => removeSkill(s)} className="hover:text-white transition-colors">
+                                <X className="w-3 h-3" />
+                             </button>
+                          </Badge>
+                       ))}
+                       {formData.skills.length === 0 && !isLoadingSkills && (
+                          <p className="text-[10px] text-muted-foreground italic ml-1">No skill signals propagated.</p>
+                       )}
+                       {isLoadingSkills && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground ml-1" />}
                     </div>
                  </div>
               </div>
