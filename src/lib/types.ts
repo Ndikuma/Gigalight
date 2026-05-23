@@ -93,7 +93,9 @@ export interface DepositInvoiceResponse {
   amount_sats: number;
   expires_at: string;
   expires_in: number;
-  qr_code: string;
+  qr_code?: string;
+  available_balance?: number;
+  pending_balance?: number;
 }
 
 export interface DepositStatusResponse {

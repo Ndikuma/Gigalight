@@ -48,10 +48,12 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
   useEffect(() => {
     // Initialize Countdown
     const updateTimer = () => {
+      if (!paymentData.expires_at) return;
       const expiresAt = new Date(paymentData.expires_at).getTime();
       const now = new Date().getTime();
       const diff = Math.floor((expiresAt - now) / 1000);
-      if (diff <= 0) {
+      
+      if (isNaN(diff) || diff <= 0) {
         setTimeLeft(0);
         setIsPolling(false);
         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -59,6 +61,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
         setTimeLeft(diff);
       }
     };
+    
     updateTimer();
     countdownIntervalRef.current = setInterval(updateTimer, 1000);
 
@@ -75,7 +78,8 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
           if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         }
       } catch (e) {
-        console.error("Signal verification failed", e);
+        // Silent catch for polling to ensure continuous retry until expiry
+        console.warn("Signal verification attempt failed, retrying...");
       }
     }, 3000);
 
@@ -91,7 +95,11 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const qrUrl = paymentData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentData.payment_request)}`;
+  // Clean the QR signal to ensure it's a valid data URI
+  const rawQr = paymentData.qr_code;
+  const qrUrl = (rawQr && rawQr.startsWith('data:')) 
+    ? rawQr 
+    : `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(paymentData.payment_request)}`;
 
   if (isConfirmed) {
     return (
@@ -103,8 +111,8 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
           <p className="text-4xl font-headline font-bold text-white">+{confirmedData?.amount_sats.toLocaleString() || paymentData.amount_sats.toLocaleString()} SAT</p>
           <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Settlement Confirmed</p>
         </div>
-        <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg" onClick={onCancel}>
-          Session Finalized
+        <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={onCancel}>
+          Finalize Session
         </Button>
       </div>
     );
@@ -129,13 +137,18 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
 
   return (
     <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
-      <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden">
+      <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
         <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
           <img 
             src={qrUrl} 
-            alt="Payment QR" 
-            className="w-full h-full object-contain" 
+            alt="Payment QR Signal" 
+            className="w-full h-full object-contain"
+            onLoad={(e) => (e.currentTarget.style.opacity = '1')}
+            style={{ opacity: 0, transition: 'opacity 0.5s ease-in-out' }}
           />
+          <div className="absolute inset-0 flex items-center justify-center -z-10">
+             <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+          </div>
         </div>
       </div>
 
@@ -149,17 +162,17 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
 
       <div className="space-y-4">
         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-          <span className="text-muted-foreground">Session Duration</span>
+          <span className="text-muted-foreground">Session Expiry</span>
           <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-primary")}>
             <Clock className="w-3 h-3" />
             {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
           </span>
         </div>
 
-        <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
-          <div className="flex-1 text-left">
+        <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace relative">
+          <div className="flex-1 text-left overflow-hidden">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
-            <p className="text-[11px] font-mono text-white/70 truncate leading-none">{paymentData.payment_request}</p>
+            <p className="text-[11px] font-mono text-white/70 truncate leading-none select-all">{paymentData.payment_request}</p>
           </div>
           <Button 
             size="icon" 
@@ -169,7 +182,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
               navigator.clipboard.writeText(paymentData.payment_request);
               setHasCopied(true);
               setTimeout(() => setHasCopied(false), 2000);
-              toast({ title: "Signal Copied to Node" });
+              toast({ title: "Signal Copied" });
             }}
           >
             {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
@@ -178,7 +191,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
       </div>
 
       <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={onCancel}>
-        Abort Path
+        Abort Propagation
       </Button>
     </div>
   );

@@ -14,19 +14,19 @@ import {
   Zap, 
   Copy, 
   Check, 
-  Loader2,
-  Clock,
-  ExternalLink,
-  ShieldCheck,
-  RefreshCw,
-  AlertCircle,
-  Activity,
-  Database,
-  Bitcoin,
-  CheckCircle2,
-  ShieldAlert,
-  Info,
-  Send
+  Loader2, 
+  Clock, 
+  ExternalLink, 
+  ShieldCheck, 
+  RefreshCw, 
+  AlertCircle, 
+  Activity, 
+  Database, 
+  Bitcoin, 
+  CheckCircle2, 
+  ShieldAlert, 
+  Info, 
+  Send 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +35,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
-  DialogFooter
+  DialogDescription, 
+  DialogFooter 
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -100,6 +100,8 @@ export default function WalletPage() {
   const cleanupDeposit = () => {
     setInvoiceData(null);
     setOnchainData(null);
+    setIsDepositOpen(false);
+    fetchWalletData(true);
   };
 
   const cleanupWithdraw = () => {
@@ -120,13 +122,26 @@ export default function WalletPage() {
       const res = await WalletService.withdrawFees(target, amount);
       if (res.data) {
         setFeeData(res.data);
+      } else if (res.error) {
+         // Surface specific fee errors like "Insufficient balance"
+         setFeeData({
+            can_withdraw: false,
+            message: res.error,
+            amount_sats: amount || 0,
+            estimated_fee_sats: 0,
+            wallet_debit_sats: amount || 0,
+            fee_charged_to_user: false,
+            available_balance: wallet?.available_balance || 0,
+            balance_after: wallet?.available_balance || 0,
+            fee_policy: null
+         });
       }
     } catch (e) {
       console.error("Fee calc error", e);
     } finally {
       setIsCalculatingFees(false);
     }
-  }, []);
+  }, [wallet?.available_balance]);
 
   const handleTargetChange = async (val: string) => {
     setWithdrawTarget(val);
@@ -149,6 +164,8 @@ export default function WalletPage() {
         } else {
           setWithdrawAmount('');
         }
+      } else if (res.error) {
+         toast({ variant: "destructive", title: "Target Error", description: res.error });
       }
     } catch (e) {
       console.error("Decode failed", e);
@@ -158,12 +175,15 @@ export default function WalletPage() {
   };
 
   const handleAmountChange = (val: string) => {
-    setWithdrawAmount(val);
+    // Enforce integer SATOSHIS
+    const intVal = val.replace(/[^0-9]/g, '');
+    setWithdrawAmount(intVal);
+    
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     
-    if (val && !isNaN(parseInt(val)) && withdrawTarget) {
+    if (intVal && !isNaN(parseInt(intVal)) && withdrawTarget) {
       debounceTimeoutRef.current = setTimeout(() => {
-        calculateFees(withdrawTarget, parseInt(val));
+        calculateFees(withdrawTarget, parseInt(intVal));
       }, 500);
     } else {
       setFeeData(null);
@@ -482,7 +502,7 @@ export default function WalletPage() {
                         step="1"
                         min="1"
                         value={depositAmount} 
-                        onChange={(e) => setDepositAmount(e.target.value)}
+                        onChange={(e) => setDepositAmount(e.target.value.replace(/[^0-9]/g, ''))}
                         className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 focus:ring-secondary/40"
                       />
                       <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SATOSHIS</div>
@@ -584,9 +604,9 @@ export default function WalletPage() {
               {feeData && !feeData.can_withdraw && (
                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl animate-in zoom-in-95">
                     <ShieldAlert className="h-4 w-4" />
-                    <AlertTitle className="text-[10px] font-bold uppercase tracking-widest">Protocol Warning</AlertTitle>
+                    <AlertTitle className="text-[10px] font-bold uppercase tracking-widest">Protocol Audit Failed</AlertTitle>
                     <AlertDescription className="text-xs font-medium">
-                      {feeData.message || "Insufficient balance or invalid amount."}
+                      {feeData.message || "Insufficient balance or invalid technical parameters."}
                     </AlertDescription>
                  </Alert>
               )}
@@ -625,7 +645,7 @@ export default function WalletPage() {
               onClick={handleConfirmWithdraw}
             >
               {isProcessingWithdraw ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isProcessingWithdraw ? "Propagating Signal..." : "Finalize Payout"}
+              {isProcessingWithdraw ? "Propagating Signal..." : "Finalize Settlement"}
             </Button>
           </div>
         </DialogContent>
