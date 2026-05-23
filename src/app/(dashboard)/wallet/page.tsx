@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -633,7 +634,7 @@ export default function WalletPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdrawal Dialog - RE-ENGINEERED 3-STEP FLOW */}
+      {/* Withdrawal Dialog */}
       <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
         setIsWithdrawOpen(open);
         if (!open) cleanupWithdraw();
@@ -760,7 +761,7 @@ export default function WalletPage() {
                       {!feeData.can_withdraw && (
                         <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-destructive text-[10px] font-bold uppercase border border-destructive/20 mt-4 animate-pulse">
                            <ShieldAlert className="w-4 h-4" /> 
-                           <span>Insufficient liquid balance for this propagation</span>
+                           <span>{feeData.message || "Insufficient liquid balance for this propagation"}</span>
                         </div>
                       )}
                     </div>

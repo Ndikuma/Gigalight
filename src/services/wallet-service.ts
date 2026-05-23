@@ -27,8 +27,10 @@ export interface WithdrawFeesResponse {
   wallet_debit_sats: number;
   fee_charged_to_user: boolean;
   can_withdraw: boolean;
+  message?: string;
   available_balance: number;
   balance_after: number;
+  minimum_withdrawal_sats?: number;
   fee_policy: any;
 }
 
