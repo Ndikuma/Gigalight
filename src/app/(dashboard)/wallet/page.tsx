@@ -16,16 +16,12 @@ import {
   Check, 
   Loader2, 
   Clock, 
-  ExternalLink, 
-  ShieldCheck, 
   RefreshCw, 
-  AlertCircle, 
   Activity, 
   Database, 
   Bitcoin, 
   CheckCircle2, 
   ShieldAlert, 
-  Info, 
   Send 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -133,7 +129,7 @@ export default function WalletPage() {
             message: res.error,
             amount_sats: amount || 0,
             estimated_fee_sats: 0,
-            wallet_debit_sats: amount || 0,
+            wallet_debit_sats: (amount || 0),
             fee_charged_to_user: false,
             available_balance: wallet?.available_balance || 0,
             balance_after: wallet?.available_balance || 0,
@@ -431,15 +427,17 @@ export default function WalletPage() {
       }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
           <div className="p-6 sm:p-8 space-y-6">
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-3">
+            <DialogHeader className="p-0 space-y-1.5">
+              <DialogTitle className="text-xl sm:text-2xl font-headline font-bold flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
                   <ArrowDownLeft className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-headline font-bold">Fund Node</h2>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Select your preferred settlement path to fund your protocol node.</p>
-            </div>
+                Fund Node
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                Select your preferred settlement path to fund your protocol node.
+              </DialogDescription>
+            </DialogHeader>
 
             {invoiceData ? (
               <PaymentSession 
@@ -551,6 +549,10 @@ export default function WalletPage() {
         <DialogContent className="glass-card border-white/10 sm:max-w-[480px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
           {isWithdrawSuccess ? (
             <div className="p-6 sm:p-10 space-y-8 text-center animate-in zoom-in-95 duration-500">
+              <DialogHeader className="p-0">
+                <DialogTitle className="sr-only">Settlement Confirmed</DialogTitle>
+                <DialogDescription className="sr-only">Withdrawal successful</DialogDescription>
+              </DialogHeader>
               <div className="mx-auto bg-emerald-500/10 p-8 sm:p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
                 <CheckCircle2 className="w-16 h-16 sm:w-24 sm:h-24 text-emerald-400" />
               </div>
@@ -558,7 +560,7 @@ export default function WalletPage() {
                 <p className="text-3xl sm:text-4xl font-headline font-bold text-white">
                   -{lastWithdrawData?.amount?.toLocaleString()} SAT
                 </p>
-                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Settlement Released to Network</p>
+                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Settlement Confirmed</p>
               </div>
               <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-left group/trace relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl -z-10" />
@@ -575,15 +577,17 @@ export default function WalletPage() {
             </div>
           ) : (
             <div className="p-6 sm:p-8 space-y-6">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-3">
+              <DialogHeader className="p-0 space-y-1.5 text-left">
+                <DialogTitle className="text-xl sm:text-2xl font-headline font-bold flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                     <ArrowUpRight className="w-6 h-6" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-headline font-bold">Settlement Payout</h2>
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground">Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.</p>
-              </div>
+                  Settlement Payout
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.
+                </DialogDescription>
+              </DialogHeader>
 
               <div className="space-y-5">
                 <div className="space-y-3">
