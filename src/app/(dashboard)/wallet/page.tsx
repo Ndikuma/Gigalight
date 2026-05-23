@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { WalletService } from '@/services/wallet-service';
-import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
+import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse, DepositStatusResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
   ArrowDownLeft, 
@@ -26,7 +26,8 @@ import {
   Layers,
   Network,
   Database,
-  Bitcoin
+  Bitcoin,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,8 @@ export default function WalletPage() {
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+  const [isDepositConfirmed, setIsDepositConfirmed] = useState(false);
+  const [confirmedTx, setConfirmedTx] = useState<DepositStatusResponse | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
@@ -96,17 +99,20 @@ export default function WalletPage() {
       pollingIntervalRef.current = setInterval(async () => {
         try {
           const res = await WalletService.pollDepositStatus(invoiceData.payment_hash);
-          if (res.data) {
-            const tx = res.data.transactions?.find(t => t.lnd_payment_hash === invoiceData.payment_hash);
-            if (tx?.status === 'confirmed') {
-              cleanupDeposit();
-              setWallet(res.data);
-              setIsDepositOpen(false);
-              toast({ 
-                title: "Settlement Confirmed", 
-                description: `${tx.amount.toLocaleString()} SAT added to your liquid balance.` 
-              });
-            }
+          if (res.data && res.data.status === 'confirmed') {
+            setIsPolling(false);
+            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+            
+            setConfirmedTx(res.data);
+            setIsDepositConfirmed(true);
+            
+            toast({ 
+              title: "Settlement Confirmed", 
+              description: `${res.data.amount_sats.toLocaleString()} SAT added to your liquid balance.` 
+            });
+            
+            // Re-fetch wallet to sync ledger
+            fetchWalletData(true);
           }
         } catch (e) {
           console.error("Polling error", e);
@@ -120,11 +126,11 @@ export default function WalletPage() {
   }, [isPolling, invoiceData]);
 
   useEffect(() => {
-    if (timeLeft !== null && timeLeft > 0) {
+    if (timeLeft !== null && timeLeft > 0 && !isDepositConfirmed) {
       countdownIntervalRef.current = setInterval(() => {
         setTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && !isDepositConfirmed) {
       cleanupDeposit();
       toast({ variant: "destructive", title: "Invoice Expired", description: "The L2 settlement path has timed out." });
     }
@@ -132,12 +138,14 @@ export default function WalletPage() {
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [timeLeft]);
+  }, [timeLeft, isDepositConfirmed]);
 
   const cleanupDeposit = () => {
     setInvoiceData(null);
     setOnchainData(null);
     setIsPolling(false);
+    setIsDepositConfirmed(false);
+    setConfirmedTx(null);
     setTimeLeft(null);
     if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -196,13 +204,14 @@ export default function WalletPage() {
       return;
     }
     setIsDecoding(true);
-    // In a real implementation, we would call a backend endpoint to decode BOLT11
-    await new Promise(r => setTimeout(r, 1000));
-    setDecodedData({
-      amount: 5000,
-      description: "Yield Withdrawal"
-    });
-    setIsDecoding(false);
+    // Simulation: In production this calls a backend decoder
+    setTimeout(() => {
+      setDecodedData({
+        amount: 5000,
+        description: "Yield Withdrawal"
+      });
+      setIsDecoding(false);
+    }, 1000);
   }
 
   async function handleConfirmWithdraw() {
@@ -351,7 +360,6 @@ export default function WalletPage() {
               <CardDescription>Active settlement paths for your node.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-4">
-              {/* Lightning Network Channel */}
               <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group cursor-default transition-all hover:bg-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/5 blur-2xl -z-10" />
                 <div className="w-12 h-12 rounded-xl bg-secondary/20 flex items-center justify-center text-secondary border border-secondary/20">
@@ -367,7 +375,6 @@ export default function WalletPage() {
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
               </div>
 
-              {/* Bitcoin On-Chain Channel */}
               <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group cursor-default transition-all hover:bg-white/10 relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl -z-10" />
                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
@@ -427,14 +434,40 @@ export default function WalletPage() {
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
                   <ArrowDownLeft className="w-6 h-6" />
                 </div>
-                Fund Node
+                {isDepositConfirmed ? 'Settlement Finalized' : 'Fund Node'}
               </DialogTitle>
               <DialogDescription className="text-sm">
-                Select your preferred settlement path to fund your protocol node.
+                {isDepositConfirmed 
+                  ? 'Your L2 deposit has been verified and settled.' 
+                  : 'Select your preferred settlement path to fund your protocol node.'}
               </DialogDescription>
             </DialogHeader>
 
-            {!invoiceData && !onchainData ? (
+            {isDepositConfirmed ? (
+              <div className="space-y-8 text-center animate-in zoom-in-95 duration-500">
+                <div className="mx-auto bg-emerald-500/10 p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
+                  <CheckCircle2 className="w-24 h-24 text-emerald-400" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-4xl font-headline font-bold text-white">+{confirmedTx?.amount_sats.toLocaleString()} SAT</p>
+                  <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Yield Settled</p>
+                </div>
+                <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest px-2">
+                    <span className="text-muted-foreground">Updated Balance</span>
+                    <span className="text-white">{confirmedTx?.available_balance.toLocaleString()} SAT</span>
+                  </div>
+                  <div className="h-px bg-white/5" />
+                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest px-2">
+                    <span className="text-muted-foreground">Trace Status</span>
+                    <span className="text-emerald-400">Confirmed on L2</span>
+                  </div>
+                </div>
+                <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg" onClick={cleanupDeposit}>
+                  Session Finalized
+                </Button>
+              </div>
+            ) : !invoiceData && !onchainData ? (
               <Tabs defaultValue="lightning" onValueChange={(v) => setDepositMethod(v as any)} className="w-full">
                 <TabsList className="grid grid-cols-2 bg-white/5 p-1 rounded-xl h-auto mb-6">
                   <TabsTrigger value="lightning" className="rounded-lg py-2.5 font-bold text-xs gap-2 data-[state=active]:bg-secondary data-[state=active]:text-white">

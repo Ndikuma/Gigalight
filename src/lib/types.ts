@@ -92,6 +92,20 @@ export interface DepositInvoiceResponse {
   qr_code: string;
 }
 
+export interface DepositStatusResponse {
+  transaction_id: string;
+  payment_hash: string;
+  payment_request: string;
+  amount_sats: number;
+  blink_status?: string;
+  status: WalletTransactionStatus;
+  balance_after: number;
+  pending_balance: number;
+  available_balance: number;
+  created_at: string;
+  settled_at: string | null;
+}
+
 export type WalletTransactionStatus = 'pending' | 'confirmed' | 'failed' | 'refunded' | 'expired';
 export type WalletTransactionType = 
   | 'deposit' 

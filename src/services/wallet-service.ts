@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from '@/lib/api-client';
-import { Wallet, DepositInvoiceResponse } from '@/lib/types';
+import { Wallet, DepositInvoiceResponse, DepositStatusResponse } from '@/lib/types';
 
 /**
  * @fileOverview Bitcoin Lightning and On-Chain Wallet Services.
@@ -34,7 +34,7 @@ export const WalletService = {
   },
 
   async pollDepositStatus(paymentHash: string) {
-    return api.get<Wallet>(`/wallet/deposit_status/?payment_hash=${paymentHash}`);
+    return api.get<DepositStatusResponse>(`/wallet/deposit_status/?payment_hash=${paymentHash}`);
   },
 
   async initiateWithdrawal(invoice: string) {
