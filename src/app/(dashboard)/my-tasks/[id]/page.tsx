@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -146,8 +147,8 @@ export default function TaskManagementWorkspace() {
           </div>
         </div>
         <div className="flex gap-2">
-           <Button variant="outline" size="sm" className="rounded-xl border-white/5 gap-2 h-10 px-4 font-bold">
-            <BarChart3 className="w-4 h-4" /> Full Analytics
+           <Button asChild variant="outline" size="sm" className="rounded-xl border-white/5 gap-2 h-10 px-4 font-bold">
+            <Link href={`/my-tasks/${id}/analytics`}><BarChart3 className="w-4 h-4" /> Full Analytics</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="rounded-xl border-white/5 gap-2 h-10 px-4 font-bold">
             <Link href={`/market/${mgmt.task.id}`}><ExternalLink className="w-4 h-4" /> Public Interface</Link>
