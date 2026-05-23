@@ -28,7 +28,9 @@ import {
   CheckCircle2,
   History,
   Wrench,
-  ChevronDown
+  ChevronDown,
+  Coins,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +39,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { draftApplicationProposal } from '@/ai/flows/application-proposal-assistant-flow';
 import Link from 'next/link';
@@ -77,6 +80,7 @@ export default function OpportunityDetailPage() {
   const [bidAmount, setBidAmount] = useState('');
   const [proposalText, setProposalText] = useState('');
   const [isBoosted, setIsBoosted] = useState(false);
+  const [feeMethod, setFeeMethod] = useState<'upfront' | 'payout'>('upfront');
 
   useEffect(() => {
     setMounted(true);
@@ -144,7 +148,10 @@ export default function OpportunityDetailPage() {
   // Calculate fees based on active protocol tier
   const tier = user?.current_tier;
   const signalFee = isTask ? (tier?.fee_task ?? 50) : (tier?.fee_project ?? 250);
-  const totalUpfront = signalFee + (isBoosted ? 500 : 0);
+  
+  // Calculate total upfront debit based on fee method
+  const activeSignalFee = feeMethod === 'upfront' ? signalFee : 0;
+  const totalUpfront = activeSignalFee + (isBoosted ? 500 : 0);
 
   const formatBudget = (budget: any) => {
     if (!budget) return 'TBD';
@@ -191,10 +198,16 @@ export default function OpportunityDetailPage() {
     setIsSubmitting(true);
     try {
       let res;
+      const commonPayload = {
+        fee_method: feeMethod,
+        attached_service: selectedService?.id
+      };
+
       if (isTask) {
         res = await TaskService.submitProof(opportunity.data.id, {
           subtask_id: workbench?.next_subtask?.id,
           proof_text: proofText,
+          ...commonPayload
         } as any);
       } else {
         res = await BidService.submitBid({
@@ -203,13 +216,16 @@ export default function OpportunityDetailPage() {
           proposal_text: proposalText,
           signal_fee: signalFee,
           is_boosted: isBoosted,
+          ...commonPayload
         });
       }
 
       if (res.data) {
         toast({
           title: isTask ? "Proof Propagated" : "Proposal Synthesized",
-          description: `${totalUpfront.toLocaleString()} SAT signal fee processed via L2.`,
+          description: feeMethod === 'upfront' 
+            ? `${totalUpfront.toLocaleString()} SAT processed via upfront L2 signal.`
+            : `Fee scheduled for yield deduction. Current debit: ${(isBoosted ? 500 : 0).toLocaleString()} SAT.`,
         });
         setStep('success');
       } else {
@@ -473,6 +489,26 @@ export default function OpportunityDetailPage() {
                    </div>
                 )}
 
+                {/* Fee Method Selection */}
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Fee Settlement Strategy</Label>
+                  <Tabs value={feeMethod} onValueChange={(val: any) => setFeeMethod(val)} className="w-full">
+                    <TabsList className="grid grid-cols-2 bg-black/40 border border-white/5 p-1 h-14 rounded-2xl">
+                      <TabsTrigger value="upfront" className="rounded-xl font-bold gap-2 data-[state=active]:bg-primary">
+                        <Coins className="w-4 h-4" /> Pay Direct
+                      </TabsTrigger>
+                      <TabsTrigger value="payout" className="rounded-xl font-bold gap-2 data-[state=active]:bg-primary">
+                        <History className="w-4 h-4" /> Deduct from Payout
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-[9px] text-muted-foreground italic ml-2">
+                    {feeMethod === 'upfront' 
+                      ? "Signal fee will be debited from your liquid wallet balance immediately." 
+                      : "Signal fee will be automatically deducted from your final mission yield upon verification."}
+                  </p>
+                </div>
+
                 {isTask ? (
                   renderProofInput(opportunity.data.proof_method)
                 ) : (
@@ -542,8 +578,11 @@ export default function OpportunityDetailPage() {
                       <div className="flex items-center gap-2">
                          <span className="text-muted-foreground">Network Signal Fee</span>
                          <Badge variant="outline" className="h-4 px-1 text-[8px] border-white/10 text-muted-foreground uppercase">{user?.current_tier?.display_label || 'Standard'}</Badge>
+                         {feeMethod === 'payout' && <Badge className="h-4 px-1 text-[8px] bg-amber-500/10 text-amber-500 border-none uppercase">Deferred</Badge>}
                       </div>
-                      <span className="text-foreground">{signalFee.toLocaleString()} SAT</span>
+                      <span className={cn(feeMethod === 'payout' ? "text-muted-foreground line-through" : "text-foreground")}>
+                        {signalFee.toLocaleString()} SAT
+                      </span>
                     </div>
                     {isBoosted && (
                       <div className="flex justify-between text-xs font-bold text-secondary uppercase tracking-widest">
@@ -619,7 +658,7 @@ export default function OpportunityDetailPage() {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Skills Signal</p>
                 <div className="flex flex-wrap gap-2">
                   {(opportunity.data.skills || []).map((skill: any, idx: number) => (
-                    <Badge key={skill.id || skill.name || idx} variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
+                    <Badge key={skill.id || skill.name || idx} variant="secondary" className="bg-white/5 text-muted-foreground border-white/10 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
                       {skill.name}
                     </Badge>
                   ))}
@@ -645,3 +684,4 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
+
