@@ -20,7 +20,8 @@ import {
   Sparkles,
   Search,
   Network,
-  Activity
+  Activity,
+  Wrench
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -105,69 +106,100 @@ export default function LandingPage() {
       <section id="missions" className="py-32 px-8 max-w-7xl mx-auto space-y-20">
         <div className="text-center space-y-4">
           <h2 className="text-4xl md:text-6xl font-headline font-bold">The E-Job Engine</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">GigaLight powers two distinct mission classes to maximize node utilization and professional yield potential.</p>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">GigaLight powers three distinct mission classes to maximize node utilization and professional yield potential.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Micro Gigs */}
-          <div className="glass-card p-12 rounded-[3rem] space-y-8 hover:border-primary/40 transition-all relative overflow-hidden group">
+          <div className="glass-card p-10 rounded-[3rem] space-y-8 hover:border-primary/40 transition-all relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-20 transition-opacity">
-              <Zap className="w-48 h-48 text-primary" />
+              <Zap className="w-32 h-32 text-primary" />
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-xl">
-              <Zap className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-primary shadow-xl">
+              <Zap className="w-7 h-7" />
             </div>
             <div className="space-y-4">
-              <h3 className="text-4xl font-headline font-bold">Micro Missions</h3>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                High-volume, technical electronic tasks for rapid scaling. Audit documentation, verify code snippets, or validate protocol signals in minutes.
+              <h3 className="text-3xl font-headline font-bold">Micro Missions</h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                High-volume, technical electronic tasks for rapid scaling. Audit documentation or verify code in minutes.
               </p>
             </div>
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {[
                 "Instant L2 SAT release",
                 "AI Submission Audit",
                 "Low barrier to entry",
                 "Reputation-building path"
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-primary/80">
-                  <CheckCircle className="w-5 h-5 text-primary" /> {item}
+                <li key={i} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-primary/80">
+                  <CheckCircle className="w-4 h-4 text-primary" /> {item}
                 </li>
               ))}
             </ul>
-            <Button asChild className="w-full h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold text-lg">
+            <Button asChild className="w-full h-14 rounded-2xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all font-bold text-sm">
                <Link href="/market?tab=tasks">Discover Gigs</Link>
             </Button>
           </div>
 
           {/* Strategic Projects */}
-          <div className="glass-card p-12 rounded-[3rem] space-y-8 hover:border-secondary/40 transition-all relative overflow-hidden group">
+          <div className="glass-card p-10 rounded-[3rem] space-y-8 hover:border-secondary/40 transition-all relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-20 transition-opacity">
-              <Briefcase className="w-48 h-48 text-secondary" />
+              <Briefcase className="w-32 h-32 text-secondary" />
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary shadow-xl">
-              <Briefcase className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary shadow-xl">
+              <Briefcase className="w-7 h-7" />
             </div>
             <div className="space-y-4">
-              <h3 className="text-4xl font-headline font-bold">Strategic Projects</h3>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Long-term, milestone-based objectives for elite E-Job specialists. Architect L2 infrastructure, design secure protocols, or lead network squads.
+              <h3 className="text-3xl font-headline font-bold">Strategic Projects</h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Long-term, milestone-based objectives for elite specialists. Architect L2 infrastructure and design protocols.
               </p>
             </div>
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {[
                 "Multi-sig Escrow Security",
                 "Milestone-based Settlement",
                 "Direct Client Link",
                 "High-intensity SAT yields"
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm font-bold uppercase tracking-widest text-secondary/80">
-                  <CheckCircle className="w-5 h-5 text-secondary" /> {item}
+                <li key={i} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-secondary/80">
+                  <CheckCircle className="w-4 h-4 text-secondary" /> {item}
                 </li>
               ))}
             </ul>
-            <Button asChild className="w-full h-16 rounded-2xl bg-secondary/10 border border-secondary/20 text-secondary hover:bg-secondary hover:text-white transition-all font-bold text-lg">
+            <Button asChild className="w-full h-14 rounded-2xl bg-secondary/10 border border-secondary/20 text-secondary hover:bg-secondary hover:text-white transition-all font-bold text-sm">
                <Link href="/market?tab=projects">Discover Projects</Link>
+            </Button>
+          </div>
+
+          {/* Expert Services */}
+          <div className="glass-card p-10 rounded-[3rem] space-y-8 hover:border-emerald-500/40 transition-all relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-20 transition-opacity">
+              <Wrench className="w-32 h-32 text-emerald-400" />
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-xl">
+              <Wrench className="w-7 h-7" />
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-3xl font-headline font-bold">Expert Services</h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Propagate your specialized capability directly. Let clients commission your node for dedicated expertise.
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                "Verified expertise signal",
+                "Direct commission node",
+                "Global technical visibility",
+                "Trust-indexed reputation"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-emerald-400/80">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" /> {item}
+                </li>
+              ))}
+            </ul>
+            <Button asChild className="w-full h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all font-bold text-sm">
+               <Link href="/market?tab=services">Discover Services</Link>
             </Button>
           </div>
         </div>
@@ -302,7 +334,7 @@ export default function LandingPage() {
             <ul className="space-y-4 text-sm text-muted-foreground font-medium">
               <li><Link href="/market?tab=tasks" className="hover:text-primary transition-colors">Micro Gigs</Link></li>
               <li><Link href="/market?tab=projects" className="hover:text-primary transition-colors">Strategic Projects</Link></li>
-              <li><Link href="/market" className="hover:text-primary transition-colors">Discovery Interface</Link></li>
+              <li><Link href="/market?tab=services" className="hover:text-primary transition-colors">Expert Services</Link></li>
               <li><Link href="/jobs" className="hover:text-primary transition-colors">Career Nodes</Link></li>
             </ul>
           </div>
