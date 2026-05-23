@@ -47,13 +47,14 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
 
   useEffect(() => {
     // Initialize Countdown
-    const expiresAt = new Date(paymentData.expires_at).getTime();
     const updateTimer = () => {
+      const expiresAt = new Date(paymentData.expires_at).getTime();
       const now = new Date().getTime();
       const diff = Math.floor((expiresAt - now) / 1000);
       if (diff <= 0) {
         setTimeLeft(0);
         setIsPolling(false);
+        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       } else {
         setTimeLeft(diff);
       }
@@ -61,7 +62,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
     updateTimer();
     countdownIntervalRef.current = setInterval(updateTimer, 1000);
 
-    // Initialize Polling using unified endpoint
+    // Initialize Polling
     pollingIntervalRef.current = setInterval(async () => {
       if (!isPolling) return;
       try {
@@ -71,6 +72,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
           setIsConfirmed(true);
           setConfirmedData(res.data);
           onSuccess(res.data);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         }
       } catch (e) {
         console.error("Signal verification failed", e);
@@ -98,7 +100,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
           <CheckCircle2 className="w-24 h-24 text-emerald-400" />
         </div>
         <div className="space-y-2">
-          <p className="text-4xl font-headline font-bold text-white">+{confirmedData?.amount_sats.toLocaleString()} SAT</p>
+          <p className="text-4xl font-headline font-bold text-white">+{confirmedData?.amount_sats.toLocaleString() || paymentData.amount_sats.toLocaleString()} SAT</p>
           <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Settlement Confirmed</p>
         </div>
         <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg" onClick={onCancel}>

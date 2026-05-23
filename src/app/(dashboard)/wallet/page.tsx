@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { WalletService, WithdrawDecodeResponse, WithdrawFeesResponse } from '@/services/wallet-service';
-import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse, DepositStatusResponse } from '@/lib/types';
+import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
   ArrowDownLeft, 
@@ -14,24 +14,19 @@ import {
   Zap, 
   Copy, 
   Check, 
-  QrCode, 
   Loader2,
   Clock,
   ExternalLink,
   ShieldCheck,
-  TrendingUp,
-  RefreshCcw,
+  RefreshCw,
   AlertCircle,
   Activity,
-  Layers,
-  Network,
   Database,
   Bitcoin,
   CheckCircle2,
-  ChevronRight,
+  ShieldAlert,
   Info,
-  Link as LinkIcon,
-  ShieldAlert
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,11 +35,13 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { PaymentSession } from '@/components/wallet/PaymentSession';
@@ -131,29 +128,34 @@ export default function WalletPage() {
     }
   }, []);
 
-  async function handleTargetBlur() {
-    if (!withdrawTarget) return;
+  const handleTargetChange = async (val: string) => {
+    setWithdrawTarget(val);
+    if (!val) {
+      cleanupWithdraw();
+      return;
+    }
+
     setIsDecoding(true);
     setFeeData(null);
     setDecodeData(null);
-    
+
     try {
-      const res = await WalletService.withdrawDecode(withdrawTarget);
+      const res = await WalletService.withdrawDecode(val);
       if (res.data) {
         setDecodeData(res.data);
         if (res.data.amount_sats) {
           setWithdrawAmount(res.data.amount_sats.toString());
-          calculateFees(withdrawTarget, res.data.amount_sats);
+          calculateFees(val, res.data.amount_sats);
+        } else {
+          setWithdrawAmount('');
         }
-      } else {
-        toast({ variant: "destructive", title: "Decoding Error", description: res.error || "Invalid settlement target." });
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Network Error", description: "Protocol gateway timeout." });
+      console.error("Decode failed", e);
     } finally {
       setIsDecoding(false);
     }
-  }
+  };
 
   const handleAmountChange = (val: string) => {
     setWithdrawAmount(val);
@@ -169,16 +171,14 @@ export default function WalletPage() {
   };
 
   async function handleConfirmWithdraw() {
-    if (!withdrawAmount || isNaN(parseInt(withdrawAmount))) {
-      toast({ variant: "destructive", title: "Invalid Amount", description: "Provide a valid Satoshi quantity." });
-      return;
-    }
+    if (!withdrawTarget) return;
+    const amountNum = withdrawAmount ? parseInt(withdrawAmount) : undefined;
 
     setIsProcessingWithdraw(true);
     try {
       const res = await WalletService.initiateWithdrawal(
         withdrawTarget, 
-        parseInt(withdrawAmount),
+        amountNum,
         withdrawMemo
       );
       if (res.data) {
@@ -255,7 +255,7 @@ export default function WalletPage() {
             onClick={() => fetchWalletData()}
             disabled={isRefreshing}
           >
-            <RefreshCcw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" />
           </Button>
           <Button 
             variant="outline" 
@@ -507,7 +507,7 @@ export default function WalletPage() {
                       </p>
                    </div>
                    <Button 
-                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-secondary/20"
+                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
                     onClick={handleGetOnchainAddress}
                     disabled={isLoadingOnchain}
                   >
@@ -520,7 +520,116 @@ export default function WalletPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdrawal Dialog... */}
+      {/* Withdrawal Dialog */}
+      <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
+        setIsWithdrawOpen(open);
+        if (!open) cleanupWithdraw();
+      }}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[480px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                  <ArrowUpRight className="w-6 h-6" />
+                </div>
+                Settlement Payout
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5">
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target (L1/L2)</Label>
+                <div className="relative group">
+                  <Input 
+                    placeholder="lnbc..., user@domain, LNURL..., bc1..." 
+                    className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-12 focus:ring-primary/40 text-xs font-mono"
+                    value={withdrawTarget}
+                    onChange={(e) => handleTargetChange(e.target.value)}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Zap className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />}
+                  </div>
+                  {decodeData && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <Badge className="bg-primary/10 text-primary text-[8px] border-none uppercase tracking-tighter">
+                        {decodeData.target_type.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(decodeData?.requires_amount || !decodeData) && (
+                <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Yield Quantity (SAT)</Label>
+                  <div className="relative">
+                    <Input 
+                      type="number"
+                      step="1"
+                      min="1"
+                      placeholder="Amount in SAT"
+                      className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 pr-12 focus:ring-primary/40"
+                      value={withdrawAmount}
+                      onChange={(e) => handleAmountChange(e.target.value)}
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SAT</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Protocol Audit Alerts */}
+              {feeData && !feeData.can_withdraw && (
+                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl animate-in zoom-in-95">
+                    <ShieldAlert className="h-4 w-4" />
+                    <AlertTitle className="text-[10px] font-bold uppercase tracking-widest">Protocol Warning</AlertTitle>
+                    <AlertDescription className="text-xs font-medium">
+                      {feeData.message || "Insufficient balance or invalid amount."}
+                    </AlertDescription>
+                 </Alert>
+              )}
+
+              {feeData && feeData.can_withdraw && (
+                <div className="bg-black/40 border border-white/10 rounded-[2rem] p-6 space-y-4 animate-in slide-in-from-bottom-2">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    <span>Protocol Audit</span>
+                    <span>{decodeData?.rail.toUpperCase()} RAIL</span>
+                  </div>
+                  <div className="space-y-2 border-t border-white/5 pt-4">
+                    <div className="flex justify-between items-center text-xs font-bold">
+                       <span className="text-muted-foreground">Recipient Yield</span>
+                       <span className="text-white">{feeData.amount_sats.toLocaleString()} SAT</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold">
+                       <span className="text-muted-foreground">Network Service Fee</span>
+                       <span className="text-primary">+{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
+                    </div>
+                    <div className="h-px bg-white/5 my-2" />
+                    <div className="flex justify-between items-end">
+                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Protocol Debit</span>
+                       <div className="text-right">
+                          <span className="text-2xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
+                          <span className="text-[8px] font-bold text-muted-foreground ml-1 uppercase">SAT</span>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Button 
+              className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20 gap-3"
+              disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees}
+              onClick={handleConfirmWithdraw}
+            >
+              {isProcessingWithdraw ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+              {isProcessingWithdraw ? "Propagating Signal..." : "Finalize Payout"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
