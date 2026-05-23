@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { WalletService, WithdrawDecodeResponse, WithdrawFeesResponse } from '@/services/wallet-service';
@@ -83,6 +82,7 @@ export default function WalletPage() {
   
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchWalletData = async (silent = false) => {
     if (!silent) setIsRefreshing(true);
@@ -102,6 +102,7 @@ export default function WalletPage() {
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
     };
   }, []);
 
@@ -169,6 +170,7 @@ export default function WalletPage() {
     setIsDecoding(false);
     setIsCalculatingFees(false);
     setIsProcessingWithdraw(false);
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
   };
 
   const formatTime = (seconds: number) => {
@@ -177,7 +179,21 @@ export default function WalletPage() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Withdrawal logic
+  const calculateFees = useCallback(async (target: string, amount?: number) => {
+    if (!target) return;
+    setIsCalculatingFees(true);
+    try {
+      const res = await WalletService.withdrawFees(target, amount);
+      if (res.data) {
+        setFeeData(res.data);
+      }
+    } catch (e) {
+      console.error("Fee calc error", e);
+    } finally {
+      setIsCalculatingFees(false);
+    }
+  }, []);
+
   async function handleTargetBlur() {
     if (!withdrawTarget) return;
     setIsDecoding(true);
@@ -202,27 +218,30 @@ export default function WalletPage() {
     }
   }
 
-  async function calculateFees(target: string, amount?: number) {
-    if (!target) return;
-    setIsCalculatingFees(true);
-    try {
-      const res = await WalletService.withdrawFees(target, amount);
-      if (res.data) {
-        setFeeData(res.data);
-      }
-    } catch (e) {
-      console.error("Fee calc error", e);
-    } finally {
-      setIsCalculatingFees(false);
+  const handleAmountChange = (val: string) => {
+    setWithdrawAmount(val);
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    
+    if (val && !isNaN(parseInt(val)) && withdrawTarget) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        calculateFees(withdrawTarget, parseInt(val));
+      }, 500);
+    } else {
+      setFeeData(null);
     }
-  }
+  };
 
   async function handleConfirmWithdraw() {
+    if (!withdrawAmount || isNaN(parseInt(withdrawAmount))) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Provide a valid Satoshi quantity." });
+      return;
+    }
+
     setIsProcessingWithdraw(true);
     try {
       const res = await WalletService.initiateWithdrawal(
         withdrawTarget, 
-        withdrawAmount ? parseInt(withdrawAmount) : undefined,
+        parseInt(withdrawAmount),
         withdrawMemo
       );
       if (res.data) {
@@ -241,9 +260,15 @@ export default function WalletPage() {
   }
 
   async function handleGenerateInvoice() {
+    const amountNum = parseInt(depositAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Deposit must be a positive integer." });
+      return;
+    }
+
     setIsGeneratingInvoice(true);
     try {
-      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount), "Gigalight deposit", 3600);
+      const res = await WalletService.generateDepositInvoice(amountNum, "Gigalight deposit", 3600);
       if (res.data) {
         setInvoiceData(res.data);
         setIsPolling(true);
@@ -360,9 +385,9 @@ export default function WalletPage() {
                         <div>
                           <p className="font-bold text-sm group-hover:text-white transition-colors">{tx.description}</p>
                           <div className="flex items-center gap-2 mt-1">
-                             <Badge variant="ghost" className={cn(
-                               "text-[9px] uppercase font-bold tracking-widest px-0 h-auto",
-                               tx.status === 'confirmed' ? "text-emerald-400" : tx.status === 'pending' ? "text-amber-500" : "text-destructive"
+                             <Badge variant="outline" className={cn(
+                               "text-[9px] uppercase font-bold tracking-widest px-1.5 h-4 border-none",
+                               tx.status === 'confirmed' ? "bg-emerald-500/10 text-emerald-400" : tx.status === 'pending' ? "bg-amber-500/10 text-amber-500" : "bg-destructive/10 text-destructive"
                              )}>
                                {tx.status_display || tx.status}
                              </Badge>
@@ -491,7 +516,9 @@ export default function WalletPage() {
                     <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
                     <div className="relative">
                       <Input 
-                        type="number" 
+                        type="number"
+                        step="1"
+                        min="1"
                         value={depositAmount} 
                         onChange={(e) => setDepositAmount(e.target.value)}
                         className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 focus:ring-secondary/40"
@@ -682,12 +709,11 @@ export default function WalletPage() {
                       <div className="relative group">
                         <Input 
                           type="number"
-                          placeholder="0.00"
+                          step="1"
+                          min="1"
+                          placeholder="Amount in Satoshis"
                           value={withdrawAmount}
-                          onChange={(e) => {
-                            setWithdrawAmount(e.target.value);
-                            if (e.target.value) calculateFees(withdrawTarget, parseInt(e.target.value));
-                          }}
+                          onChange={(e) => handleAmountChange(e.target.value)}
                           className="h-20 bg-white/5 border-white/10 text-4xl font-headline font-bold rounded-2xl focus:ring-primary/40 text-center focus:bg-white/10 transition-all"
                         />
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pointer-events-none opacity-50">SATOSHIS</div>

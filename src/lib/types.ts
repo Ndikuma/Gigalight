@@ -17,8 +17,21 @@ export interface User {
   projects_hired: number;
   total_earned: number;
   total_spent: number;
-  current_tier?: Partial<Tier>;
+  current_tier?: {
+    id: string;
+    name: string;
+    display_label: string;
+    fee_task: number;
+    fee_project: number;
+    cost_sats: number;
+    icon: string;
+  };
   profile: ProfileData;
+  wallet?: {
+    available_balance: number;
+    pending_balance: number;
+    total_rewarded: number;
+  };
   membership?: {
     tier: {
       id: string;

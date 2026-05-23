@@ -170,7 +170,7 @@ export default function SettingsPage() {
   }
 
   async function handleUpgrade(tier: Tier) {
-    const isActive = user?.current_tier?.id === tier.id || user?.tier === tier.id;
+    const isActive = user?.current_tier?.id === tier.id;
     if (isActive) {
        toast({ title: "Tier Active", description: "Your node is already operating at this protocol level." });
        return;
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 justify-center sm:justify-start">
                       <h4 className="font-bold">Protocol Avatar</h4>
                       <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] font-bold tracking-widest">
-                        {user.current_tier?.display_label || tiers.find(t => t.id === user.tier)?.display_label || 'Standard'} Node
+                        {user.current_tier?.display_label || 'Standard'} Node
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
@@ -333,7 +333,7 @@ export default function SettingsPage() {
               <CardContent className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {tiers.map((tier) => {
-                    const isActive = user?.current_tier?.id === tier.id || user?.tier === tier.id;
+                    const isActive = user?.current_tier?.id === tier.id;
                     return (
                       <div key={tier.id} className={cn(
                         "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-auto min-h-[320px] relative overflow-hidden group",

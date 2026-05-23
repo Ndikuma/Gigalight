@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -28,9 +27,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { ProfileService } from '@/services/profile-service';
-import { WalletService } from '@/services/wallet-service';
 import { TaskService } from '@/services/task-service';
-import { User, Wallet as WalletType, TaskMini, TierPaymentResponse } from '@/lib/types';
+import { User, TaskMini, TierPaymentResponse } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { StarRating } from '@/components/ui/star-rating';
@@ -44,7 +42,6 @@ import {
 
 export default function DashboardHome() {
   const [profile, setProfile] = useState<User | null>(null);
-  const [wallet, setWallet] = useState<WalletType | null>(null);
   const [tasks, setTasks] = useState<TaskMini[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [nodeStatus, setNodeStatus] = useState<'active' | 'syncing'>('active');
@@ -63,14 +60,12 @@ export default function DashboardHome() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const [profRes, walletRes, taskRes] = await Promise.all([
+        const [profRes, taskRes] = await Promise.all([
           ProfileService.getMyProfile(),
-          WalletService.getWallet(),
           TaskService.getTasks({ page_size: 3 })
         ]);
 
         if (profRes.data) setProfile(profRes.data);
-        if (walletRes.data) setWallet(walletRes.data);
         if (taskRes.data && Array.isArray(taskRes.data.results)) {
           setTasks(taskRes.data.results);
         } else {
@@ -258,20 +253,20 @@ export default function DashboardHome() {
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           label="Available Liquidity" 
-          value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} 
+          value={`${(profile?.wallet?.available_balance || 0).toLocaleString()} SAT`} 
           icon={Wallet} 
           subValue="Ready for Release"
           color="primary"
         />
         <StatCard 
           label="Pending Verification" 
-          value={`${(wallet?.pending_balance || 0).toLocaleString()} SAT`} 
+          value={`${(profile?.wallet?.pending_balance || 0).toLocaleString()} SAT`} 
           icon={ShieldCheck} 
           color="emerald"
         />
         <StatCard 
           label="Lifetime Revenue" 
-          value={`${(wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
+          value={`${(profile?.wallet?.total_rewarded || 0).toLocaleString()} SAT`} 
           icon={Zap} 
           subValue="Platform Yield"
           color="secondary"
