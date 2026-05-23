@@ -40,6 +40,7 @@ import {
   DialogTitle, 
   DialogDescription
 } from '@/components/ui/dialog';
+import { PaymentSession } from '@/components/wallet/PaymentSession';
 
 type SettingsSection = 'identity' | 'tiers' | 'security';
 
@@ -57,12 +58,6 @@ export default function SettingsPage() {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentData, setPaymentData] = useState<TierPaymentResponse | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
-  const [hasCopied, setHasCopied] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -86,67 +81,11 @@ export default function SettingsPage() {
       }
     }
     fetchData();
-
-    return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    };
   }, [initialTab]);
-
-  useEffect(() => {
-    if (isPolling && paymentData?.transaction_id) {
-      pollingIntervalRef.current = setInterval(async () => {
-        try {
-          const res = await TierService.checkPaymentStatus(paymentData.transaction_id);
-          if (res.data?.is_complete || res.data?.status === 'confirmed') {
-            cleanupPayment();
-            setIsPaymentOpen(false);
-            toast({ 
-              title: "Activation Confirmed", 
-              description: `Your node has been upgraded to ${paymentData.tier?.display_label} Class.` 
-            });
-            // Refresh profile to update tier badge
-            const profRes = await ProfileService.getMyProfile();
-            if (profRes.data) setUser(profRes.data);
-          }
-        } catch (e) {
-          console.error("Polling error", e);
-        }
-      }, 3000);
-    }
-
-    return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    };
-  }, [isPolling, paymentData]);
-
-  useEffect(() => {
-    if (timeLeft !== null && timeLeft > 0) {
-      countdownIntervalRef.current = setInterval(() => {
-        setTimeLeft(prev => (prev && prev > 0 ? prev - 1 : 0));
-      }, 1000);
-    } else if (timeLeft === 0) {
-      cleanupPayment();
-      toast({ variant: "destructive", title: "Invoice Expired", description: "The L2 activation path has timed out." });
-    }
-
-    return () => {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    };
-  }, [timeLeft]);
 
   const cleanupPayment = () => {
     setPaymentData(null);
-    setIsPolling(false);
-    setTimeLeft(null);
-    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-  };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    setIsPaymentOpen(false);
   };
 
   if (!mounted) return null;
@@ -188,13 +127,6 @@ export default function SettingsPage() {
       if (res.data) {
         setPaymentData(res.data);
         setIsPaymentOpen(true);
-        setIsPolling(true);
-        
-        const expiresAt = new Date(res.data.expires_at).getTime();
-        const now = new Date().getTime();
-        const initialSeconds = Math.floor((expiresAt - now) / 1000);
-        setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
-
         toast({ title: "Invoice Propagated", description: `Waiting for ${tier.display_label} activation signal.` });
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
@@ -205,6 +137,16 @@ export default function SettingsPage() {
       setIsGeneratingInvoice(false);
     }
   }
+
+  const handleSuccess = async () => {
+    toast({ 
+      title: "Activation Confirmed", 
+      description: `Your node has been upgraded to ${paymentData?.tier?.display_label} Class.` 
+    });
+    // Refresh profile to update tier badge
+    const profRes = await ProfileService.getMyProfile();
+    if (profRes.data) setUser(profRes.data);
+  };
 
   const navItems = [
     { id: 'identity', label: 'Identity', icon: User, desc: 'Profile & Bio' },
@@ -446,11 +388,11 @@ export default function SettingsPage() {
         setIsPaymentOpen(open);
         if (!open) cleanupPayment();
       }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0">
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
           <div className="p-8 space-y-6">
             <DialogHeader className="p-0">
               <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
                   <Zap className="w-6 h-6" />
                 </div>
                 Activation Path
@@ -461,61 +403,13 @@ export default function SettingsPage() {
             </DialogHeader>
 
             {paymentData && (
-              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
-                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
-                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                    <img 
-                      src={paymentData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentData.payment_request)}`} 
-                      alt="Activation QR" 
-                      className="w-full h-full object-contain" 
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
-                    <Activity className="w-3 h-3 text-secondary animate-pulse" />
-                    <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting Activation Signal</span>
-                  </div>
-                  <p className="text-2xl font-headline font-bold text-white">{paymentData.amount_sats.toLocaleString()} SAT</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
-                    <span className="text-muted-foreground">Session Expiry</span>
-                    <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-secondary")}>
-                      <Clock className="w-3 h-3" />
-                      {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
-                    <div className="flex-1 text-left">
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
-                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
-                        {paymentData.payment_request.substring(0, 12)}...{paymentData.payment_request.substring(paymentData.payment_request.length - 12)}
-                      </p>
-                    </div>
-                    <Button 
-                      size="icon" 
-                      variant="secondary" 
-                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
-                      onClick={() => {
-                         navigator.clipboard.writeText(paymentData.payment_request);
-                         setHasCopied(true);
-                         setTimeout(() => setHasCopied(false), 2000);
-                         toast({ title: "Signal Copied to Node" });
-                      }}
-                    >
-                      {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupPayment}>
-                  Abort Activation Path
-                </Button>
-              </div>
+              <PaymentSession 
+                paymentData={paymentData}
+                title="Tier Activation"
+                type="tier"
+                onSuccess={handleSuccess}
+                onCancel={cleanupPayment}
+              />
             )}
           </div>
         </DialogContent>
