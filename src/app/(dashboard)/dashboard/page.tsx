@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -463,7 +464,11 @@ export default function DashboardHome() {
               <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
                 <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/20 border-8 border-emerald-500/10 relative overflow-hidden group">
                   <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                    <img src={paymentData.qr_code} alt="Validator QR" className="w-full h-full object-contain" />
+                    <img 
+                      src={paymentData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentData.payment_request)}`} 
+                      alt="Validator QR" 
+                      className="w-full h-full object-contain" 
+                    />
                   </div>
                 </div>
 

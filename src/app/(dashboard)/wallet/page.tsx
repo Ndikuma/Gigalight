@@ -59,7 +59,7 @@ export default function WalletPage() {
   const [depositMethod, setDepositMethod] = useState<'lightning' | 'onchain'>('lightning');
   const [depositAmount, setDepositAmount] = useState('5000');
   const [invoiceData, setInvoiceData] = useState<DepositInvoiceResponse | null>(null);
-  const [onchainData, setOnchainData] = useState<{ bitcoin_address: string, qr_code: string } | null>(null);
+  const [onchainData, setOnchainData] = useState<{ bitcoin_address: string, qr_code?: string } | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
@@ -274,7 +274,7 @@ export default function WalletPage() {
         setInvoiceData(res.data);
         setIsPolling(true);
         const expiresAt = new Date(res.data.expires_at).getTime();
-        const now = new Date().getTime();
+        now = new Date().getTime();
         const initialSeconds = Math.floor((expiresAt - now) / 1000);
         setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
         toast({ title: "Invoice Propagated", description: "Waiting for L2 signal." });
@@ -546,7 +546,7 @@ export default function WalletPage() {
                       </p>
                    </div>
                    <Button 
-                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
+                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-secondary/20"
                     onClick={handleGetOnchainAddress}
                     disabled={isLoadingOnchain}
                   >
@@ -557,7 +557,11 @@ export default function WalletPage() {
             ) : invoiceData ? (
               <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
                 <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden bg-white">
-                  <img src={invoiceData.qr_code} alt="Invoice QR" className="w-48 h-48 object-contain" />
+                  <img 
+                    src={invoiceData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(invoiceData.payment_request)}`} 
+                    alt="Invoice QR" 
+                    className="w-48 h-48 object-contain" 
+                  />
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
@@ -598,7 +602,11 @@ export default function WalletPage() {
             ) : onchainData ? (
                <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
                 <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden bg-white">
-                  <img src={onchainData.qr_code} alt="Onchain Address QR" className="w-48 h-48 object-contain" />
+                  <img 
+                    src={onchainData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(onchainData.bitcoin_address)}`} 
+                    alt="Onchain Address QR" 
+                    className="w-48 h-48 object-contain" 
+                  />
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">

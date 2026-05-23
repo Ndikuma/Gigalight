@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -463,7 +464,11 @@ export default function SettingsPage() {
               <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
                 <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
                   <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                    <img src={paymentData.qr_code} alt="Activation QR" className="w-full h-full object-contain" />
+                    <img 
+                      src={paymentData.qr_code || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paymentData.payment_request)}`} 
+                      alt="Activation QR" 
+                      className="w-full h-full object-contain" 
+                    />
                   </div>
                 </div>
 
