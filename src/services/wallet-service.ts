@@ -1,3 +1,4 @@
+
 'use client';
 
 import { api } from '@/lib/api-client';
@@ -13,7 +14,7 @@ export interface BitcoinAddressResponse {
 }
 
 export interface WithdrawDecodeResponse {
-  target_type: 'lightning_invoice' | 'lightning_address' | 'bitcoin_address';
+  target_type: 'lightning_invoice' | 'lightning_address' | 'lnurl' | 'bitcoin_address';
   rail: 'lightning' | 'bitcoin';
   amount_sats: number | null;
   requires_amount: boolean;

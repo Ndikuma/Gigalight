@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -28,7 +29,9 @@ import {
   Bitcoin,
   CheckCircle2,
   ChevronRight,
-  Info
+  Info,
+  Link as LinkIcon,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -187,7 +190,6 @@ export default function WalletPage() {
         setDecodeData(res.data);
         if (res.data.amount_sats) {
           setWithdrawAmount(res.data.amount_sats.toString());
-          // Auto-calculate fees if amount is known from invoice
           calculateFees(withdrawTarget, res.data.amount_sats);
         }
       } else {
@@ -201,6 +203,7 @@ export default function WalletPage() {
   }
 
   async function calculateFees(target: string, amount?: number) {
+    if (!target) return;
     setIsCalculatingFees(true);
     try {
       const res = await WalletService.withdrawFees(target, amount);
@@ -545,17 +548,17 @@ export default function WalletPage() {
                   <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
                     <div className="flex-1 text-left">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace</p>
-                      <p className="text-[11px] font-mono text-white/70 truncate">{invoiceData.payment_request}</p>
+                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">{invoiceData.payment_request}</p>
                     </div>
                     <Button 
                       size="icon" 
                       variant="secondary" 
-                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary"
+                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
                       onClick={() => {
                          navigator.clipboard.writeText(invoiceData.payment_request);
                          setHasCopied(true);
                          setTimeout(() => setHasCopied(false), 2000);
-                         toast({ title: "Signal Copied" });
+                         toast({ title: "Signal Copied to Node" });
                       }}
                     >
                       {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
@@ -584,151 +587,205 @@ export default function WalletPage() {
                     <Button 
                       size="icon" 
                       variant="outline" 
-                      className="h-10 w-10 shrink-0 rounded-xl border-primary/20 text-primary"
+                      className="h-10 w-10 shrink-0 rounded-xl border-primary/20 text-primary hover:scale-105 transition-transform"
                       onClick={() => {
                          navigator.clipboard.writeText(onchainData.bitcoin_address);
                          setHasCopied(true);
                          setTimeout(() => setHasCopied(false), 2000);
-                         toast({ title: "Address Copied" });
+                         toast({ title: "L1 Address Copied" });
                       }}
                     >
                       {hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>Return</Button>
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>Return to Interface</Button>
               </div>
             ) : null}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Withdrawal Dialog - Re-engineered for new workflow */}
+      {/* Withdrawal Dialog - RE-ENGINEERED 3-STEP FLOW */}
       <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
         setIsWithdrawOpen(open);
         if (!open) cleanupWithdraw();
       }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[480px] rounded-[2.5rem] overflow-hidden p-0">
+        <DialogContent className="glass-card border-white/10 sm:max-w-[500px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
           <div className="p-8 space-y-6">
             <DialogHeader className="p-0">
-              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                  <ArrowUpRight className="w-6 h-6" />
-                </div>
-                Yield Payout
-              </DialogTitle>
+              <div className="flex items-center justify-between mb-2">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                      <ArrowUpRight className="w-6 h-6" />
+                    </div>
+                    <DialogTitle className="text-2xl font-headline font-bold">Yield Payout</DialogTitle>
+                 </div>
+                 {decodeData && (
+                    <Badge className={cn(
+                      "uppercase text-[8px] font-bold tracking-[0.2em] px-3 py-1 border-none shadow-sm",
+                      decodeData.rail === 'lightning' ? "bg-secondary text-white" : "bg-primary text-white"
+                    )}>
+                      {decodeData.rail === 'lightning' ? <Zap className="w-2.5 h-2.5 mr-1.5" /> : <Database className="w-2.5 h-2.5 mr-1.5" />}
+                      {decodeData.rail} Protocol
+                    </Badge>
+                 )}
+              </div>
               <DialogDescription className="text-sm">
-                Settlement propagation for external L2 nodes or L1 addresses.
+                Propagate decentralized yields to external technical nodes or on-chain addresses.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* STEP 1: DECODE TARGET */}
               <div className="space-y-3">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target</Label>
                 <div className="relative group">
                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                      {isDecoding ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <Network className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />}
+                      {isDecoding ? (
+                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                      ) : (
+                        <LinkIcon className={cn(
+                          "w-4 h-4 transition-colors",
+                          decodeData ? "text-primary" : "text-muted-foreground group-focus-within:text-primary"
+                        )} />
+                      )}
                    </div>
                    <Input 
-                    placeholder="lnbc..., user@address.com, or bc1..." 
+                    placeholder="lnbc..., user@addr, lnurl..., or bc1..." 
                     value={withdrawTarget}
                     onChange={(e) => setWithdrawTarget(e.target.value)}
                     onBlur={handleTargetBlur}
-                    className="h-14 bg-white/5 border-white/10 text-xs font-mono pl-12 rounded-2xl focus:ring-primary/40"
+                    className="h-14 bg-white/5 border-white/10 text-xs font-mono pl-12 rounded-2xl focus:ring-primary/40 focus:bg-white/10 transition-all"
                   />
                   {decodeData && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[8px] font-bold uppercase tracking-tighter">
-                          {decodeData.target_type.replace('_', ' ')}
-                       </Badge>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                       <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                          <Check className="w-3 h-3" />
+                       </div>
                     </div>
                   )}
                 </div>
+                {decodeData && (
+                  <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] ml-1 animate-in slide-in-from-left-2">
+                    IDENTIFIED: {decodeData.target_type.replace('_', ' ')}
+                  </p>
+                )}
               </div>
 
+              {/* STEP 2: QUANTITY SELECTION */}
               {decodeData && (
-                <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                <div className="space-y-6 animate-in slide-in-from-top-4 duration-500">
                   {decodeData.requires_amount && (
                     <div className="space-y-3">
                       <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity to Release (SAT)</Label>
-                      <div className="relative">
+                      <div className="relative group">
                         <Input 
                           type="number"
-                          placeholder="Amount in SAT"
+                          placeholder="0.00"
                           value={withdrawAmount}
                           onChange={(e) => {
                             setWithdrawAmount(e.target.value);
                             if (e.target.value) calculateFees(withdrawTarget, parseInt(e.target.value));
                           }}
-                          className="h-16 bg-white/5 border-white/10 text-2xl font-headline font-bold rounded-2xl focus:ring-primary/40"
+                          className="h-20 bg-white/5 border-white/10 text-4xl font-headline font-bold rounded-2xl focus:ring-primary/40 text-center focus:bg-white/10 transition-all"
                         />
-                         <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SATOSHIS</div>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest pointer-events-none opacity-50">SATOSHIS</div>
                       </div>
                     </div>
                   )}
 
-                  {feeData && (
-                    <div className="bg-black/40 border border-white/10 rounded-2xl p-6 space-y-4 shadow-inner">
-                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        <span>Propagation Breakdown</span>
-                        <span className="text-primary flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> VERIFIED</span>
+                  {/* STEP 3: AUDIT & BREAKDOWN */}
+                  {feeData ? (
+                    <div className="bg-black/40 border border-white/10 rounded-3xl p-6 space-y-4 shadow-inner relative overflow-hidden group/audit">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover/audit:opacity-10 transition-opacity">
+                         <ShieldCheck className="w-20 h-20" />
                       </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Settlement Audit</span>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[8px] font-bold uppercase tracking-widest h-5">
+                          <TrendingUp className="w-2.5 h-2.5 mr-1" /> Estimated
+                        </Badge>
+                      </div>
+                      
                       <div className="space-y-3">
                         <div className="flex justify-between text-xs font-medium">
-                          <span className="text-muted-foreground">Recipient Release</span>
+                          <span className="text-muted-foreground">Recipient Yield</span>
                           <span className="text-white font-bold">{feeData.amount_sats.toLocaleString()} SAT</span>
                         </div>
                         <div className="flex justify-between text-xs font-medium">
                           <span className="text-muted-foreground">Protocol/Network Fee</span>
-                          <span className="text-white font-bold">{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
+                          <span className="text-white font-bold">+{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
                         </div>
-                        <div className="h-px bg-white/5" />
-                        <div className="flex justify-between items-end">
-                           <span className="text-xs font-bold text-primary uppercase tracking-widest">Total Wallet Debit</span>
+                        <div className="h-px bg-white/5 my-2" />
+                        <div className="flex justify-between items-end pt-1">
+                           <div className="space-y-0.5">
+                              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Total Wallet Debit</span>
+                              <p className="text-[8px] text-muted-foreground uppercase">SAT Settled on L2/L1</p>
+                           </div>
                            <div className="text-right">
-                              <span className="text-2xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
-                              <span className="text-[10px] font-bold text-white/40 ml-1.5">SAT</span>
+                              <span className="text-3xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
+                              <span className="text-[10px] font-bold text-white/40 ml-2">SAT</span>
                            </div>
                         </div>
                       </div>
+
                       {!feeData.can_withdraw && (
-                        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold uppercase border border-destructive/20 mt-2">
-                           <AlertCircle className="w-3.5 h-3.5" /> Insufficient Liquid Balance
+                        <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 text-destructive text-[10px] font-bold uppercase border border-destructive/20 mt-4 animate-pulse">
+                           <ShieldAlert className="w-4 h-4" /> 
+                           <span>Insufficient liquid balance for this propagation</span>
                         </div>
                       )}
                     </div>
-                  )}
+                  ) : isCalculatingFees ? (
+                    <div className="h-40 bg-white/5 border border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3 animate-pulse">
+                       <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Auditing Path Fees...</p>
+                    </div>
+                  ) : null}
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Memo (Optional)</Label>
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Memo (Verification Note)</Label>
                     <Input 
                       value={withdrawMemo}
                       onChange={(e) => setWithdrawMemo(e.target.value)}
-                      className="h-12 bg-white/5 border-white/10 rounded-xl text-sm"
+                      placeholder="Reference identifier..."
+                      className="h-12 bg-white/5 border-white/10 rounded-xl text-sm focus:ring-primary/40"
                     />
                   </div>
 
                   <Button 
-                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
-                    disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees}
+                    className="w-full h-18 rounded-[2rem] bg-primary hover:brightness-110 font-bold text-xl neon-glow-primary shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                    disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees || !withdrawAmount}
                     onClick={handleConfirmWithdraw}
                   >
                     {isProcessingWithdraw ? (
                       <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Finalizing Release...
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        Propagating Release...
                       </div>
-                    ) : 'Propagate Settlement'}
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        Propagate Settlement <ArrowUpRight className="w-6 h-6" />
+                      </div>
+                    )}
                   </Button>
                 </div>
               )}
 
+              {/* EMPTY STATE / INITIAL VIEW */}
               {!decodeData && !isDecoding && (
-                <div className="p-6 bg-white/5 border border-dashed border-white/10 rounded-2xl flex flex-col items-center gap-3 text-center">
-                  <Info className="w-8 h-8 text-muted-foreground/20" />
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                    Input a valid settlement target to begin the propagation protocol.
-                  </p>
+                <div className="py-20 bg-white/5 border border-dashed border-white/10 rounded-[2rem] flex flex-col items-center gap-4 text-center px-10 group/initial">
+                  <div className="w-16 h-16 rounded-2xl bg-card border border-white/5 flex items-center justify-center group-hover/initial:border-primary/30 transition-colors shadow-inner">
+                    <Info className="w-8 h-8 text-muted-foreground/30 group-hover/initial:text-primary/50 transition-colors" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-white uppercase tracking-widest">Awaiting Verification Signal</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed uppercase tracking-widest font-medium">
+                      Input a Lightning Invoice, LNURL Pay, or Bitcoin Address to establish a settlement path.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
