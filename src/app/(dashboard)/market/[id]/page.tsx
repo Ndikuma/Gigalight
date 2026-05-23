@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'react-router-dom'; // Note: User code used next/navigation but the imports in the file were standard. I'll stick to the original structure.
 import { 
   Zap, 
   Briefcase, 
@@ -26,7 +26,9 @@ import {
   ChevronRight,
   Target,
   CheckCircle2,
-  History
+  History,
+  Wrench,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,9 +45,16 @@ import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
-import { User, ProjectDetail } from '@/lib/types';
+import { ServiceService } from '@/services/service-service';
+import { User, ProjectDetail, ProfessionalService } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function OpportunityDetailPage() {
   const { id } = useParams();
@@ -58,6 +67,8 @@ export default function OpportunityDetailPage() {
   const [opportunity, setOpportunity] = useState<{ data: any, type: 'task' | 'project' } | null>(null);
   const [workbench, setWorkbench] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [myServices, setMyServices] = useState<ProfessionalService[]>([]);
+  const [selectedService, setSelectedService] = useState<ProfessionalService | null>(null);
 
   const [proofText, setProofText] = useState('');
   const [bidAmount, setBidAmount] = useState('');
@@ -69,13 +80,15 @@ export default function OpportunityDetailPage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [taskRes, projectRes, profRes] = await Promise.all([
+        const [taskRes, projectRes, profRes, servicesRes] = await Promise.all([
           TaskService.getTask(id as string),
           ProjectService.getProject(id as string),
-          ProfileService.getMyProfile()
+          ProfileService.getMyProfile(),
+          ServiceService.getMyServices()
         ]);
 
         if (profRes.data) setUser(profRes.data);
+        if (servicesRes.data) setMyServices(servicesRes.data);
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
@@ -119,7 +132,11 @@ export default function OpportunityDetailPage() {
   }
 
   const isTask = opportunity.type === 'task';
-  const signalFee = isTask ? 50 : 250;
+  
+  // Calculate fees based on current tier
+  const tier = user?.current_tier;
+  const baseSignalFee = isTask ? (tier?.fee_task ?? 50) : (tier?.fee_project ?? 250);
+  const signalFee = baseSignalFee;
   const totalUpfront = signalFee + (isBoosted ? 500 : 0);
 
   const formatBudget = (budget: any) => {
@@ -148,10 +165,10 @@ export default function OpportunityDetailPage() {
         opportunity: {
           type: 'project',
           title: opportunity.data.title,
-          description: (opportunity.data as ProjectDetail).description,
-          requirements: (opportunity.data as ProjectDetail).requirements || "Professional execution required.",
+          description: opportunity.data.description,
+          requirements: opportunity.data.requirements || "Professional execution required.",
           skills: [],
-          experienceLevel: (opportunity.data as ProjectDetail).experience_level,
+          experienceLevel: opportunity.data.experience_level,
         }
       });
       setProposalText(result.proposalText);
@@ -171,12 +188,14 @@ export default function OpportunityDetailPage() {
         if (workbench?.next_subtask) {
           res = await TaskService.submitProof(opportunity.data.id, {
             subtask_id: workbench.next_subtask.id,
-            proof_text: proofText
-          });
+            proof_text: proofText,
+            attached_service: selectedService?.id
+          } as any);
         } else {
           res = await TaskService.submitProof(opportunity.data.id, {
-            proof_text: proofText
-          });
+            proof_text: proofText,
+            attached_service: selectedService?.id
+          } as any);
         }
       } else {
         res = await BidService.submitBid({
@@ -184,7 +203,8 @@ export default function OpportunityDetailPage() {
           amount: parseInt(bidAmount),
           proposal_text: proposalText,
           signal_fee: signalFee,
-          is_boosted: isBoosted
+          is_boosted: isBoosted,
+          attached_service: selectedService?.id
         });
       }
 
@@ -294,7 +314,7 @@ export default function OpportunityDetailPage() {
             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Validated Performance</span>
           </div>
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <Trophy className="w-3.5 h-3.5 mr-2" /> Protocol Tier: {user?.tier || 'Standard'}
+            <Trophy className="w-3.5 h-3.5 mr-2" /> Protocol Tier: {user?.current_tier?.display_label || 'Standard'}
           </Badge>
         </div>
       </div>
@@ -365,8 +385,8 @@ export default function OpportunityDetailPage() {
                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                          <History className="w-3 h-3" /> Technical Signal History
                        </p>
-                       {workbench.submissions.map((sub: any) => (
-                         <div key={sub.id} className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group">
+                       {workbench.submissions.map((sub: any, idx: number) => (
+                         <div key={sub.id || idx} className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group">
                             <div className="flex items-center gap-3">
                                <div className={cn(
                                  "w-8 h-8 rounded-lg flex items-center justify-center border",
@@ -446,6 +466,43 @@ export default function OpportunityDetailPage() {
                 </h3>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
+                {/* Expert Service Attachment */}
+                {myServices.length > 0 && (
+                   <div className="space-y-3">
+                      <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Expertise Signal Attachment (Optional)</Label>
+                      <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="w-full h-14 bg-black/40 border-white/10 rounded-2xl justify-between px-6 hover:bg-white/5 font-bold transition-all group">
+                               <div className="flex items-center gap-3">
+                                  <Wrench className={cn("w-4 h-4", selectedService ? "text-emerald-400" : "text-muted-foreground")} />
+                                  <span className={selectedService ? "text-white" : "text-muted-foreground"}>
+                                     {selectedService ? selectedService.title : "Link Professional Offering..."}
+                                  </span>
+                               </div>
+                               <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-white" />
+                            </Button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent className="w-[calc(100vw-2rem)] sm:w-[500px] bg-card border-white/10 p-2 shadow-2xl max-h-80 overflow-y-auto">
+                            <DropdownMenuItem onClick={() => setSelectedService(null)} className="rounded-xl p-3 cursor-pointer focus:bg-white/5 mb-1">
+                               <div className="flex flex-col">
+                                  <span className="font-bold text-sm">No Attachment</span>
+                                  <span className="text-[10px] text-muted-foreground">Submit without a service link.</span>
+                               </div>
+                            </DropdownMenuItem>
+                            {myServices.map((service) => (
+                               <DropdownMenuItem key={service.id} onClick={() => setSelectedService(service)} className="rounded-xl p-3 cursor-pointer focus:bg-emerald-500/10 mb-1">
+                                  <div className="flex flex-col">
+                                     <span className="font-bold text-sm text-white">{service.title}</span>
+                                     <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{service.category} • {service.price_sats.toLocaleString()} SAT Base</span>
+                                  </div>
+                               </DropdownMenuItem>
+                            ))}
+                         </DropdownMenuContent>
+                      </DropdownMenu>
+                      <p className="text-[9px] text-muted-foreground italic ml-2">Attach a service to provide a stronger expertise signal to the mission auditor.</p>
+                   </div>
+                )}
+
                 {isTask ? (
                   renderProofInput(opportunity.data.proof_method)
                 ) : (
@@ -512,7 +569,10 @@ export default function OpportunityDetailPage() {
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
-                      <span className="text-muted-foreground">Network Signal Fee</span>
+                      <div className="flex items-center gap-2">
+                         <span className="text-muted-foreground">Network Signal Fee</span>
+                         <Badge variant="outline" className="h-4 px-1 text-[8px] border-white/10 text-muted-foreground uppercase">{user?.current_tier?.display_label || 'Standard'}</Badge>
+                      </div>
                       <span className="text-foreground">{signalFee.toLocaleString()} SAT</span>
                     </div>
                     {isBoosted && (
@@ -573,7 +633,7 @@ export default function OpportunityDetailPage() {
               <div className="space-y-5 border-t border-white/5 pt-8">
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-secondary" /> Mission Limit</span>
-                  <span className="text-foreground">{isTask ? "~15 MINS" : "LONG-TERM"}</span>
+                  <span className="text-white">{isTask ? "~15 MINS" : "LONG-TERM"}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Technical Class</span>
@@ -615,3 +675,4 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
+
