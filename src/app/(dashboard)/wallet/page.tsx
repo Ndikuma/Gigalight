@@ -35,8 +35,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -268,7 +267,7 @@ export default function WalletPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 sm:px-0">
         <div className="space-y-1">
           <h1 className="text-4xl font-headline font-bold">Financial Control</h1>
           <p className="text-muted-foreground">Manage your decentralized liquidity, technical yields, and L2 settlements.</p>
@@ -285,13 +284,13 @@ export default function WalletPage() {
           </Button>
           <Button 
             variant="outline" 
-            className="rounded-2xl bg-card border-white/5 gap-2 px-8 h-14 font-bold hover:bg-white/5"
+            className="rounded-2xl bg-card border-white/5 gap-2 px-6 sm:px-8 h-12 sm:h-14 font-bold hover:bg-white/5"
             onClick={() => setIsWithdrawOpen(true)}
           >
             <ArrowUpRight className="w-4 h-4 text-primary" /> Payout
           </Button>
           <Button 
-            className="rounded-2xl bg-primary hover:brightness-110 gap-2 px-8 h-14 font-bold neon-glow-primary shadow-lg shadow-primary/20"
+            className="rounded-2xl bg-primary hover:brightness-110 gap-2 px-6 sm:px-8 h-12 sm:h-14 font-bold neon-glow-primary shadow-lg shadow-primary/20"
             onClick={() => setIsDepositOpen(true)}
           >
             <ArrowDownLeft className="w-4 h-4" /> Fund Node
@@ -300,7 +299,7 @@ export default function WalletPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-8 px-4 sm:px-0">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <StatCard 
               label="Liquid Balance" 
@@ -378,7 +377,7 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 px-4 sm:px-0">
           <Card className="glass-card border-none bg-gradient-to-br from-secondary/10 to-transparent border-secondary/20 rounded-[2rem]">
             <CardHeader className="p-8">
               <CardTitle className="font-headline text-xl flex items-center gap-3">
@@ -430,19 +429,17 @@ export default function WalletPage() {
         setIsDepositOpen(open);
         if (!open) cleanupDeposit();
       }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
-          <div className="p-8 space-y-6">
-            <DialogHeader className="p-0">
-              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
                   <ArrowDownLeft className="w-6 h-6" />
                 </div>
-                Fund Node
-              </DialogTitle>
-              <DialogDescription className="text-sm">
-                Select your preferred settlement path to fund your protocol node.
-              </DialogDescription>
-            </DialogHeader>
+                <h2 className="text-xl sm:text-2xl font-headline font-bold">Fund Node</h2>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Select your preferred settlement path to fund your protocol node.</p>
+            </div>
 
             {invoiceData ? (
               <PaymentSession 
@@ -453,11 +450,11 @@ export default function WalletPage() {
               />
             ) : onchainData ? (
                <div className="space-y-8 text-center animate-in zoom-in-95 duration-300 py-6">
-                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden bg-white">
+                <div className="mx-auto bg-white p-4 sm:p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden bg-white">
                   <img 
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(onchainData.bitcoin_address)}`} 
                     alt="Onchain Address QR" 
-                    className="w-48 h-48 object-contain" 
+                    className="w-40 h-40 sm:w-48 sm:h-48 object-contain" 
                   />
                 </div>
                 <div className="flex flex-col items-center gap-2">
@@ -551,49 +548,49 @@ export default function WalletPage() {
         setIsWithdrawOpen(open);
         if (!open) cleanupWithdraw();
       }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[480px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
+        <DialogContent className="glass-card border-white/10 sm:max-w-[480px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
           {isWithdrawSuccess ? (
-            <div className="p-8 space-y-8 text-center animate-in zoom-in-95 duration-500">
-              <div className="mx-auto bg-emerald-500/10 p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
-                <CheckCircle2 className="w-24 h-24 text-emerald-400" />
+            <div className="p-6 sm:p-10 space-y-8 text-center animate-in zoom-in-95 duration-500">
+              <div className="mx-auto bg-emerald-500/10 p-8 sm:p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
+                <CheckCircle2 className="w-16 h-16 sm:w-24 sm:h-24 text-emerald-400" />
               </div>
               <div className="space-y-2">
-                <p className="text-4xl font-headline font-bold text-white">-{lastWithdrawData?.amount?.toLocaleString()} SAT</p>
+                <p className="text-3xl sm:text-4xl font-headline font-bold text-white">
+                  -{lastWithdrawData?.amount?.toLocaleString()} SAT
+                </p>
                 <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Settlement Released to Network</p>
               </div>
               <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-left group/trace relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl -z-10" />
                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Destination Node</p>
-                 <p className="text-[11px] font-mono text-white/70 truncate">{lastWithdrawData?.target}</p>
-                 <div className="flex items-center gap-1.5 mt-2">
+                 <p className="text-[11px] font-mono text-white/70 truncate break-all">{lastWithdrawData?.target}</p>
+                 <div className="flex items-center gap-1.5 mt-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">{lastWithdrawData?.rail?.toUpperCase()} RAIL PROPAGATED</span>
                  </div>
               </div>
-              <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={cleanupWithdraw}>
+              <Button className="w-full h-14 sm:h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={cleanupWithdraw}>
                 Finalize Session
               </Button>
             </div>
           ) : (
-            <div className="p-8 space-y-6">
-              <DialogHeader className="p-0">
-                <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                     <ArrowUpRight className="w-6 h-6" />
                   </div>
-                  Settlement Payout
-                </DialogTitle>
-                <DialogDescription className="text-sm">
-                  Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.
-                </DialogDescription>
-              </DialogHeader>
+                  <h2 className="text-xl sm:text-2xl font-headline font-bold">Settlement Payout</h2>
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.</p>
+              </div>
 
               <div className="space-y-5">
                 <div className="space-y-3">
                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target (L1/L2)</Label>
                   <div className="relative group">
                     <Input 
-                      placeholder="lnbc..., user@domain, LNURL..., bc1..." 
+                      placeholder="lnbc..., user@domain, bc1..." 
                       className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-12 focus:ring-primary/40 text-xs font-mono"
                       value={withdrawTarget}
                       onChange={(e) => handleTargetChange(e.target.value)}
@@ -629,7 +626,6 @@ export default function WalletPage() {
                   </div>
                 )}
 
-                {/* Protocol Audit Alerts */}
                 {feeData && !feeData.can_withdraw && (
                   <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl animate-in zoom-in-95">
                       <ShieldAlert className="h-4 w-4" />
@@ -641,7 +637,7 @@ export default function WalletPage() {
                 )}
 
                 {feeData && feeData.can_withdraw && (
-                  <div className="bg-black/40 border border-white/10 rounded-[2rem] p-6 space-y-4 animate-in slide-in-from-bottom-2">
+                  <div className="bg-black/40 border border-white/10 rounded-[2rem] p-5 sm:p-6 space-y-4 animate-in slide-in-from-bottom-2">
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       <span>Protocol Audit</span>
                       <span>{decodeData?.rail.toUpperCase()} RAIL</span>
@@ -683,4 +679,3 @@ export default function WalletPage() {
     </div>
   );
 }
-

@@ -41,12 +41,12 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
   const [confirmedData, setConfirmedData] = useState<DepositStatusResponse | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Initialize Countdown
     const updateTimer = () => {
       if (!paymentData.expires_at) return;
       const expiresAt = new Date(paymentData.expires_at).getTime();
@@ -65,7 +65,6 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
     updateTimer();
     countdownIntervalRef.current = setInterval(updateTimer, 1000);
 
-    // Initialize Polling
     pollingIntervalRef.current = setInterval(async () => {
       if (!isPolling) return;
       try {
@@ -78,7 +77,6 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
           if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         }
       } catch (e) {
-        // Silent catch for polling to ensure continuous retry until expiry
         console.warn("Signal verification attempt failed, retrying...");
       }
     }, 3000);
@@ -95,23 +93,23 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Clean the QR signal to ensure it's a valid data URI
-  const rawQr = paymentData.qr_code;
-  const qrUrl = (rawQr && rawQr.startsWith('data:')) 
-    ? rawQr 
+  const qrUrl = (!imgError && paymentData.qr_code && paymentData.qr_code.startsWith('data:')) 
+    ? paymentData.qr_code 
     : `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(paymentData.payment_request)}`;
 
   if (isConfirmed) {
     return (
-      <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 py-10">
-        <div className="mx-auto bg-emerald-500/10 p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
-          <CheckCircle2 className="w-24 h-24 text-emerald-400" />
+      <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 py-10 px-4">
+        <div className="mx-auto bg-emerald-500/10 p-8 sm:p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
+          <CheckCircle2 className="w-16 h-16 sm:w-24 sm:h-24 text-emerald-400" />
         </div>
         <div className="space-y-2">
-          <p className="text-4xl font-headline font-bold text-white">+{confirmedData?.amount_sats.toLocaleString() || paymentData.amount_sats.toLocaleString()} SAT</p>
+          <p className="text-3xl sm:text-4xl font-headline font-bold text-white">
+            +{confirmedData?.amount_sats.toLocaleString() || paymentData.amount_sats.toLocaleString()} SAT
+          </p>
           <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Settlement Confirmed</p>
         </div>
-        <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={onCancel}>
+        <Button className="w-full h-14 sm:h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={onCancel}>
           Finalize Session
         </Button>
       </div>
@@ -120,9 +118,9 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
 
   if (timeLeft === 0) {
     return (
-      <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 py-10">
-        <div className="mx-auto bg-destructive/10 p-10 rounded-[2.5rem] w-fit border-4 border-destructive/20">
-          <AlertCircle className="w-24 h-24 text-destructive" />
+      <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 py-10 px-4">
+        <div className="mx-auto bg-destructive/10 p-8 sm:p-10 rounded-[2.5rem] w-fit border-4 border-destructive/20">
+          <AlertCircle className="w-16 h-16 sm:w-24 sm:h-24 text-destructive" />
         </div>
         <div className="space-y-2">
           <h3 className="text-2xl font-headline font-bold">Signal Expired</h3>
@@ -136,15 +134,16 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
   }
 
   return (
-    <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
-      <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
-        <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
+    <div className="space-y-8 text-center animate-in zoom-in-95 duration-300 px-4 sm:px-0">
+      <div className="mx-auto bg-white p-4 sm:p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
+        <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl flex items-center justify-center relative bg-white">
           <img 
             src={qrUrl} 
             alt="Payment QR Signal" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain transition-opacity duration-500"
             onLoad={(e) => (e.currentTarget.style.opacity = '1')}
-            style={{ opacity: 0, transition: 'opacity 0.5s ease-in-out' }}
+            onError={() => setImgError(true)}
+            style={{ opacity: 0 }}
           />
           <div className="absolute inset-0 flex items-center justify-center -z-10">
              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
