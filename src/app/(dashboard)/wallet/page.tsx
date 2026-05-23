@@ -274,7 +274,7 @@ export default function WalletPage() {
         setInvoiceData(res.data);
         setIsPolling(true);
         const expiresAt = new Date(res.data.expires_at).getTime();
-        now = new Date().getTime();
+        const now = new Date().getTime();
         const initialSeconds = Math.floor((expiresAt - now) / 1000);
         setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
         toast({ title: "Invoice Propagated", description: "Waiting for L2 signal." });
