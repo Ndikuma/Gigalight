@@ -12,6 +12,25 @@ export interface BitcoinAddressResponse {
   qr_code: string;
 }
 
+export interface WithdrawDecodeResponse {
+  target_type: 'lightning_invoice' | 'lightning_address' | 'bitcoin_address';
+  rail: 'lightning' | 'bitcoin';
+  amount_sats: number | null;
+  requires_amount: boolean;
+  amount_source: 'invoice' | 'user_input';
+}
+
+export interface WithdrawFeesResponse {
+  amount_sats: number;
+  estimated_fee_sats: number;
+  wallet_debit_sats: number;
+  fee_charged_to_user: boolean;
+  can_withdraw: boolean;
+  available_balance: number;
+  balance_after: number;
+  fee_policy: any;
+}
+
 export const WalletService = {
   async getWallet() {
     return api.get<Wallet>('/wallet/');
@@ -37,8 +56,16 @@ export const WalletService = {
     return api.get<DepositStatusResponse>(`/wallet/deposit_status/?payment_hash=${paymentHash}`);
   },
 
-  async initiateWithdrawal(invoice: string) {
-    return api.post<Wallet>('/wallet/withdraw/', { lnd_invoice: invoice });
+  async withdrawDecode(target: string) {
+    return api.post<WithdrawDecodeResponse>('/wallet/withdraw/decode/', { target });
+  },
+
+  async withdrawFees(target: string, amount?: number) {
+    return api.post<WithdrawFeesResponse>('/wallet/withdraw/fees/', { target, amount });
+  },
+
+  async initiateWithdrawal(target: string, amount?: number, memo = "Withdrawal") {
+    return api.post<any>('/wallet/withdraw/', { target, amount, memo });
   },
 
   async getTransactions() {

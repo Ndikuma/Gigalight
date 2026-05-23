@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { WalletService } from '@/services/wallet-service';
+import { WalletService, WithdrawDecodeResponse, WithdrawFeesResponse } from '@/services/wallet-service';
 import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse, DepositStatusResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
@@ -27,7 +26,9 @@ import {
   Network,
   Database,
   Bitcoin,
-  CheckCircle2
+  CheckCircle2,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,10 +65,17 @@ export default function WalletPage() {
   const [hasCopied, setHasCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-  // Withdraw States
-  const [withdrawInvoice, setWithdrawInvoice] = useState('');
+  // Withdrawal Workflow States
+  const [withdrawTarget, setWithdrawTarget] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawMemo, setWithdrawMemo] = useState('GigaLight Yield Payout');
+  
   const [isDecoding, setIsDecoding] = useState(false);
-  const [decodedData, setDecodedData] = useState<{ amount: number; description: string } | null>(null);
+  const [decodeData, setDecodeData] = useState<WithdrawDecodeResponse | null>(null);
+  
+  const [isCalculatingFees, setIsCalculatingFees] = useState(false);
+  const [feeData, setFeeData] = useState<WithdrawFeesResponse | null>(null);
+  
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
   
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -111,7 +119,6 @@ export default function WalletPage() {
               description: `${res.data.amount_sats.toLocaleString()} SAT added to your liquid balance.` 
             });
             
-            // Re-fetch wallet to sync ledger
             fetchWalletData(true);
           }
         } catch (e) {
@@ -151,11 +158,84 @@ export default function WalletPage() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
   };
 
+  const cleanupWithdraw = () => {
+    setWithdrawTarget('');
+    setWithdrawAmount('');
+    setDecodeData(null);
+    setFeeData(null);
+    setIsDecoding(false);
+    setIsCalculatingFees(false);
+    setIsProcessingWithdraw(false);
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  // Withdrawal logic
+  async function handleTargetBlur() {
+    if (!withdrawTarget) return;
+    setIsDecoding(true);
+    setFeeData(null);
+    setDecodeData(null);
+    
+    try {
+      const res = await WalletService.withdrawDecode(withdrawTarget);
+      if (res.data) {
+        setDecodeData(res.data);
+        if (res.data.amount_sats) {
+          setWithdrawAmount(res.data.amount_sats.toString());
+          // Auto-calculate fees if amount is known from invoice
+          calculateFees(withdrawTarget, res.data.amount_sats);
+        }
+      } else {
+        toast({ variant: "destructive", title: "Decoding Error", description: res.error || "Invalid settlement target." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "Protocol gateway timeout." });
+    } finally {
+      setIsDecoding(false);
+    }
+  }
+
+  async function calculateFees(target: string, amount?: number) {
+    setIsCalculatingFees(true);
+    try {
+      const res = await WalletService.withdrawFees(target, amount);
+      if (res.data) {
+        setFeeData(res.data);
+      }
+    } catch (e) {
+      console.error("Fee calc error", e);
+    } finally {
+      setIsCalculatingFees(false);
+    }
+  }
+
+  async function handleConfirmWithdraw() {
+    setIsProcessingWithdraw(true);
+    try {
+      const res = await WalletService.initiateWithdrawal(
+        withdrawTarget, 
+        withdrawAmount ? parseInt(withdrawAmount) : undefined,
+        withdrawMemo
+      );
+      if (res.data) {
+        toast({ title: "Settlement Propagated", description: "Yields are being released to the specified node." });
+        setIsWithdrawOpen(false);
+        cleanupWithdraw();
+        fetchWalletData(true);
+      } else {
+        toast({ variant: "destructive", title: "Settlement Rejected", description: res.error || "Verification failed." });
+      }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Network Error", description: "L2 path propagation failed." });
+    } finally {
+      setIsProcessingWithdraw(false);
+    }
+  }
 
   async function handleGenerateInvoice() {
     setIsGeneratingInvoice(true);
@@ -164,13 +244,11 @@ export default function WalletPage() {
       if (res.data) {
         setInvoiceData(res.data);
         setIsPolling(true);
-        
         const expiresAt = new Date(res.data.expires_at).getTime();
         const now = new Date().getTime();
         const initialSeconds = Math.floor((expiresAt - now) / 1000);
         setTimeLeft(initialSeconds > 0 ? initialSeconds : 0);
-
-        toast({ title: "Invoice Propagated", description: "Waiting for payment signal on Bitcoin L2." });
+        toast({ title: "Invoice Propagated", description: "Waiting for L2 signal." });
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
       }
@@ -195,42 +273,6 @@ export default function WalletPage() {
       toast({ variant: "destructive", title: "Network Error", description: "The L1 bridge node is unreachable." });
     } finally {
       setIsLoadingOnchain(false);
-    }
-  }
-
-  async function handleDecodeInvoice() {
-    if (!withdrawInvoice.startsWith('lnbc')) {
-      toast({ variant: "destructive", title: "Invalid Invoice", description: "Please provide a valid Lightning BOLT11 invoice." });
-      return;
-    }
-    setIsDecoding(true);
-    // Simulation: In production this calls a backend decoder
-    setTimeout(() => {
-      setDecodedData({
-        amount: 5000,
-        description: "Yield Withdrawal"
-      });
-      setIsDecoding(false);
-    }, 1000);
-  }
-
-  async function handleConfirmWithdraw() {
-    setIsProcessingWithdraw(true);
-    try {
-      const res = await WalletService.initiateWithdrawal(withdrawInvoice);
-      if (res.data) {
-        toast({ title: "Withdrawal Propagated", description: "SATs are settling across the network." });
-        setIsWithdrawOpen(false);
-        setWithdrawInvoice('');
-        setDecodedData(null);
-        fetchWalletData(true);
-      } else {
-        toast({ variant: "destructive", title: "Settlement Rejected", description: res.error || "Check node liquidity." });
-      }
-    } catch (e) {
-      toast({ variant: "destructive", title: "Settlement Error", description: "L2 settlement path not found." });
-    } finally {
-      setIsProcessingWithdraw(false);
     }
   }
 
@@ -392,33 +434,8 @@ export default function WalletPage() {
                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Linked</span>
                 </div>
               </div>
-
-              <div className="p-6 bg-secondary/5 rounded-2xl border border-secondary/10 space-y-3">
-                <h5 className="text-[10px] font-bold uppercase tracking-widest text-secondary flex items-center gap-2">
-                  <ShieldCheck className="w-3 h-3" /> Protocol Node
-                </h5>
-                <p className="text-xs text-muted-foreground leading-relaxed italic">
-                  GigaLight uses custodial rails for all technical yields and strategic escrows. Multi-channel support ensures global liquidity propagation handled by the platform.
-                </p>
-              </div>
             </CardContent>
           </Card>
-
-          <div className="glass-card p-8 rounded-[2rem] border-white/5 text-center space-y-6 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-all"></div>
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto relative z-10 shadow-xl shadow-primary/10">
-              <TrendingUp className="w-8 h-8 text-primary" />
-            </div>
-            <div className="relative z-10">
-              <h4 className="font-headline font-bold text-xl">Yield Optimization</h4>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                Elite Nodes receive a <span className="text-primary font-bold">12% boost</span> on mission yields through high-intensity network settlement.
-              </p>
-            </div>
-            <Button asChild variant="outline" className="w-full rounded-xl border-white/10 font-bold relative z-10 h-12 text-xs uppercase tracking-widest">
-              <a href="/settings?tab=tiers">Membership Tiers</a>
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -452,17 +469,6 @@ export default function WalletPage() {
                   <p className="text-4xl font-headline font-bold text-white">+{confirmedTx?.amount_sats.toLocaleString()} SAT</p>
                   <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Protocol Yield Settled</p>
                 </div>
-                <div className="bg-black/40 border border-white/5 p-5 rounded-2xl space-y-4">
-                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest px-2">
-                    <span className="text-muted-foreground">Updated Balance</span>
-                    <span className="text-white">{confirmedTx?.available_balance.toLocaleString()} SAT</span>
-                  </div>
-                  <div className="h-px bg-white/5" />
-                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest px-2">
-                    <span className="text-muted-foreground">Trace Status</span>
-                    <span className="text-emerald-400">Confirmed on L2</span>
-                  </div>
-                </div>
                 <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg" onClick={cleanupDeposit}>
                   Session Finalized
                 </Button>
@@ -477,7 +483,6 @@ export default function WalletPage() {
                     <Bitcoin className="w-3.5 h-3.5" /> On-Chain
                   </TabsTrigger>
                 </TabsList>
-
                 <TabsContent value="lightning" className="space-y-6 mt-0 animate-in fade-in duration-300">
                   <div className="space-y-3">
                     <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
@@ -496,56 +501,39 @@ export default function WalletPage() {
                     onClick={handleGenerateInvoice}
                     disabled={isGeneratingInvoice}
                   >
-                    {isGeneratingInvoice ? (
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Propagating...
-                      </div>
-                    ) : 'Generate L2 Invoice'}
+                    {isGeneratingInvoice ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate L2 Invoice'}
                   </Button>
                 </TabsContent>
-
                 <TabsContent value="onchain" className="space-y-6 mt-0 animate-in fade-in duration-300">
-                  <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <Database className="w-4 h-4" />
+                   <div className="p-6 bg-primary/5 rounded-2xl border border-primary/10 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><Database className="w-4 h-4" /></div>
+                        <p className="text-xs font-bold text-white">L1 Settlement Node</p>
                       </div>
-                      <p className="text-xs font-bold text-white">L1 Settlement Node</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Generate a unique Bitcoin address for on-chain funding. Settlements are finalized after 3 network confirmations.
-                    </p>
-                  </div>
-                  <Button 
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Generate a unique Bitcoin address for on-chain funding. Settlements finalized after 3 confirmations.
+                      </p>
+                   </div>
+                   <Button 
                     className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
                     onClick={handleGetOnchainAddress}
                     disabled={isLoadingOnchain}
                   >
-                    {isLoadingOnchain ? (
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Bridging...
-                      </div>
-                    ) : 'Initialize L1 Path'}
+                    {isLoadingOnchain ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Initialize L1 Path'}
                   </Button>
                 </TabsContent>
               </Tabs>
             ) : invoiceData ? (
               <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
-                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden group">
-                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                    <img src={invoiceData.qr_code} alt="Invoice QR" className="w-full h-full object-contain" />
-                  </div>
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-secondary/20 border-8 border-secondary/10 relative overflow-hidden bg-white">
+                  <img src={invoiceData.qr_code} alt="Invoice QR" className="w-48 h-48 object-contain" />
                 </div>
-
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
                     <Activity className="w-3 h-3 text-secondary animate-pulse" />
-                    <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting Network Signal</span>
+                    <span className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em]">Awaiting L2 Signal</span>
                   </div>
                 </div>
-
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
                     <span className="text-muted-foreground">Session Expiry</span>
@@ -554,145 +542,196 @@ export default function WalletPage() {
                       {timeLeft !== null ? formatTime(timeLeft) : '--:--'}
                     </span>
                   </div>
-
                   <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace">
                     <div className="flex-1 text-left">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace</p>
-                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
-                        {invoiceData.payment_request.substring(0, 12)}...{invoiceData.payment_request.substring(invoiceData.payment_request.length - 12)}
-                      </p>
+                      <p className="text-[11px] font-mono text-white/70 truncate">{invoiceData.payment_request}</p>
                     </div>
                     <Button 
                       size="icon" 
                       variant="secondary" 
-                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary hover:scale-105 transition-transform"
+                      className="h-10 w-10 shrink-0 rounded-xl neon-glow-secondary"
                       onClick={() => {
                          navigator.clipboard.writeText(invoiceData.payment_request);
                          setHasCopied(true);
                          setTimeout(() => setHasCopied(false), 2000);
-                         toast({ title: "Signal Copied to Node" });
+                         toast({ title: "Signal Copied" });
                       }}
                     >
                       {hasCopied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-
-                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
-                  Abort Settlement Path
-                </Button>
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>Abort Path</Button>
               </div>
             ) : onchainData ? (
-              <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
-                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
-                  <div className="w-48 h-48 rounded-2xl flex items-center justify-center relative bg-white">
-                    <img src={onchainData.qr_code} alt="Onchain Address QR" className="w-full h-full object-contain" />
-                  </div>
+               <div className="space-y-8 text-center animate-in zoom-in-95 duration-300">
+                <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden bg-white">
+                  <img src={onchainData.qr_code} alt="Onchain Address QR" className="w-48 h-48 object-contain" />
                 </div>
-
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
                     <Database className="w-3 h-3 text-primary" />
                     <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Live L1 Settlement Node</span>
                   </div>
-                  <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">3 Confirmations Required</p>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/addr">
-                    <div className="flex-1 text-left">
+                <div className="bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/addr">
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="flex-1 text-left overflow-hidden">
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Bitcoin Address</p>
-                      <p className="text-[11px] font-mono text-white/70 truncate leading-none">
-                        {onchainData.bitcoin_address}
-                      </p>
+                      <p className="text-[11px] font-mono text-white/70 truncate">{onchainData.bitcoin_address}</p>
                     </div>
                     <Button 
                       size="icon" 
                       variant="outline" 
-                      className="h-10 w-10 shrink-0 rounded-xl border-primary/20 text-primary hover:bg-primary/10 transition-transform"
+                      className="h-10 w-10 shrink-0 rounded-xl border-primary/20 text-primary"
                       onClick={() => {
                          navigator.clipboard.writeText(onchainData.bitcoin_address);
                          setHasCopied(true);
                          setTimeout(() => setHasCopied(false), 2000);
-                         toast({ title: "Address Copied to Clipboard" });
+                         toast({ title: "Address Copied" });
                       }}
                     >
                       {hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-
-                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>
-                  Return to Interface
-                </Button>
+                <Button variant="ghost" className="w-full font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-white" onClick={cleanupDeposit}>Return</Button>
               </div>
             ) : null}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Withdraw Dialog */}
-      <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] rounded-[2.5rem]">
-          <DialogHeader className="p-4">
-            <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <ArrowUpRight className="w-6 h-6" />
-              </div>
-              Yield Payout
-            </DialogTitle>
-            <DialogDescription className="text-sm">
-              Payout your platform technical yields to an external L2 node.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Withdrawal Dialog - Re-engineered for new workflow */}
+      <Dialog open={isWithdrawOpen} onOpenChange={(open) => {
+        setIsWithdrawOpen(open);
+        if (!open) cleanupWithdraw();
+      }}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[480px] rounded-[2.5rem] overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <ArrowUpRight className="w-6 h-6" />
+                </div>
+                Yield Payout
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Settlement propagation for external L2 nodes or L1 addresses.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-6 p-4">
-            <div className="space-y-3">
-              <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">LND Invoice (BOLT11)</Label>
-              <div className="relative">
-                <Input 
-                  placeholder="lnbc..." 
-                  value={withdrawInvoice}
-                  onChange={(e) => setWithdrawInvoice(e.target.value)}
-                  className="h-16 bg-white/5 border-white/10 text-xs font-mono pr-28 rounded-2xl focus:ring-primary/40"
-                />
-                {!decodedData && (
-                  <Button 
-                    size="sm" 
-                    className="absolute right-2 top-2 h-12 rounded-xl font-bold px-4"
-                    onClick={handleDecodeInvoice}
-                    disabled={isDecoding || !withdrawInvoice}
-                  >
-                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'DECODE'}
-                  </Button>
-                )}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target</Label>
+                <div className="relative group">
+                   <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                      {isDecoding ? <Loader2 className="w-4 h-4 text-primary animate-spin" /> : <Network className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />}
+                   </div>
+                   <Input 
+                    placeholder="lnbc..., user@address.com, or bc1..." 
+                    value={withdrawTarget}
+                    onChange={(e) => setWithdrawTarget(e.target.value)}
+                    onBlur={handleTargetBlur}
+                    className="h-14 bg-white/5 border-white/10 text-xs font-mono pl-12 rounded-2xl focus:ring-primary/40"
+                  />
+                  {decodeData && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[8px] font-bold uppercase tracking-tighter">
+                          {decodeData.target_type.replace('_', ' ')}
+                       </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {decodedData && (
-              <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Settlement Amount</span>
-                  <div className="text-right">
-                    <span className="text-3xl font-headline font-bold text-primary">{decodedData.amount.toLocaleString()}</span>
-                    <p className="text-[9px] font-bold text-primary/50 tracking-widest uppercase">SATOSHIS</p>
+              {decodeData && (
+                <div className="space-y-6 animate-in slide-in-from-top-2 duration-300">
+                  {decodeData.requires_amount && (
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity to Release (SAT)</Label>
+                      <div className="relative">
+                        <Input 
+                          type="number"
+                          placeholder="Amount in SAT"
+                          value={withdrawAmount}
+                          onChange={(e) => {
+                            setWithdrawAmount(e.target.value);
+                            if (e.target.value) calculateFees(withdrawTarget, parseInt(e.target.value));
+                          }}
+                          className="h-16 bg-white/5 border-white/10 text-2xl font-headline font-bold rounded-2xl focus:ring-primary/40"
+                        />
+                         <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SATOSHIS</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {feeData && (
+                    <div className="bg-black/40 border border-white/10 rounded-2xl p-6 space-y-4 shadow-inner">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <span>Propagation Breakdown</span>
+                        <span className="text-primary flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> VERIFIED</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-muted-foreground">Recipient Release</span>
+                          <span className="text-white font-bold">{feeData.amount_sats.toLocaleString()} SAT</span>
+                        </div>
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-muted-foreground">Protocol/Network Fee</span>
+                          <span className="text-white font-bold">{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
+                        </div>
+                        <div className="h-px bg-white/5" />
+                        <div className="flex justify-between items-end">
+                           <span className="text-xs font-bold text-primary uppercase tracking-widest">Total Wallet Debit</span>
+                           <div className="text-right">
+                              <span className="text-2xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
+                              <span className="text-[10px] font-bold text-white/40 ml-1.5">SAT</span>
+                           </div>
+                        </div>
+                      </div>
+                      {!feeData.can_withdraw && (
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-[10px] font-bold uppercase border border-destructive/20 mt-2">
+                           <AlertCircle className="w-3.5 h-3.5" /> Insufficient Liquid Balance
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Memo (Optional)</Label>
+                    <Input 
+                      value={withdrawMemo}
+                      onChange={(e) => setWithdrawMemo(e.target.value)}
+                      className="h-12 bg-white/5 border-white/10 rounded-xl text-sm"
+                    />
                   </div>
-                </div>
-              </div>
-            )}
 
-            <Button 
-              className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
-              disabled={!decodedData || isProcessingWithdraw}
-              onClick={handleConfirmWithdraw}
-            >
-              {isProcessingWithdraw ? (
-                <div className="flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Finalizing...
+                  <Button 
+                    className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20"
+                    disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees}
+                    onClick={handleConfirmWithdraw}
+                  >
+                    {isProcessingWithdraw ? (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Finalizing Release...
+                      </div>
+                    ) : 'Propagate Settlement'}
+                  </Button>
                 </div>
-              ) : 'Confirm Payout'}
-            </Button>
+              )}
+
+              {!decodeData && !isDecoding && (
+                <div className="p-6 bg-white/5 border border-dashed border-white/10 rounded-2xl flex flex-col items-center gap-3 text-center">
+                  <Info className="w-8 h-8 text-muted-foreground/20" />
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                    Input a valid settlement target to begin the propagation protocol.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
