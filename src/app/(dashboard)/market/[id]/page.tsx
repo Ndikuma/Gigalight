@@ -1,11 +1,9 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Zap, 
-  Briefcase, 
   Clock, 
   Shield, 
   ArrowLeft, 
@@ -14,20 +12,19 @@ import {
   Send,
   AlertCircle,
   Trophy,
-  Rocket,
-  ShieldCheck,
   Cpu,
   Loader2,
   Code,
   Link as LinkIcon,
-  FileText,
   Activity,
   Layers,
-  ChevronRight,
   Target,
   CheckCircle2,
+  Coins,
   History,
-  Coins
+  ChevronRight,
+  Info,
+  ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,17 +32,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { draftApplicationProposal } from '@/ai/flows/application-proposal-assistant-flow';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
-import { User } from '@/lib/types';
+import { User, TaskWorkbench, SubTask } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
 
@@ -55,23 +50,22 @@ export default function OpportunityDetailPage() {
   const router = useRouter();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDrafting, setIsDrafting] = useState(false);
   const [step, setStep] = useState<'view' | 'active' | 'success'>('view');
-  const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   const [opportunity, setOpportunity] = useState<{ data: any, type: 'task' | 'project' } | null>(null);
-  const [workbench, setWorkbench] = useState<any>(null);
+  const [workbench, setWorkbench] = useState<TaskWorkbench | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
+  // Form States
   const [proofText, setProofText] = useState('');
+  const [proofLink, setProofLink] = useState('');
   const [bidAmount, setBidAmount] = useState('');
   const [proposalText, setProposalText] = useState('');
   const [isBoosted, setIsBoosted] = useState(false);
-  const [feeMethod, setFeeMethod] = useState<'upfront' | 'payout'>('upfront');
+  const [feeMethod, setFeeMethod] = useState<'upfront' | 'payout'>('payout');
 
   useEffect(() => {
-    setMounted(true);
     async function fetchData() {
       if (!id) return;
       setIsLoading(true);
@@ -86,7 +80,8 @@ export default function OpportunityDetailPage() {
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
-          if (profRes.data && taskRes.data.creator !== profRes.data.id) {
+          // If it's a task, try to load worker workbench
+          if (profRes.data && taskRes.data.creator.toString() !== profRes.data.id.toString()) {
              const wb = await TaskService.getTaskWorkbench(id);
              if (wb.data) setWorkbench(wb.data);
           }
@@ -101,8 +96,6 @@ export default function OpportunityDetailPage() {
     }
     fetchData();
   }, [id]);
-
-  if (!mounted) return null;
 
   if (isLoading) {
     return (
@@ -130,78 +123,32 @@ export default function OpportunityDetailPage() {
   }
 
   const isTask = opportunity.type === 'task';
+  const task = isTask ? opportunity.data : null;
   
-  // Calculate fees based on active protocol tier
-  const tier = user?.current_tier;
-  const signalFee = isTask ? (tier?.fee_task ?? 50) : (tier?.fee_project ?? 250);
-  
-  // Calculate total upfront debit based on fee method
+  // Dynamic Fee Calculation
+  const signalFee = isTask 
+    ? (workbench?.next_subtask?.effective_submission_fee_sats ?? task?.submission_fee_sats ?? 0) 
+    : (user?.current_tier?.fee_project ?? 250);
+
   const activeSignalFee = feeMethod === 'upfront' ? signalFee : 0;
   const totalUpfront = activeSignalFee + (isBoosted ? 500 : 0);
-
-  const formatBudget = (budget: any) => {
-    if (!budget) return 'TBD';
-    if (typeof budget === 'string') return budget;
-    if (typeof budget === 'object') {
-      const min = (budget.min || 0).toLocaleString();
-      const max = (budget.max || 0).toLocaleString();
-      return `${min} - ${max} SAT`;
-    }
-    return 'TBD';
-  };
-
-  async function handleAIAssist() {
-    if (opportunity.type !== 'project') return;
-    setIsDrafting(true);
-    try {
-      const result = await draftApplicationProposal({
-        userProfile: {
-          title: user?.display_name || 'Node Operator',
-          bio: user?.profile?.bio || "",
-          skills: [],
-          completedProjects: user?.profile?.completed_tasks || 0,
-          totalEarned: user?.profile?.total_earned || 0,
-        },
-        opportunity: {
-          type: 'project',
-          title: opportunity.data.title,
-          description: opportunity.data.description,
-          requirements: opportunity.data.requirements || "Professional execution required.",
-          skills: [],
-          experienceLevel: opportunity.data.experience_level,
-        }
-      });
-      setProposalText(result.proposalText);
-      toast({ title: "AI Synthesis Complete", description: "Your proposal has been personalized." });
-    } catch (e) {
-      toast({ variant: "destructive", title: "Synthesis Error", description: "AI agent encounter a timeout." });
-    } finally {
-      setIsDrafting(false);
-    }
-  }
 
   async function handleSubmit() {
     setIsSubmitting(true);
     try {
       let res;
-      const commonPayload = {
-        fee_method: feeMethod,
-      };
-
       if (isTask) {
-        res = await TaskService.submitProof(opportunity.data.id, {
+        res = await TaskService.submitProof(task.id, {
           subtask_id: workbench?.next_subtask?.id,
           proof_text: proofText,
-          ...commonPayload
-        } as any);
+          proof_link: proofLink,
+        });
       } else {
         res = await BidService.submitBid({
           project: opportunity.data.id,
           amount: parseInt(bidAmount),
           proposal_text: proposalText,
-          signal_fee: signalFee,
           is_boosted: isBoosted,
-          ...commonPayload
         });
       }
 
@@ -209,8 +156,8 @@ export default function OpportunityDetailPage() {
         toast({
           title: isTask ? "Proof Propagated" : "Proposal Synthesized",
           description: feeMethod === 'upfront' 
-            ? `${totalUpfront.toLocaleString()} SAT processed via upfront L2 signal.`
-            : `Fee scheduled for yield deduction. Current debit: ${(isBoosted ? 500 : 0).toLocaleString()} SAT.`,
+            ? `${totalUpfront.toLocaleString()} SAT processed via direct signal.`
+            : `Fee scheduled for yield deduction.`,
         });
         setStep('success');
       } else {
@@ -227,54 +174,6 @@ export default function OpportunityDetailPage() {
     }
   }
 
-  const renderProofInput = (method: string) => {
-    switch (method) {
-      case 'code_snippet':
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Verified Code Snippet</Label>
-              <Badge variant="outline" className="text-[9px] font-mono opacity-50"><Code className="w-3 h-3 mr-1" /> NODE_ENV: PRODUCTION</Badge>
-            </div>
-            <Textarea 
-              placeholder="Paste your verified technical implementation or fix here..."
-              className="min-h-[300px] bg-black/60 border-primary/20 rounded-[1.5rem] p-6 text-xs font-mono leading-relaxed focus:ring-primary/40 text-emerald-400"
-              value={proofText}
-              onChange={(e) => setProofText(e.target.value)}
-            />
-          </div>
-        );
-      case 'link':
-      case 'social_link':
-        return (
-          <div className="space-y-4">
-            <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Protocol URL Propagation</Label>
-            <div className="relative group">
-              <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input 
-                placeholder="https://..."
-                className="h-16 bg-black/40 border-white/5 rounded-2xl pl-12 focus:ring-primary/40 font-bold"
-                value={proofText}
-                onChange={(e) => setProofText(e.target.value)}
-              />
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="space-y-4">
-            <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Technical Documentation</Label>
-            <Textarea 
-              placeholder="Provide detailed documentation of your technical output and mission methodology..."
-              className="min-h-[200px] bg-black/40 border-white/5 rounded-[1.5rem] p-6 text-sm leading-relaxed focus:ring-primary/40"
-              value={proofText}
-              onChange={(e) => setProofText(e.target.value)}
-            />
-          </div>
-        );
-    }
-  };
-
   if (step === 'success') {
     return (
       <div className="max-w-2xl mx-auto py-32 text-center space-y-8 animate-in zoom-in-95 duration-500">
@@ -285,8 +184,8 @@ export default function OpportunityDetailPage() {
           <h1 className="text-5xl font-headline font-bold tracking-tight">Protocol Propagated</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
             {isTask 
-              ? "Your technical submission has been queued for verification. Network nodes are reviewing your technical output for SAT release." 
-              : `Your strategic proposal node is now active. The client has been notified of your signal.`}
+              ? "Your technical submission has been queued for verification. Yield will be credited upon verified audit." 
+              : `Your strategic proposal node is now active. The client has been notified.`}
           </p>
         </div>
         <div className="flex justify-center gap-4 pt-8">
@@ -310,10 +209,10 @@ export default function OpportunityDetailPage() {
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-end">
             <StarRating reputation={user?.reputation || 0} showScore />
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Validated Performance</span>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Node Reputation</span>
           </div>
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <Trophy className="w-3.5 h-3.5 mr-2" /> Protocol Tier: {user?.current_tier?.display_label || 'Standard'}
+            <Trophy className="w-3.5 h-3.5 mr-2" /> Tier: {user?.current_tier?.display_label || 'Standard'}
           </Badge>
         </div>
       </div>
@@ -327,10 +226,10 @@ export default function OpportunityDetailPage() {
                 isTask ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"
               )}>
                 {isTask ? <Zap className="w-3 h-3 mr-2" /> : <Briefcase className="w-3 h-3 mr-2" />}
-                {isTask ? "Micro Mission" : "Strategic Project"}
+                {isTask ? "Micro Gig" : "Strategic Project"}
               </Badge>
               <Badge variant="outline" className="border-white/10 text-muted-foreground uppercase text-[10px] font-bold tracking-widest px-4 py-1.5 bg-white/5">
-                {isTask ? opportunity.data.category?.name : opportunity.data.client_name}
+                {isTask ? task.category?.name : opportunity.data.client_name}
               </Badge>
             </div>
             <h1 className="text-5xl md:text-6xl font-headline font-bold tracking-tight leading-[0.95]">
@@ -343,17 +242,17 @@ export default function OpportunityDetailPage() {
                <CardHeader className="p-8 pb-4">
                   <div className="flex items-center justify-between">
                      <h3 className="font-headline font-bold text-xl flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-primary" /> Node Workbench
+                        <Activity className="w-5 h-5 text-primary" /> Worker Workbench
                      </h3>
                      <Badge className="bg-emerald-400/10 text-emerald-400 border-none uppercase text-[8px] font-bold tracking-widest">
-                        {workbench.approved_steps} / {workbench.total_steps} Milestones Verified
+                        {workbench.approved_steps} / {workbench.total_steps} Installments Settled
                      </Badge>
                   </div>
                </CardHeader>
                <CardContent className="p-8 pt-0 space-y-6">
                   <div className="space-y-2">
                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        <span>Technical Progression</span>
+                        <span>Mission Progression</span>
                         <span className="text-emerald-400">{Math.round((workbench.approved_steps / workbench.total_steps) * 100)}%</span>
                      </div>
                      <Progress value={(workbench.approved_steps / workbench.total_steps) * 100} className="h-2 bg-white/5" />
@@ -363,18 +262,18 @@ export default function OpportunityDetailPage() {
                     <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-4 animate-in slide-in-from-bottom-2">
                        <div className="flex items-center justify-between">
                           <h5 className="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <Target className="w-3.5 h-3.5" /> Next Objective: {workbench.next_subtask.title}
+                            <Target className="w-3.5 h-3.5" /> Active Objective: {workbench.next_subtask.title}
                           </h5>
-                          <span className="text-[10px] font-bold text-emerald-400">+{workbench.next_subtask.reward_amount} SAT</span>
+                          <span className="text-[10px] font-bold text-emerald-400">+{workbench.next_subtask.reward_amount} SAT Yield</span>
                        </div>
                        <p className="text-sm text-muted-foreground leading-relaxed">{workbench.next_subtask.description}</p>
                     </div>
-                  ) : workbench.approved_steps === workbench.total_steps && workbench.total_steps > 0 ? (
+                  ) : workbench.total_steps > 0 && workbench.approved_steps === workbench.total_steps ? (
                     <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-4">
                        <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                        <div>
-                          <p className="text-sm font-bold text-white uppercase tracking-widest">Protocol Fully Propagated</p>
-                          <p className="text-xs text-muted-foreground">All subtasks for this mission have been finalized and settled.</p>
+                          <p className="text-sm font-bold text-white uppercase tracking-widest">Protocol Finalized</p>
+                          <p className="text-xs text-muted-foreground">All installments for this mission have been verified and paid.</p>
                        </div>
                     </div>
                   ) : null}
@@ -385,8 +284,8 @@ export default function OpportunityDetailPage() {
           <Card className="glass-card border-none rounded-[2.5rem] overflow-hidden">
             <CardHeader className="p-10 pb-0">
               <h3 className="font-headline text-2xl font-bold flex items-center gap-3">
-                <Cpu className="w-6 h-6 text-primary" />
-                Objective Parameters
+                <Info className="w-6 h-6 text-primary" />
+                Mission Parameters
               </h3>
             </CardHeader>
             <CardContent className="p-10 space-y-10">
@@ -396,28 +295,21 @@ export default function OpportunityDetailPage() {
                 </p>
               </div>
 
-              {!isTask && opportunity.data.requirements && (
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> Strategic Requirements
-                  </h4>
-                  <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                      {opportunity.data.requirements}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {isTask && opportunity.data.validator_guidelines && (
-                <div className="space-y-4">
+              {isTask && task.instructions && (
+                <div className="space-y-6">
                    <h4 className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" /> Proof Standards
+                    <ListTodo className="w-4 h-4" /> Execution Steps
                   </h4>
-                  <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                      {opportunity.data.validator_guidelines}
-                    </p>
+                  <div className="space-y-4">
+                     {task.instructions.steps?.map((step: any, i: number) => (
+                       <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                          <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center font-bold text-xs text-primary shrink-0">{i+1}</div>
+                          <div>
+                             <p className="font-bold text-sm text-white">{step.title}</p>
+                             <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                          </div>
+                       </div>
+                     ))}
                   </div>
                 </div>
               )}
@@ -426,44 +318,58 @@ export default function OpportunityDetailPage() {
 
           {step === 'active' && (
             <Card className="glass-card border-none rounded-[2.5rem] ring-4 ring-primary/20 animate-in slide-in-from-bottom-8 duration-700 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <Activity className="w-32 h-32" />
-              </div>
               <CardHeader className="p-10 pb-0">
                 <h3 className="font-headline text-2xl flex items-center gap-3 font-bold">
                   <Send className="w-6 h-6 text-primary" /> 
-                  {isTask ? (workbench?.next_subtask ? `Submit Proof: ${workbench.next_subtask.title}` : "Submit Proof Signal") : "Initiate Proposal Node"}
+                  {isTask ? (workbench?.next_subtask ? `Submit Proof: ${workbench.next_subtask.title}` : "Submit Technical Proof") : "Synthesize Proposal"}
                 </h3>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
                 
-                {/* Fee Method Selection */}
+                {/* Fee Strategy */}
                 <div className="space-y-3">
-                  <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Fee Settlement Strategy</Label>
+                  <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Protocol Fee Settlement</Label>
                   <Tabs value={feeMethod} onValueChange={(val: any) => setFeeMethod(val)} className="w-full">
                     <TabsList className="grid grid-cols-2 bg-black/40 border border-white/5 p-1 h-14 rounded-2xl">
-                      <TabsTrigger value="upfront" className="rounded-xl font-bold gap-2 data-[state=active]:bg-primary">
-                        <Coins className="w-4 h-4" /> Pay Direct
-                      </TabsTrigger>
                       <TabsTrigger value="payout" className="rounded-xl font-bold gap-2 data-[state=active]:bg-primary">
                         <History className="w-4 h-4" /> Deduct from Payout
                       </TabsTrigger>
+                      <TabsTrigger value="upfront" className="rounded-xl font-bold gap-2 data-[state=active]:bg-primary">
+                        <Coins className="w-4 h-4" /> Direct Upfront
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
-                  <p className="text-[9px] text-muted-foreground italic ml-2">
-                    {feeMethod === 'upfront' 
-                      ? "Signal fee will be debited from your liquid wallet balance immediately." 
-                      : "Signal fee will be automatically deducted from your final mission yield upon verification."}
-                  </p>
                 </div>
 
                 {isTask ? (
-                  renderProofInput(opportunity.data.proof_method)
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                       <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Technical Proof Narrative</Label>
+                       <Textarea 
+                        placeholder="Detail your execution and findings..."
+                        className="min-h-[200px] bg-black/40 border-white/5 rounded-2xl p-6 text-sm focus:ring-primary/40"
+                        value={proofText}
+                        onChange={(e) => setProofText(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-3">
+                       <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Signal URL (Optional)</Label>
+                       <div className="relative">
+                          <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input 
+                            placeholder="https://..."
+                            className="h-14 bg-black/40 border-white/5 rounded-xl pl-12 focus:ring-primary/40"
+                            value={proofLink}
+                            onChange={(e) => setProofLink(e.target.value)}
+                          />
+                       </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Compensation Bid (SAT)</Label>
+                        <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Strategic Bid (SAT)</Label>
                         <Input 
                           type="number" 
                           placeholder="Amount in SAT" 
@@ -478,37 +384,11 @@ export default function OpportunityDetailPage() {
                       </div>
                     </div>
                     
-                    <div className="p-6 bg-secondary/5 border border-secondary/20 rounded-[2rem] space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-sm font-bold flex items-center gap-2">
-                            <Rocket className="w-4 h-4 text-secondary" /> Node Reputation Boost
-                          </Label>
-                          <p className="text-[10px] text-muted-foreground font-medium">Priority visibility in the client's objective stream.</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs font-bold text-secondary tracking-widest">+500 SAT</span>
-                          <Switch checked={isBoosted} onCheckedChange={setIsBoosted} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Strategic Pitch</Label>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-primary gap-2 h-8 px-4 rounded-xl hover:bg-primary/10 font-bold text-[10px] uppercase tracking-widest"
-                          onClick={handleAIAssist}
-                          disabled={isDrafting}
-                        >
-                          <Sparkles className="w-4 h-4" /> {isDrafting ? "Synthesizing..." : "AI Intelligence Assist"}
-                        </Button>
-                      </div>
-                      <Textarea 
-                        placeholder="Detail your technical approach and expertise capability..."
-                        className="min-h-[250px] bg-black/40 border-white/5 rounded-[1.5rem] p-6 text-sm leading-relaxed focus:ring-secondary/40"
+                    <div className="space-y-3">
+                       <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Strategic Proposal</Label>
+                       <Textarea 
+                        placeholder="Detail your methodology..."
+                        className="min-h-[250px] bg-black/40 border-white/5 rounded-2xl p-6 text-sm focus:ring-secondary/40"
                         value={proposalText}
                         onChange={(e) => setProposalText(e.target.value)}
                       />
@@ -516,28 +396,21 @@ export default function OpportunityDetailPage() {
                   </div>
                 )}
 
-                <div className="bg-black/60 p-8 rounded-3xl border border-white/10 space-y-4 shadow-inner">
+                <div className="bg-black/60 p-8 rounded-3xl border border-white/10 space-y-4">
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground">
                     <span>Protocol Parameters</span>
-                    <span>L2 SIGNAL</span>
+                    <span>{isTask ? "MICRO SIGNAL" : "STRATEGIC PROPOSAL"}</span>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
                       <div className="flex items-center gap-2">
-                         <span className="text-muted-foreground">Network Signal Fee</span>
-                         <Badge variant="outline" className="h-4 px-1 text-[8px] border-white/10 text-muted-foreground uppercase">{user?.current_tier?.display_label || 'Standard'}</Badge>
+                         <span className="text-muted-foreground">Mission Signal Fee</span>
                          {feeMethod === 'payout' && <Badge className="h-4 px-1 text-[8px] bg-amber-500/10 text-amber-500 border-none uppercase">Deferred</Badge>}
                       </div>
                       <span className={cn(feeMethod === 'payout' ? "text-muted-foreground line-through" : "text-foreground")}>
                         {signalFee.toLocaleString()} SAT
                       </span>
                     </div>
-                    {isBoosted && (
-                      <div className="flex justify-between text-xs font-bold text-secondary uppercase tracking-widest">
-                        <span>Node Boost Fee</span>
-                        <span>+500 SAT</span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-end border-t border-white/10 pt-4">
                       <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-1">Total Upfront Signal</span>
                       <div className="text-right">
@@ -563,7 +436,7 @@ export default function OpportunityDetailPage() {
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Finalizing Signal...
                       </div>
-                    ) : (isTask ? "Propagate Proof Signal" : "Deploy Strategic Proposal")}
+                    ) : (isTask ? "Propagate Technical Proof" : "Deploy Strategic Proposal")}
                   </Button>
                 </div>
               </CardContent>
@@ -575,41 +448,28 @@ export default function OpportunityDetailPage() {
           <Card className="glass-card border-none rounded-[2.5rem] bg-gradient-to-br from-card via-card to-background p-10 overflow-hidden relative">
             <CardContent className="p-0 space-y-8 relative z-10">
               <div className="text-center space-y-2">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-bold">Node Yield Potential</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-bold">Potential Yield</p>
                 <h2 className={cn(
                   "text-5xl font-headline font-bold tracking-tight",
                   isTask ? "text-emerald-400" : "text-secondary"
                 )}>
-                  {isTask 
-                    ? `+${(opportunity.data.reward_amount || 0).toLocaleString()}` 
-                    : formatBudget(opportunity.data.budget)}
+                  +{isTask ? (task.reward_amount?.toLocaleString() || 0) : (opportunity.data.budget_min?.toLocaleString() || 'TBD')}
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">SATOSHIS</p>
               </div>
 
               <div className="space-y-5 border-t border-white/5 pt-8">
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-secondary" /> Mission Limit</span>
-                  <span className="text-white">{isTask ? "~15 MINS" : "LONG-TERM"}</span>
+                  <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4 text-secondary" /> Mission Effort</span>
+                  <span className="text-white">{isTask ? `${task.instructions?.estimated_minutes || 15} MINS` : "LONG-TERM"}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Technical Class</span>
-                  <span className="text-foreground capitalize">{opportunity.data.experience_level || opportunity.data.difficulty} CLASS</span>
+                  <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Expertise Class</span>
+                  <span className="text-foreground capitalize">{opportunity.data.difficulty || opportunity.data.experience_level}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                  <span className="text-muted-foreground flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Slots Remaining</span>
-                  <span className="text-foreground">{isTask ? (opportunity.data.target_completions - (opportunity.data.submissions_count || 0)) : (opportunity.data.available_slots || 1)} Nodes</span>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-6 border-t border-white/5">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Skills Signal</p>
-                <div className="flex flex-wrap gap-2">
-                  {(opportunity.data.skills || []).map((skill: any, idx: number) => (
-                    <Badge key={skill.id || skill.name || idx} variant="secondary" className="bg-white/5 text-muted-foreground border-white/10 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
-                      {skill.name}
-                    </Badge>
-                  ))}
+                  <span className="text-muted-foreground flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Slots</span>
+                  <span className="text-foreground">{isTask ? (task.target_completions - task.submissions_count) : 'UNLIMITED'}</span>
                 </div>
               </div>
 
@@ -622,7 +482,7 @@ export default function OpportunityDetailPage() {
                   onClick={() => setStep('active')}
                   disabled={isTask && workbench?.approved_steps === workbench?.total_steps && workbench?.total_steps > 0}
                 >
-                  {isTask ? (workbench?.approved_steps === workbench?.total_steps && workbench?.total_steps > 0 ? "Mission Finalized" : "Initiate Mission") : "Commission Node"}
+                  {isTask ? (workbench?.approved_steps === workbench?.total_steps && workbench?.total_steps > 0 ? "Mission Finalized" : "Initiate workbench") : "Initiate Proposal"}
                 </Button>
               )}
             </CardContent>

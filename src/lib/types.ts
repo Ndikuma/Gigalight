@@ -32,15 +32,6 @@ export interface User {
     pending_balance: number;
     total_rewarded: number;
   };
-  membership?: {
-    tier: {
-      id: string;
-      name: string;
-      display_label: string;
-    };
-    tier_fee_task: number;
-    tier_fee_project: number;
-  };
 }
 
 export interface ProfileData {
@@ -152,7 +143,21 @@ export type ProofMethod =
   | 'file' | 'confirm' | 'account_action' | 'app_install' | 'email_confirm' 
   | 'qr_scan' | 'gps' | 'code_snippet';
 
+export type TaskStatus = 'pending' | 'active' | 'approved' | 'completed' | 'paused' | 'archived';
+export type SubmissionStatus = 'pending' | 'submitted' | 'approved' | 'rejected' | 'needs_revision';
 export type Difficulty = 'easy' | 'medium' | 'hard';
+
+export interface TaskInstructions {
+  summary?: string;
+  steps: {
+    title: string;
+    description?: string;
+    required?: boolean;
+  }[];
+  proof_requirements: string[];
+  disallowed?: string[];
+  estimated_minutes?: number;
+}
 
 export interface Category {
   id: string;
@@ -170,26 +175,77 @@ export interface SubTask {
   description: string;
   order: number;
   reward_amount: number;
+  is_installment: boolean;
+  submission_fee_sats: number;
+  submitter_pays_fee_upfront: boolean;
+  effective_submission_fee_sats: number;
+  effective_submitter_pays_fee_upfront: boolean;
+  fee_payment_timing: 'submit' | 'payout';
   submissions_count: number;
   approved_count: number;
 }
 
 export interface TaskMini {
   id: string;
+  creator: number | string;
+  creator_display: string;
   title: string;
   short_description: string;
   description: string;
+  instructions: TaskInstructions;
   category: { id: string; name: string; slug: string; icon?: string };
   difficulty: Difficulty;
+  status: TaskStatus;
   reward_amount: number;
-  external_url: string | null;
+  target_completions: number;
   submissions_count: number;
+  submission_fee_sats: number;
+  submitter_pays_fee_upfront: boolean;
+  submission_fee_payment_timing: 'submit' | 'payout';
   proof_method: ProofMethod;
+  external_url: string | null;
   boost_multiplier: number;
   boost_ends_at: string | null;
   boosted: boolean;
+  subtasks: SubTask[];
   created_at: string;
-  subtasks?: SubTask[];
+}
+
+export interface TaskWorkbench {
+  task: TaskMini;
+  mode: 'task' | 'subtasks';
+  instructions: TaskInstructions;
+  submit_url: string;
+  total_steps: number;
+  approved_steps: number;
+  submitted_steps: number;
+  pending_steps: number;
+  total_reward: number;
+  earned_reward: number;
+  next_subtask: SubTask | null;
+  submissions: Submission[];
+}
+
+export interface TaskManagement {
+  task: TaskMini;
+  mode: 'task' | 'subtasks';
+  instructions: TaskInstructions;
+  target_completions: number;
+  completed_workers: number;
+  reward_per_worker: number;
+  potential_total_reward: number;
+  paid_sats: number;
+  remaining_slots: number;
+  submission_counts: {
+    pending: number;
+    submitted: number;
+    approved: number;
+    rejected: number;
+    needs_revision: number;
+  };
+  subtasks: SubTask[];
+  review_queue: Submission[];
+  recent_submissions: Submission[];
 }
 
 export type BudgetType = 'fixed' | 'hourly';
@@ -262,8 +318,14 @@ export interface Submission {
   subtask_title?: string;
   user: number | string;
   worker_name: string;
-  status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'needs_revision';
+  status: SubmissionStatus;
   reward_amount: number;
+  reward_amount_snapshot: number;
+  fee_amount_snapshot: number;
+  fee_paid_upfront: boolean;
+  fee_due_on_payout: boolean;
+  fee_payment_timing: 'submit' | 'payout';
+  net_reward_amount: number;
   is_paid: boolean;
   proof_text: string;
   proof_image_uri: string;
@@ -273,7 +335,6 @@ export interface Submission {
   ai_audit_result: any;
   ai_score: number | null;
   validator_notes: string;
-  assigned_validator: any;
   submitted_at: string;
   reviewed_at: string | null;
   paid_at: string | null;

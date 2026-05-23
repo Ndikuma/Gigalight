@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -27,8 +26,9 @@ import {
   Target,
   Trash2,
   ChevronRight,
-  GripVertical,
-  Search
+  Search,
+  ListTodo,
+  FileText
 } from 'lucide-react';
 import { generateJobProjectDescription } from '@/ai/flows/job-project-description-generator';
 import { suggestSkillsAndCategories } from '@/ai/flows/automated-skill-category-suggestion';
@@ -58,18 +58,24 @@ export default function CreateGigPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    instructions: '',
-    validatorGuidelines: '',
+    short_description: '',
     category_id: '',
     reward_amount: '500',
-    difficulty: 'medium',
+    difficulty: 'easy',
     proof_method: 'text' as ProofMethod,
     target_completions: '10',
-    skills: [] as string[],
-    subtasks: [] as { title: string, description: string, reward_amount: string }[]
+    submission_fee_sats: '10',
+    submitter_pays_fee_upfront: false,
+    external_url: '',
+    validator_guidelines: '',
+    instructions: {
+      summary: '',
+      steps: [] as { title: string, description: string, required: boolean }[],
+      proof_requirements: [] as string[]
+    }
   });
 
-  const [newSubtask, setNewSubtask] = useState({ title: '', description: '', reward_amount: '100' });
+  const [newStep, setNewStep] = useState({ title: '', description: '', required: true });
 
   useEffect(() => {
     async function fetchTaxonomy() {
@@ -90,22 +96,11 @@ export default function CreateGigPage() {
     fetchTaxonomy();
   }, []);
 
-  const filteredAvailableSkills = availableSkills.filter(s => 
-    s.name.toLowerCase().includes(skillSearch.toLowerCase()) && 
-    !formData.skills.includes(s.name)
-  );
-
-  const totalRewardPerNode = useMemo(() => {
-    if (formData.subtasks.length > 0) {
-      return formData.subtasks.reduce((acc, st) => acc + (parseInt(st.reward_amount) || 0), 0);
-    }
-    return parseInt(formData.reward_amount) || 0;
-  }, [formData.reward_amount, formData.subtasks]);
-
   const totalEscrow = useMemo(() => {
+    const reward = parseInt(formData.reward_amount) || 0;
     const slots = parseInt(formData.target_completions) || 0;
-    return totalRewardPerNode * slots;
-  }, [totalRewardPerNode, formData.target_completions]);
+    return reward * slots;
+  }, [formData.reward_amount, formData.target_completions]);
 
   async function handleAIAssist() {
     if (!formData.title && !formData.description) {
@@ -115,18 +110,22 @@ export default function CreateGigPage() {
     setIsGenerating(true);
     try {
       const genResult = await generateJobProjectDescription({ prompt: formData.title || formData.description });
-      const skillResult = await suggestSkillsAndCategories({ text: genResult.description });
       
       setFormData(prev => ({
         ...prev,
         title: genResult.title,
         description: genResult.description,
-        instructions: `Key Responsibilities:\n${genResult.responsibilities.map(r => `• ${r}`).join('\n')}`,
-        validatorGuidelines: "Ensure all technical requirements are explicitly met in the submitted proof.",
-        skills: [...new Set([...prev.skills, ...skillResult.suggestedSkills])],
+        short_description: genResult.description.substring(0, 160),
+        instructions: {
+          ...prev.instructions,
+          summary: "Follow these technical steps for mission validation.",
+          steps: genResult.responsibilities.map(r => ({ title: r, description: "Professional execution required.", required: true })),
+          proof_requirements: ["Technical Summary", "Screenshot Proof"]
+        },
+        validator_guidelines: "Ensure all steps are explicitly documented in the technical proof."
       }));
       
-      toast({ title: "Intelligence Applied", description: "Listing professionalized by AI node." });
+      toast({ title: "Protocol Synthesized", description: "AI has professionalized your mission instructions." });
     } catch (e) {
       toast({ variant: "destructive", title: "Interface Error", description: "AI node interface timeout." });
     } finally {
@@ -134,33 +133,25 @@ export default function CreateGigPage() {
     }
   }
 
-  function addSkill(skillName: string) {
-    if (skillName && !formData.skills.includes(skillName)) {
-      setFormData({ ...formData, skills: [...formData.skills, skillName] });
-      setSkillSearch('');
-    }
-  }
-
-  function removeSkill(s: string) {
-    setFormData({ ...formData, skills: formData.skills.filter(skill => skill !== s) });
-  }
-
-  function addSubtask() {
-    if (!newSubtask.title) {
-      toast({ variant: "destructive", title: "Incomplete Protocol", description: "Milestone title is mandatory." });
-      return;
-    }
+  function addStep() {
+    if (!newStep.title) return;
     setFormData(prev => ({
       ...prev,
-      subtasks: [...prev.subtasks, { ...newSubtask }]
+      instructions: {
+        ...prev.instructions,
+        steps: [...prev.instructions.steps, { ...newStep }]
+      }
     }));
-    setNewSubtask({ title: '', description: '', reward_amount: '100' });
+    setNewStep({ title: '', description: '', required: true });
   }
 
-  function removeSubtask(index: number) {
+  function removeStep(index: number) {
     setFormData(prev => ({
       ...prev,
-      subtasks: prev.subtasks.filter((_, i) => i !== index)
+      instructions: {
+        ...prev.instructions,
+        steps: prev.instructions.steps.filter((_, i) => i !== index)
+      }
     }));
   }
 
@@ -168,22 +159,14 @@ export default function CreateGigPage() {
     setIsSubmitting(true);
     try {
       const response = await TaskService.createTask({
-        title: formData.title,
-        description: formData.description,
-        short_description: formData.description.substring(0, 200),
-        reward_amount: totalRewardPerNode,
+        ...formData,
+        reward_amount: parseInt(formData.reward_amount),
         target_completions: parseInt(formData.target_completions),
-        proof_method: formData.proof_method,
-        difficulty: formData.difficulty as any,
-        validator_guidelines: formData.validatorGuidelines,
-        category: formData.category_id,
-        // Backend expects objects for nested serializers
-        skills: formData.skills.map(name => ({ name })),
-        subtasks: formData.subtasks
+        submission_fee_sats: parseInt(formData.submission_fee_sats),
       });
 
       if (response.data) {
-        toast({ title: "Gig Propagated", description: `"${formData.title}" is live on the L2 protocol.` });
+        toast({ title: "Objective Propagated", description: `"${formData.title}" is live for node signals.` });
         router.push('/my-tasks');
       } else {
         toast({ variant: "destructive", title: "Deployment Error", description: response.error || "Sync failed." });
@@ -203,10 +186,10 @@ export default function CreateGigPage() {
         </Button>
         <div>
           <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-widest text-[10px] mb-1">
-             <Zap className="w-3 h-3" /> Micro Gig Deployment
+             <Zap className="w-3 h-3" /> Micro Gig Initiation
           </div>
           <h1 className="text-4xl font-headline font-bold">Initiate Mission</h1>
-          <p className="text-muted-foreground">Define and fund high-volume proof audit channels.</p>
+          <p className="text-muted-foreground">Define structured electronic jobs for the decentralized workforce.</p>
         </div>
       </header>
 
@@ -229,22 +212,23 @@ export default function CreateGigPage() {
         <CardContent className="p-10">
           {step === 1 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
-              <div className="space-y-2">
-                <h3 className="text-3xl font-headline font-bold">1. Objective Scope</h3>
-                <p className="text-sm text-muted-foreground">Describe the technical intent and core mission parameters.</p>
-              </div>
+              <h3 className="text-3xl font-headline font-bold">1. Core Intent</h3>
               <div className="space-y-6">
                 <div className="space-y-3">
                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Gig Title</Label>
-                  <Input placeholder="e.g. Audit L2 Bridge Documentation" className="h-14 bg-black/40 border-white/5 text-lg rounded-2xl" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+                  <Input placeholder="e.g. Audit Node Specification" className="h-14 bg-black/40 border-white/5 text-lg rounded-2xl" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
                 </div>
                 <div className="space-y-3">
-                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Mission Documentation</Label>
-                  <Textarea placeholder="Describe the technical requirements for node completion..." className="min-h-[200px] bg-black/40 border-white/5 rounded-3xl p-6 leading-relaxed" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Mission Narrative</Label>
+                  <Textarea placeholder="Describe the technical mission scope..." className="min-h-[160px] bg-black/40 border-white/5 rounded-3xl p-6 leading-relaxed" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">External Protocol URL</Label>
+                  <Input placeholder="https://..." className="h-12 bg-black/40 border-white/5 rounded-xl" value={formData.external_url} onChange={(e) => setFormData({...formData, external_url: e.target.value})} />
                 </div>
               </div>
               <div className="flex justify-end pt-4">
-                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(2)}>Configure Parameters <ChevronRight className="w-5 h-5 ml-2" /></Button>
+                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(2)}>Build Instructions</Button>
               </div>
             </div>
           )}
@@ -252,194 +236,127 @@ export default function CreateGigPage() {
           {step === 2 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
               <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-3xl font-headline font-bold">2. Configuration</h3>
-                  <p className="text-sm text-muted-foreground">Categorize your mission and define verification standards.</p>
-                </div>
+                <h3 className="text-3xl font-headline font-bold">2. Technical Instructions</h3>
                 <Button variant="ghost" size="sm" className="text-primary gap-2 h-10 px-4 rounded-xl hover:bg-primary/10 font-bold text-xs uppercase tracking-widest" onClick={handleAIAssist} disabled={isGenerating}>
                   <Sparkles className="w-4 h-4" /> {isGenerating ? "Synthesizing..." : "AI Intelligence Assist"}
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="space-y-3">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Taxonomy</Label>
-                    <Select value={formData.category_id} onValueChange={(val) => setFormData({...formData, category_id: val})}>
-                       <SelectTrigger className="bg-black/40 border-white/5 h-14 rounded-2xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
-                       <SelectContent>{categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                 </div>
-                 <div className="space-y-3">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Node Capability (Skills)</Label>
-                    <div className="relative">
-                       <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                             <div className="relative group cursor-pointer">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <Input 
-                                   placeholder="Search skill signal..." 
-                                   className="h-14 bg-black/40 border-white/5 pl-11 rounded-2xl focus:ring-primary/40"
-                                   value={skillSearch}
-                                   onChange={(e) => setSkillSearch(e.target.value)}
-                                />
-                             </div>
-                          </DropdownMenuTrigger>
-                          {filteredAvailableSkills.length > 0 && (
-                             <DropdownMenuContent className="w-[300px] bg-card border-white/10 max-h-[300px] overflow-y-auto shadow-2xl p-2" align="start">
-                                {filteredAvailableSkills.map(skill => (
-                                   <DropdownMenuItem 
-                                      key={skill.id} 
-                                      onClick={() => addSkill(skill.name)}
-                                      className="rounded-lg p-3 cursor-pointer focus:bg-primary/20 flex items-center justify-between group"
-                                   >
-                                      <div className="flex items-center gap-3">
-                                         <Cpu className="w-4 h-4 text-muted-foreground group-hover:text-primary" />
-                                         <span className="font-bold text-sm">{skill.name}</span>
-                                      </div>
-                                      <Plus className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                   </DropdownMenuItem>
-                                ))}
-                             </DropdownMenuContent>
-                          )}
-                       </DropdownMenu>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-3 min-h-[40px]">
-                       {formData.skills.map(s => (
-                          <Badge key={s} className="bg-primary/10 text-primary border-primary/20 px-3 py-1.5 gap-2 font-bold uppercase text-[9px] tracking-widest animate-in zoom-in-95">
-                             <Cpu className="w-3 h-3" />
-                             {s}
-                             <button onClick={() => removeSkill(s)} className="hover:text-white transition-colors">
-                                <X className="w-3 h-3" />
-                             </button>
-                          </Badge>
-                       ))}
-                       {formData.skills.length === 0 && !isLoadingSkills && (
-                          <p className="text-[10px] text-muted-foreground italic ml-1">No skills added.</p>
-                       )}
-                       {isLoadingSkills && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground ml-1" />}
-                    </div>
-                 </div>
-              </div>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Instruction Summary</Label>
+                   <Input placeholder="Brief overview for the worker..." className="bg-black/40 border-white/5 rounded-xl h-12" value={formData.instructions.summary} onChange={(e) => setFormData({...formData, instructions: {...formData.instructions, summary: e.target.value}})} />
+                </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Proof Verification Guidelines</Label>
-                <Textarea placeholder="Tell validators exactly how to verify technical proof..." className="min-h-[120px] bg-black/40 border-white/5 rounded-2xl p-6 italic leading-relaxed" value={formData.validatorGuidelines} onChange={(e) => setFormData({...formData, validatorGuidelines: e.target.value})} />
+                <div className="space-y-4">
+                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Protocol Steps</Label>
+                   <div className="space-y-3">
+                      {formData.instructions.steps.map((s, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95">
+                           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{i+1}</div>
+                           <div className="flex-1">
+                              <p className="text-sm font-bold">{s.title}</p>
+                              <p className="text-xs text-muted-foreground">{s.description}</p>
+                           </div>
+                           <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => removeStep(i)}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      ))}
+                      <div className="p-6 bg-black/40 border-2 border-dashed border-white/10 rounded-3xl space-y-4">
+                         <Input placeholder="Step title..." className="bg-white/5 border-white/10 h-11" value={newStep.title} onChange={(e) => setNewStep({...newStep, title: e.target.value})} />
+                         <Textarea placeholder="Detailed description..." className="bg-white/5 border-white/10 min-h-[80px]" value={newStep.description} onChange={(e) => setNewStep({...newStep, description: e.target.value})} />
+                         <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10 font-bold gap-2" onClick={addStep}><Plus className="w-4 h-4" /> Add Step</Button>
+                      </div>
+                   </div>
+                </div>
               </div>
 
               <div className="flex justify-between pt-6 border-t border-white/5">
                 <Button variant="ghost" onClick={() => setStep(1)} className="font-bold text-xs uppercase tracking-widest">Previous</Button>
-                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(3)}>Define Milestones <ChevronRight className="w-5 h-5 ml-2" /></Button>
+                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(3)}>Define Parameters</Button>
               </div>
             </div>
           )}
 
           {step === 3 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
-              <div className="space-y-2">
-                <h3 className="text-3xl font-headline font-bold">3. Milestone Protocol</h3>
-                <p className="text-sm text-muted-foreground">Decompose your mission into sequential, milestone-based objectives (Optional).</p>
+              <h3 className="text-3xl font-headline font-bold">3. Verification Parameters</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="space-y-3">
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Proof Signal Class</Label>
+                    <Select value={formData.proof_method} onValueChange={(val: ProofMethod) => setFormData({...formData, proof_method: val})}>
+                       <SelectTrigger className="bg-black/40 border-white/5 h-14 rounded-2xl"><SelectValue /></SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="text">Technical Narrative</SelectItem>
+                          <SelectItem value="screenshot">Verified Screenshot</SelectItem>
+                          <SelectItem value="code_snippet">Code Audit</SelectItem>
+                          <SelectItem value="link">URL Protocol Signal</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="space-y-3">
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Expertise Taxonomy</Label>
+                    <Select value={formData.category_id} onValueChange={(val) => setFormData({...formData, category_id: val})}>
+                       <SelectTrigger className="bg-black/40 border-white/5 h-14 rounded-2xl"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                       <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                 </div>
               </div>
 
-              <div className="space-y-6">
-                {formData.subtasks.map((st, i) => (
-                  <div key={i} className="flex items-center gap-4 p-5 bg-white/5 border border-white/10 rounded-2xl group animate-in zoom-in-95">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">{i + 1}</div>
-                    <div className="flex-1 space-y-0.5">
-                      <p className="text-sm font-bold text-white">{st.title}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{st.reward_amount} SAT Yield</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeSubtask(i)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-
-                <Card className="bg-black/40 border border-white/10 border-dashed rounded-3xl p-6 space-y-6">
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="md:col-span-2 space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Milestone Objective</Label>
-                        <Input placeholder="Objective title..." value={newSubtask.title} onChange={(e) => setNewSubtask({...newSubtask, title: e.target.value})} className="h-12 bg-white/5 border-white/10 rounded-xl" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Milestone Yield (SAT)</Label>
-                        <Input type="number" value={newSubtask.reward_amount} onChange={(e) => setNewSubtask({...newSubtask, reward_amount: e.target.value})} className="h-12 bg-white/5 border-white/10 font-bold rounded-xl" />
-                      </div>
-                   </div>
-                   <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Execution Parameters</Label>
-                      <Textarea placeholder="Specific instructions for this milestone..." value={newSubtask.description} onChange={(e) => setNewSubtask({...newSubtask, description: e.target.value})} className="min-h-[80px] bg-white/5 border-white/10 text-xs rounded-xl" />
-                   </div>
-                   <Button variant="outline" className="w-full border-primary/20 text-primary hover:bg-primary/10 font-bold h-12 rounded-xl gap-2" onClick={addSubtask}>
-                      <Plus className="w-4 h-4" /> Add Protocol Milestone
-                   </Button>
-                </Card>
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Audit Guidelines (For Validators)</Label>
+                <Textarea placeholder="Tell validators exactly how to verify technical proof..." className="min-h-[140px] bg-black/40 border-white/5 rounded-2xl p-6 italic leading-relaxed" value={formData.validator_guidelines} onChange={(e) => setFormData({...formData, validator_guidelines: e.target.value})} />
               </div>
 
               <div className="flex justify-between pt-6 border-t border-white/5">
                 <Button variant="ghost" onClick={() => setStep(2)} className="font-bold text-xs uppercase tracking-widest">Previous</Button>
-                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(4)}>Financial Escrow <ChevronRight className="w-5 h-5 ml-2" /></Button>
+                <Button className="rounded-2xl h-14 px-10 font-bold bg-primary neon-glow-primary shadow-xl shadow-primary/20 text-lg" onClick={() => setStep(4)}>Financial Parameters</Button>
               </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-8 animate-in slide-in-from-right-4">
-              <div className="space-y-2">
-                <h3 className="text-3xl font-headline font-bold">4. Financial Escrow</h3>
-                <p className="text-sm text-muted-foreground">Authorize L2 settlement and deploy your objective to the network.</p>
-              </div>
-
+              <h3 className="text-3xl font-headline font-bold">4. Financial Escrow</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <Card className="bg-black/40 border-white/5 p-8 space-y-6 rounded-[2rem]">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary"><BadgeDollarSign className="w-7 h-7" /></div>
-                    <div><h4 className="font-bold text-lg">Reward Signal</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Multi-sig Performance Payout</p></div>
+                    <div><h4 className="font-bold text-lg">Yield Reward</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Base Rate / Node</p></div>
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Reward (SAT)</Label>
-                      <Input 
-                        type="number" 
-                        className="h-14 bg-background border-white/10 font-bold text-xl rounded-xl" 
-                        value={formData.reward_amount} 
-                        onChange={(e) => setFormData({...formData, reward_amount: e.target.value})}
-                        disabled={formData.subtasks.length > 0}
-                      />
-                      {formData.subtasks.length > 0 && <p className="text-[8px] text-emerald-400 font-bold uppercase ml-1">Locked to Milestones</p>}
+                      <Input type="number" className="h-14 bg-background border-white/10 font-bold text-xl rounded-xl" value={formData.reward_amount} onChange={(e) => setFormData({...formData, reward_amount: e.target.value})} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Worker Slots</Label>
+                      <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Target Slots</Label>
                       <Input type="number" className="h-14 bg-background border-white/10 text-lg rounded-xl" value={formData.target_completions} onChange={(e) => setFormData({...formData, target_completions: e.target.value})} />
                     </div>
                   </div>
-                  <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between shadow-inner">
-                     <span className="text-xs font-bold flex items-center gap-2 uppercase tracking-widest"><Lock className="w-4 h-4 text-emerald-500" /> Escrow Total</span>
+                  <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between">
+                     <span className="text-xs font-bold flex items-center gap-2 uppercase tracking-widest"><Lock className="w-4 h-4 text-emerald-500" /> Escrow Fund</span>
                      <span className="text-2xl font-headline font-bold text-emerald-400">{totalEscrow.toLocaleString()} SAT</span>
                   </div>
                 </Card>
 
                 <Card className="bg-black/40 border-white/5 p-8 space-y-6 rounded-[2rem]">
                    <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-500"><ShieldCheck className="w-7 h-7" /></div>
-                    <div><h4 className="font-bold text-lg">Proof Method</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Verification Signal Class</p></div>
+                    <div className="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary"><Layers className="w-7 h-7" /></div>
+                    <div><h4 className="font-bold text-lg">Worker Parameters</h4><p className="text-[10px] text-muted-foreground uppercase tracking-widest">Signal Logistics</p></div>
                   </div>
                   <div className="space-y-4">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Signal Modality</Label>
-                    <Select value={formData.proof_method} onValueChange={(val: ProofMethod) => setFormData({...formData, proof_method: val})}>
-                      <SelectTrigger className="bg-background border-white/10 h-14 rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Narrative Keywords</SelectItem>
-                        <SelectItem value="code_snippet">Code Snippet Audit</SelectItem>
-                        <SelectItem value="file">Technical File Propagation</SelectItem>
-                        <SelectItem value="link">URL Protocol Signal</SelectItem>
-                        <SelectItem value="image">Screenshot Proof</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Submission Signal Fee (SAT)</Label>
+                    <Input type="number" className="h-14 bg-background border-white/10 font-bold text-xl rounded-xl" value={formData.submission_fee_sats} onChange={(e) => setFormData({...formData, submission_fee_sats: e.target.value})} />
                   </div>
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                      Signal class ensures protocol compatibility for network validators and AI auditing agents.
-                    </p>
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                     <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Upfront Settlement</span>
+                     <button 
+                        onClick={() => setFormData({...formData, submitter_pays_fee_upfront: !formData.submitter_pays_fee_upfront})}
+                        className={cn("h-8 px-4 rounded-lg font-bold text-[10px] uppercase transition-all", formData.submitter_pays_fee_upfront ? "bg-primary text-white" : "bg-white/10 text-muted-foreground")}
+                     >
+                        {formData.submitter_pays_fee_upfront ? 'ENABLED' : 'DEFERRED TO PAYOUT'}
+                     </button>
                   </div>
                 </Card>
               </div>
@@ -449,9 +366,9 @@ export default function CreateGigPage() {
                   <Wallet className="w-6 h-6 text-primary" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm">Escrow Authorization Required</h4>
+                  <h4 className="font-bold text-sm">Escrow Protocol Authorization</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Finalizing propagation will debit <strong className="text-white">{totalEscrow.toLocaleString()} SAT</strong> from your liquid balance to fund the platform multi-sig escrow node. Yields are released to workers only after verified proof audit.
+                    By propagating this objective, you authorize the platform to debit <strong className="text-white">{totalEscrow.toLocaleString()} SAT</strong> from your liquid balance to fund the objective escrow. Yields are non-reversible once proof is verified.
                   </p>
                 </div>
               </div>
@@ -462,9 +379,9 @@ export default function CreateGigPage() {
                   {isSubmitting ? (
                     <div className="flex items-center gap-3">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Propagating Objective...
+                      Propagating Signal...
                     </div>
-                  ) : 'Authorize & Deploy Gig'}
+                  ) : 'Propagate Mission Objective'}
                 </Button>
               </div>
             </div>
