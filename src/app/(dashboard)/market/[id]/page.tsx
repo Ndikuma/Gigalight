@@ -27,10 +27,7 @@ import {
   Target,
   CheckCircle2,
   History,
-  Wrench,
-  ChevronDown,
-  Coins,
-  CreditCard
+  Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,16 +45,9 @@ import { TaskService } from '@/services/task-service';
 import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
-import { ServiceService } from '@/services/service-service';
-import { User, ProfessionalService } from '@/lib/types';
+import { User } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 export default function OpportunityDetailPage() {
   const params = useParams();
@@ -73,8 +63,6 @@ export default function OpportunityDetailPage() {
   const [opportunity, setOpportunity] = useState<{ data: any, type: 'task' | 'project' } | null>(null);
   const [workbench, setWorkbench] = useState<any>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [myServices, setMyServices] = useState<ProfessionalService[]>([]);
-  const [selectedService, setSelectedService] = useState<ProfessionalService | null>(null);
 
   const [proofText, setProofText] = useState('');
   const [bidAmount, setBidAmount] = useState('');
@@ -88,15 +76,13 @@ export default function OpportunityDetailPage() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const [taskRes, projectRes, profRes, servicesRes] = await Promise.all([
+        const [taskRes, projectRes, profRes] = await Promise.all([
           TaskService.getTask(id),
           ProjectService.getProject(id),
-          ProfileService.getMyProfile(),
-          ServiceService.getMyServices()
+          ProfileService.getMyProfile()
         ]);
 
         if (profRes.data) setUser(profRes.data);
-        if (servicesRes.data) setMyServices(servicesRes.data);
         
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
@@ -200,7 +186,6 @@ export default function OpportunityDetailPage() {
       let res;
       const commonPayload = {
         fee_method: feeMethod,
-        attached_service: selectedService?.id
       };
 
       if (isTask) {
@@ -452,43 +437,6 @@ export default function OpportunityDetailPage() {
               </CardHeader>
               <CardContent className="p-10 space-y-8">
                 
-                {/* Expert Service Attachment Selector */}
-                {myServices.length > 0 && (
-                   <div className="space-y-3">
-                      <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Expertise Signal Attachment (Optional)</Label>
-                      <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="w-full h-14 bg-black/40 border-white/10 rounded-2xl justify-between px-6 hover:bg-white/5 font-bold transition-all group">
-                               <div className="flex items-center gap-3">
-                                  <Wrench className={cn("w-4 h-4", selectedService ? "text-emerald-400" : "text-muted-foreground")} />
-                                  <span className={selectedService ? "text-white" : "text-muted-foreground"}>
-                                     {selectedService ? selectedService.title : "Link Professional Offering..."}
-                                  </span>
-                               </div>
-                               <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-white" />
-                            </Button>
-                         </DropdownMenuTrigger>
-                         <DropdownMenuContent className="w-[calc(100vw-2rem)] sm:w-[500px] bg-card border-white/10 p-2 shadow-2xl max-h-80 overflow-y-auto">
-                            <DropdownMenuItem onClick={() => setSelectedService(null)} className="rounded-xl p-3 cursor-pointer focus:bg-white/5 mb-1">
-                               <div className="flex flex-col">
-                                  <span className="font-bold text-sm">No Attachment</span>
-                                  <span className="text-[10px] text-muted-foreground">Submit without a service link.</span>
-                               </div>
-                            </DropdownMenuItem>
-                            {myServices.map((service) => (
-                               <DropdownMenuItem key={service.id} onClick={() => setSelectedService(service)} className="rounded-xl p-3 cursor-pointer focus:bg-emerald-500/10 mb-1">
-                                  <div className="flex flex-col">
-                                     <span className="font-bold text-sm text-white">{service.title}</span>
-                                     <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{service.category} • {service.price_sats.toLocaleString()} SAT Base</span>
-                                  </div>
-                               </DropdownMenuItem>
-                            ))}
-                         </DropdownMenuContent>
-                      </DropdownMenu>
-                      <p className="text-[9px] text-muted-foreground italic ml-2">Attach a service to provide a stronger expertise signal to the mission auditor.</p>
-                   </div>
-                )}
-
                 {/* Fee Method Selection */}
                 <div className="space-y-3">
                   <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Fee Settlement Strategy</Label>
@@ -684,4 +632,3 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
-
