@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -171,7 +170,8 @@ export default function SettingsPage() {
   }
 
   async function handleUpgrade(tier: Tier) {
-    if (user?.tier === tier.id) {
+    const isActive = user?.current_tier?.id === tier.id || user?.tier === tier.id;
+    if (isActive) {
        toast({ title: "Tier Active", description: "Your node is already operating at this protocol level." });
        return;
     }
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 justify-center sm:justify-start">
                       <h4 className="font-bold">Protocol Avatar</h4>
                       <Badge className="bg-primary/10 text-primary border-none uppercase text-[9px] font-bold tracking-widest">
-                        {tiers.find(t => t.id === user.tier)?.display_label || 'Standard'} Node
+                        {user.current_tier?.display_label || tiers.find(t => t.id === user.tier)?.display_label || 'Standard'} Node
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
@@ -332,59 +332,65 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="p-8 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {tiers.map((tier) => (
-                    <div key={tier.id} className={cn(
-                      "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-auto min-h-[320px] relative overflow-hidden group",
-                      user?.tier === tier.id 
-                        ? "border-secondary/40 bg-secondary/5 ring-1 ring-secondary/20 shadow-2xl" 
-                        : "border-white/5 bg-black/40 hover:border-white/10"
-                    )}>
-                      {user?.tier === tier.id && (
-                        <div className="absolute top-0 right-0 p-3">
-                          <CheckCircle className="w-5 h-5 text-secondary" />
-                        </div>
-                      )}
-                      <div className="space-y-4">
-                        <div>
-                          <Badge className={cn(
-                            "text-[9px] uppercase font-bold tracking-widest px-3",
-                            tier.name === 'elite' ? "bg-amber-500" : tier.name === 'pro' ? "bg-primary" : "bg-muted"
-                          )}>
-                             {tier.icon} {tier.display_label}
-                          </Badge>
-                          <p className="text-2xl font-headline font-bold mt-2">{tier.cost_sats > 0 ? `${tier.cost_sats.toLocaleString()} SAT` : 'Free'}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed italic">{tier.description}</p>
-                        <div className="space-y-2">
-                           <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Benefits Signal</p>
-                           <ul className="space-y-2">
-                              {(tier.benefits || "").split('\n').map((benefit, i) => (
-                                <li key={i} className="text-[10px] text-white/70 flex items-start gap-2">
-                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {benefit.replace('- ', '')}
+                  {tiers.map((tier) => {
+                    const isActive = user?.current_tier?.id === tier.id || user?.tier === tier.id;
+                    return (
+                      <div key={tier.id} className={cn(
+                        "p-6 rounded-[2rem] border transition-all flex flex-col justify-between h-auto min-h-[320px] relative overflow-hidden group",
+                        isActive 
+                          ? "border-secondary/40 bg-secondary/5 ring-1 ring-secondary/20 shadow-2xl" 
+                          : "border-white/5 bg-black/40 hover:border-white/10"
+                      )}>
+                        {isActive && (
+                          <div className="absolute top-0 right-0 p-3">
+                            <CheckCircle className="w-5 h-5 text-secondary" />
+                          </div>
+                        )}
+                        <div className="space-y-4">
+                          <div>
+                            <Badge className={cn(
+                              "text-[9px] uppercase font-bold tracking-widest px-3",
+                              tier.name === 'elite' ? "bg-amber-500" : tier.name === 'pro' ? "bg-primary" : "bg-muted"
+                            )}>
+                               {tier.icon} {tier.display_label}
+                            </Badge>
+                            <p className="text-2xl font-headline font-bold mt-2">{tier.cost_sats > 0 ? `${tier.cost_sats.toLocaleString()} SAT` : 'Free'}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed italic">{tier.description}</p>
+                          <div className="space-y-2">
+                             <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground">Benefits Signal</p>
+                             <ul className="space-y-2">
+                                {(tier.benefits || "").split('\n').map((benefit, i) => (
+                                  <li key={i} className="text-[10px] text-white/70 flex items-start gap-2">
+                                    <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {benefit.replace('- ', '')}
+                                  </li>
+                                ))}
+                                <li className="text-[10px] text-white/70 flex items-start gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_task}% Task Fee Signal
                                 </li>
-                              ))}
-                              <li className="text-[10px] text-white/70 flex items-start gap-2">
-                                <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_task}% Task Fee Signal
-                              </li>
-                           </ul>
+                                <li className="text-[10px] text-white/70 flex items-start gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_project}% Project Fee Signal
+                                </li>
+                             </ul>
+                          </div>
                         </div>
+                        
+                        {isActive ? (
+                          <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1 mt-6">
+                            <CheckCircle className="w-3.5 h-3.5" /> Active Protocol Level
+                          </div>
+                        ) : (
+                          <button 
+                            className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 transition-colors mt-6 disabled:opacity-50"
+                            onClick={() => handleUpgrade(tier)}
+                            disabled={isGeneratingInvoice}
+                          >
+                            {isGeneratingInvoice ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Select Tier'}
+                          </button>
+                        )}
                       </div>
-                      
-                      {user?.tier === tier.id ? (
-                        <div className="text-[10px] font-bold text-secondary uppercase tracking-[0.2em] flex items-center gap-2 px-1 mt-6">
-                          <CheckCircle className="w-3 h-3" /> Active Protocol Level
-                        </div>
-                      ) : (
-                        <button 
-                          className="w-full rounded-xl h-12 font-bold uppercase tracking-widest text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 transition-colors mt-6 disabled:opacity-50"
-                          onClick={() => handleUpgrade(tier)}
-                          disabled={isGeneratingInvoice}
-                        >
-                          {isGeneratingInvoice ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Select Tier'}
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

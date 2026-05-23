@@ -9,7 +9,7 @@ export interface User {
   id: number;
   email: string;
   display_name: string;
-  tier?: string; // UUID
+  tier?: string; // UUID string
   status: UserStatus;
   is_validator: boolean;
   reputation: number;
@@ -17,7 +17,17 @@ export interface User {
   projects_hired: number;
   total_earned: number;
   total_spent: number;
+  current_tier?: Partial<Tier>;
   profile: ProfileData;
+  membership?: {
+    tier: {
+      id: string;
+      name: string;
+      display_label: string;
+    };
+    tier_fee_task: number;
+    tier_fee_project: number;
+  };
 }
 
 export interface ProfileData {
