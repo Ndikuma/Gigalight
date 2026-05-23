@@ -74,6 +74,8 @@ export default function WalletPage() {
   const [feeData, setFeeData] = useState<WithdrawFeesResponse | null>(null);
   
   const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  const [isWithdrawSuccess, setIsWithdrawSuccess] = useState(false);
+  const [lastWithdrawData, setLastWithdrawData] = useState<{ amount: number; target: string; rail?: string } | null>(null);
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -112,6 +114,10 @@ export default function WalletPage() {
     setIsDecoding(false);
     setIsCalculatingFees(false);
     setIsProcessingWithdraw(false);
+    setIsWithdrawSuccess(false);
+    setLastWithdrawData(null);
+    setIsWithdrawOpen(false);
+    fetchWalletData(true);
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
   };
 
@@ -123,7 +129,6 @@ export default function WalletPage() {
       if (res.data) {
         setFeeData(res.data);
       } else if (res.error) {
-         // Surface specific fee errors like "Insufficient balance"
          setFeeData({
             can_withdraw: false,
             message: res.error,
@@ -146,7 +151,8 @@ export default function WalletPage() {
   const handleTargetChange = async (val: string) => {
     setWithdrawTarget(val);
     if (!val) {
-      cleanupWithdraw();
+      setDecodeData(null);
+      setFeeData(null);
       return;
     }
 
@@ -175,7 +181,6 @@ export default function WalletPage() {
   };
 
   const handleAmountChange = (val: string) => {
-    // Enforce integer SATOSHIS
     const intVal = val.replace(/[^0-9]/g, '');
     setWithdrawAmount(intVal);
     
@@ -202,10 +207,13 @@ export default function WalletPage() {
         withdrawMemo
       );
       if (res.data) {
-        toast({ title: "Settlement Propagated", description: "Yields are being released to the specified node." });
-        setIsWithdrawOpen(false);
-        cleanupWithdraw();
-        fetchWalletData(true);
+        setLastWithdrawData({
+          amount: feeData?.amount_sats || amountNum || 0,
+          target: withdrawTarget,
+          rail: decodeData?.rail
+        });
+        setIsWithdrawSuccess(true);
+        toast({ title: "Settlement Propagated", description: "Yields released to network node." });
       } else {
         toast({ variant: "destructive", title: "Settlement Rejected", description: res.error || "Verification failed." });
       }
@@ -228,7 +236,6 @@ export default function WalletPage() {
       const res = await WalletService.generateDepositInvoice(amountNum, "Gigalight deposit", 3600);
       if (res.data) {
         setInvoiceData(res.data);
-        toast({ title: "Invoice Propagated", description: "Waiting for L2 signal." });
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
       }
@@ -245,7 +252,6 @@ export default function WalletPage() {
       const res = await WalletService.getBitcoinAddress();
       if (res.data) {
         setOnchainData(res.data);
-        toast({ title: "Address Propagated", description: "Settlement path established via Bitcoin L1." });
       } else {
         toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not retrieve address." });
       }
@@ -546,110 +552,135 @@ export default function WalletPage() {
         if (!open) cleanupWithdraw();
       }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[480px] rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
-          <div className="p-8 space-y-6">
-            <DialogHeader className="p-0">
-              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                  <ArrowUpRight className="w-6 h-6" />
-                </div>
-                Settlement Payout
-              </DialogTitle>
-              <DialogDescription className="text-sm">
-                Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5">
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target (L1/L2)</Label>
-                <div className="relative group">
-                  <Input 
-                    placeholder="lnbc..., user@domain, LNURL..., bc1..." 
-                    className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-12 focus:ring-primary/40 text-xs font-mono"
-                    value={withdrawTarget}
-                    onChange={(e) => handleTargetChange(e.target.value)}
-                  />
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                    {isDecoding ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Zap className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />}
+          {isWithdrawSuccess ? (
+            <div className="p-8 space-y-8 text-center animate-in zoom-in-95 duration-500">
+              <div className="mx-auto bg-emerald-500/10 p-10 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/10 border-4 border-emerald-500/20">
+                <CheckCircle2 className="w-24 h-24 text-emerald-400" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-4xl font-headline font-bold text-white">-{lastWithdrawData?.amount?.toLocaleString()} SAT</p>
+                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.3em]">Settlement Released to Network</p>
+              </div>
+              <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-left group/trace relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-xl -z-10" />
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Destination Node</p>
+                 <p className="text-[11px] font-mono text-white/70 truncate">{lastWithdrawData?.target}</p>
+                 <div className="flex items-center gap-1.5 mt-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">{lastWithdrawData?.rail?.toUpperCase()} RAIL PROPAGATED</span>
+                 </div>
+              </div>
+              <Button className="w-full h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={cleanupWithdraw}>
+                Finalize Session
+              </Button>
+            </div>
+          ) : (
+            <div className="p-8 space-y-6">
+              <DialogHeader className="p-0">
+                <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                    <ArrowUpRight className="w-6 h-6" />
                   </div>
-                  {decodeData && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <Badge className="bg-primary/10 text-primary text-[8px] border-none uppercase tracking-tighter">
-                        {decodeData.target_type.replace('_', ' ')}
-                      </Badge>
+                  Settlement Payout
+                </DialogTitle>
+                <DialogDescription className="text-sm">
+                  Propagate yields to a Lightning invoice, address, LNURL, or Bitcoin L1 node.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Settlement Target (L1/L2)</Label>
+                  <div className="relative group">
+                    <Input 
+                      placeholder="lnbc..., user@domain, LNURL..., bc1..." 
+                      className="h-14 bg-white/5 border-white/10 rounded-2xl pl-12 pr-12 focus:ring-primary/40 text-xs font-mono"
+                      value={withdrawTarget}
+                      onChange={(e) => handleTargetChange(e.target.value)}
+                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                      {isDecoding ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Zap className="w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />}
                     </div>
-                  )}
+                    {decodeData && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Badge className="bg-primary/10 text-primary text-[8px] border-none uppercase tracking-tighter">
+                          {decodeData.target_type.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {(decodeData?.requires_amount || !decodeData) && (
+                  <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Yield Quantity (SAT)</Label>
+                    <div className="relative">
+                      <Input 
+                        type="number"
+                        step="1"
+                        min="1"
+                        placeholder="Amount in SAT"
+                        className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 pr-12 focus:ring-primary/40"
+                        value={withdrawAmount}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                      />
+                      <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SAT</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Protocol Audit Alerts */}
+                {feeData && !feeData.can_withdraw && (
+                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl animate-in zoom-in-95">
+                      <ShieldAlert className="h-4 w-4" />
+                      <AlertTitle className="text-[10px] font-bold uppercase tracking-widest">Protocol Audit Failed</AlertTitle>
+                      <AlertDescription className="text-xs font-medium">
+                        {feeData.message || "Insufficient balance or invalid technical parameters."}
+                      </AlertDescription>
+                  </Alert>
+                )}
+
+                {feeData && feeData.can_withdraw && (
+                  <div className="bg-black/40 border border-white/10 rounded-[2rem] p-6 space-y-4 animate-in slide-in-from-bottom-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      <span>Protocol Audit</span>
+                      <span>{decodeData?.rail.toUpperCase()} RAIL</span>
+                    </div>
+                    <div className="space-y-2 border-t border-white/5 pt-4">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-muted-foreground">Recipient Yield</span>
+                        <span className="text-white">{feeData.amount_sats.toLocaleString()} SAT</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-muted-foreground">Network Service Fee</span>
+                        <span className="text-primary">+{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
+                      </div>
+                      <div className="h-px bg-white/5 my-2" />
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Protocol Debit</span>
+                        <div className="text-right">
+                            <span className="text-2xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
+                            <span className="text-[8px] font-bold text-muted-foreground ml-1 uppercase">SAT</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {(decodeData?.requires_amount || !decodeData) && (
-                <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Yield Quantity (SAT)</Label>
-                  <div className="relative">
-                    <Input 
-                      type="number"
-                      step="1"
-                      min="1"
-                      placeholder="Amount in SAT"
-                      className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 pr-12 focus:ring-primary/40"
-                      value={withdrawAmount}
-                      onChange={(e) => handleAmountChange(e.target.value)}
-                    />
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">SAT</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Protocol Audit Alerts */}
-              {feeData && !feeData.can_withdraw && (
-                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 rounded-2xl animate-in zoom-in-95">
-                    <ShieldAlert className="h-4 w-4" />
-                    <AlertTitle className="text-[10px] font-bold uppercase tracking-widest">Protocol Audit Failed</AlertTitle>
-                    <AlertDescription className="text-xs font-medium">
-                      {feeData.message || "Insufficient balance or invalid technical parameters."}
-                    </AlertDescription>
-                 </Alert>
-              )}
-
-              {feeData && feeData.can_withdraw && (
-                <div className="bg-black/40 border border-white/10 rounded-[2rem] p-6 space-y-4 animate-in slide-in-from-bottom-2">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    <span>Protocol Audit</span>
-                    <span>{decodeData?.rail.toUpperCase()} RAIL</span>
-                  </div>
-                  <div className="space-y-2 border-t border-white/5 pt-4">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                       <span className="text-muted-foreground">Recipient Yield</span>
-                       <span className="text-white">{feeData.amount_sats.toLocaleString()} SAT</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs font-bold">
-                       <span className="text-muted-foreground">Network Service Fee</span>
-                       <span className="text-primary">+{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
-                    </div>
-                    <div className="h-px bg-white/5 my-2" />
-                    <div className="flex justify-between items-end">
-                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Protocol Debit</span>
-                       <div className="text-right">
-                          <span className="text-2xl font-headline font-bold text-white">{feeData.wallet_debit_sats.toLocaleString()}</span>
-                          <span className="text-[8px] font-bold text-muted-foreground ml-1 uppercase">SAT</span>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Button 
+                className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20 gap-3"
+                disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees}
+                onClick={handleConfirmWithdraw}
+              >
+                {isProcessingWithdraw ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                {isProcessingWithdraw ? "Propagating Signal..." : "Finalize Settlement"}
+              </Button>
             </div>
-
-            <Button 
-              className="w-full h-16 rounded-2xl bg-primary hover:brightness-110 font-bold text-lg neon-glow-primary shadow-lg shadow-primary/20 gap-3"
-              disabled={!feeData?.can_withdraw || isProcessingWithdraw || isCalculatingFees}
-              onClick={handleConfirmWithdraw}
-            >
-              {isProcessingWithdraw ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isProcessingWithdraw ? "Propagating Signal..." : "Finalize Settlement"}
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
