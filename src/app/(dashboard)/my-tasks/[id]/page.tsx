@@ -211,7 +211,7 @@ export default function TaskManagementWorkspace() {
                         </p>
                         {sub.subtask_title && (
                           <Badge variant="outline" className="text-[8px] font-bold uppercase h-4 px-1.5 border-white/10 text-primary">
-                            Subtask: {sub.subtask_title}
+                            Installment: {sub.subtask_title}
                           </Badge>
                         )}
                       </div>
@@ -310,7 +310,7 @@ export default function TaskManagementWorkspace() {
           <Card className="glass-card border-none p-8 rounded-[2rem] space-y-6">
              <div className="flex items-center justify-between">
                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary">Mission Installments</h4>
-                <Badge variant="outline" className="border-white/10 text-[9px] uppercase">{mgmt.subtasks?.length || 0} Steps</Badge>
+                <Badge variant="outline" className="border-white/10 text-[9px] uppercase">{mgmt.subtasks?.length || 0} Phases</Badge>
              </div>
              <div className="space-y-3">
                 {mgmt.subtasks && mgmt.subtasks.length > 0 ? mgmt.subtasks.map((st: SubTask, i: number) => (
@@ -319,7 +319,7 @@ export default function TaskManagementWorkspace() {
                         <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center text-[10px] font-bold text-muted-foreground border border-white/5">{i+1}</div>
                         <div>
                           <p className="text-xs font-bold text-white">{st.title}</p>
-                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">{st.approved_count || 0} Approved</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">{st.approved_count || 0} Settled</p>
                         </div>
                      </div>
                      <div className="text-right">
