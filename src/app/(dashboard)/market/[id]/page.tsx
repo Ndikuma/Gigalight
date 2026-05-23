@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'react-router-dom'; // Note: User code used next/navigation but the imports in the file were standard. I'll stick to the original structure.
+import { useParams, useRouter } from 'next/navigation';
 import { 
   Zap, 
   Briefcase, 
@@ -46,7 +46,7 @@ import { ProjectService } from '@/services/project-service';
 import { BidService } from '@/services/bid-service';
 import { ProfileService } from '@/services/profile-service';
 import { ServiceService } from '@/services/service-service';
-import { User, ProjectDetail, ProfessionalService } from '@/lib/types';
+import { User, ProfessionalService } from '@/lib/types';
 import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -57,7 +57,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function OpportunityDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
+  const router = useRouter();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrafting, setIsDrafting] = useState(false);
   const [step, setStep] = useState<'view' | 'active' | 'success'>('view');
@@ -78,11 +81,12 @@ export default function OpportunityDetailPage() {
   useEffect(() => {
     setMounted(true);
     async function fetchData() {
+      if (!id) return;
       setIsLoading(true);
       try {
         const [taskRes, projectRes, profRes, servicesRes] = await Promise.all([
-          TaskService.getTask(id as string),
-          ProjectService.getProject(id as string),
+          TaskService.getTask(id),
+          ProjectService.getProject(id),
           ProfileService.getMyProfile(),
           ServiceService.getMyServices()
         ]);
@@ -93,14 +97,14 @@ export default function OpportunityDetailPage() {
         if (taskRes.data) {
           setOpportunity({ data: taskRes.data, type: 'task' });
           if (profRes.data && taskRes.data.creator !== profRes.data.id) {
-             const wb = await TaskService.getTaskWorkbench(id as string);
+             const wb = await TaskService.getTaskWorkbench(id);
              if (wb.data) setWorkbench(wb.data);
           }
         } else if (projectRes.data) {
           setOpportunity({ data: projectRes.data, type: 'project' });
         }
       } catch (err) {
-        console.error(err);
+        console.error("Propagation error:", err);
       } finally {
         setIsLoading(false);
       }
@@ -111,7 +115,11 @@ export default function OpportunityDetailPage() {
   if (!mounted) return null;
 
   if (isLoading) {
-    return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
+    return (
+      <div className="h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!opportunity) {
@@ -133,10 +141,9 @@ export default function OpportunityDetailPage() {
 
   const isTask = opportunity.type === 'task';
   
-  // Calculate fees based on current tier
+  // Calculate fees based on active protocol tier
   const tier = user?.current_tier;
-  const baseSignalFee = isTask ? (tier?.fee_task ?? 50) : (tier?.fee_project ?? 250);
-  const signalFee = baseSignalFee;
+  const signalFee = isTask ? (tier?.fee_task ?? 50) : (tier?.fee_project ?? 250);
   const totalUpfront = signalFee + (isBoosted ? 500 : 0);
 
   const formatBudget = (budget: any) => {
@@ -159,8 +166,8 @@ export default function OpportunityDetailPage() {
           title: user?.display_name || 'Node Operator',
           bio: user?.profile?.bio || "",
           skills: [],
-          completedProjects: user?.projects_hired || 0,
-          totalEarned: user?.total_earned || 0,
+          completedProjects: user?.profile?.completed_tasks || 0,
+          totalEarned: user?.profile?.total_earned || 0,
         },
         opportunity: {
           type: 'project',
@@ -185,18 +192,10 @@ export default function OpportunityDetailPage() {
     try {
       let res;
       if (isTask) {
-        if (workbench?.next_subtask) {
-          res = await TaskService.submitProof(opportunity.data.id, {
-            subtask_id: workbench.next_subtask.id,
-            proof_text: proofText,
-            attached_service: selectedService?.id
-          } as any);
-        } else {
-          res = await TaskService.submitProof(opportunity.data.id, {
-            proof_text: proofText,
-            attached_service: selectedService?.id
-          } as any);
-        }
+        res = await TaskService.submitProof(opportunity.data.id, {
+          subtask_id: workbench?.next_subtask?.id,
+          proof_text: proofText,
+        } as any);
       } else {
         res = await BidService.submitBid({
           project: opportunity.data.id,
@@ -204,7 +203,6 @@ export default function OpportunityDetailPage() {
           proposal_text: proposalText,
           signal_fee: signalFee,
           is_boosted: isBoosted,
-          attached_service: selectedService?.id
         });
       }
 
@@ -370,7 +368,7 @@ export default function OpportunityDetailPage() {
                        </div>
                        <p className="text-sm text-muted-foreground leading-relaxed">{workbench.next_subtask.description}</p>
                     </div>
-                  ) : workbench.approved_steps === workbench.total_steps ? (
+                  ) : workbench.approved_steps === workbench.total_steps && workbench.total_steps > 0 ? (
                     <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-4">
                        <CheckCircle2 className="w-6 h-6 text-emerald-400" />
                        <div>
@@ -379,35 +377,6 @@ export default function OpportunityDetailPage() {
                        </div>
                     </div>
                   ) : null}
-
-                  {workbench.submissions && workbench.submissions.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                         <History className="w-3 h-3" /> Technical Signal History
-                       </p>
-                       {workbench.submissions.map((sub: any, idx: number) => (
-                         <div key={sub.id || idx} className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between group">
-                            <div className="flex items-center gap-3">
-                               <div className={cn(
-                                 "w-8 h-8 rounded-lg flex items-center justify-center border",
-                                 sub.status === 'approved' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : 
-                                 sub.status === 'rejected' ? "bg-destructive/10 text-destructive border-destructive/20" :
-                                 "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                               )}>
-                                 {sub.status === 'approved' ? <CheckCircle className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-                               </div>
-                               <div>
-                                 <p className="text-xs font-bold text-white">{sub.subtask_title || 'Main Protocol'}</p>
-                                 <p className="text-[8px] text-muted-foreground uppercase tracking-tighter">{sub.status}</p>
-                               </div>
-                            </div>
-                            <div className="text-right">
-                               <p className="text-xs font-bold">{sub.reward_amount} SAT</p>
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-                  )}
                </CardContent>
             </Card>
           )}
@@ -466,7 +435,8 @@ export default function OpportunityDetailPage() {
                 </h3>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
-                {/* Expert Service Attachment */}
+                
+                {/* Expert Service Attachment Selector */}
                 {myServices.length > 0 && (
                    <div className="space-y-3">
                       <Label className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground ml-1">Expertise Signal Attachment (Optional)</Label>
@@ -637,11 +607,11 @@ export default function OpportunityDetailPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Trophy className="w-4 h-4 text-primary" /> Technical Class</span>
-                  <span className="text-foreground capitalize">{opportunity.data.difficulty || opportunity.data.experience_level} CLASS</span>
+                  <span className="text-foreground capitalize">{opportunity.data.experience_level || opportunity.data.difficulty} CLASS</span>
                 </div>
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
                   <span className="text-muted-foreground flex items-center gap-2"><Layers className="w-4 h-4 text-primary" /> Slots Remaining</span>
-                  <span className="text-foreground">{isTask ? (opportunity.data.target_completions - opportunity.data.submissions_count) : (opportunity.data.available_slots || 1)} Nodes</span>
+                  <span className="text-foreground">{isTask ? (opportunity.data.target_completions - (opportunity.data.submissions_count || 0)) : (opportunity.data.available_slots || 1)} Nodes</span>
                 </div>
               </div>
 
@@ -649,7 +619,7 @@ export default function OpportunityDetailPage() {
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Skills Signal</p>
                 <div className="flex flex-wrap gap-2">
                   {(opportunity.data.skills || []).map((skill: any, idx: number) => (
-                    <Badge key={skill.id || `skill-det-${idx}`} variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
+                    <Badge key={skill.id || skill.name || idx} variant="secondary" className="bg-white/5 text-muted-foreground border-white/5 px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest">
                       {skill.name}
                     </Badge>
                   ))}
@@ -675,4 +645,3 @@ export default function OpportunityDetailPage() {
     </div>
   );
 }
-
