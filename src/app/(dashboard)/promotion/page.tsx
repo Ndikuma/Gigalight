@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -22,7 +23,12 @@ import {
   ShieldCheck,
   Download,
   Image as ImageIcon,
-  RefreshCw as RefreshCwIcon
+  RefreshCw as RefreshCwIcon,
+  TrendingUp,
+  Cpu,
+  History,
+  Layers,
+  Activity
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -111,8 +117,8 @@ export default function PromotionHubPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 sm:px-0">
         <div className="space-y-2">
           <h1 className="text-4xl md:text-5xl font-headline font-bold">Social Propagation Node</h1>
           <p className="text-muted-foreground max-w-2xl">
@@ -125,16 +131,18 @@ export default function PromotionHubPage() {
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit mb-8">
-          <TabsTrigger value="assets" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary font-bold gap-2">
-            <Share2 className="w-4 h-4" /> Select Asset
-          </TabsTrigger>
-          <TabsTrigger value="editor" disabled={!selectedAsset} className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary font-bold gap-2">
-            <Sparkles className="w-4 h-4" /> Propagation Editor
-          </TabsTrigger>
-        </TabsList>
+        <div className="px-4 sm:px-0">
+          <TabsList className="bg-card border border-white/5 p-1 h-auto rounded-2xl w-fit mb-8">
+            <TabsTrigger value="assets" className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary font-bold gap-2">
+              <Share2 className="w-4 h-4" /> Select Asset
+            </TabsTrigger>
+            <TabsTrigger value="editor" disabled={!selectedAsset} className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary font-bold gap-2">
+              <Sparkles className="w-4 h-4" /> Propagation Editor
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="assets" className="mt-0">
+        <TabsContent value="assets" className="mt-0 px-4 sm:px-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Tasks Section */}
             <div className="space-y-4">
@@ -168,13 +176,13 @@ export default function PromotionHubPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="editor" className="mt-0 animate-in slide-in-from-right-4 duration-500">
+        <TabsContent value="editor" className="mt-0 px-4 sm:px-0 animate-in slide-in-from-right-4 duration-500">
           {selectedAsset && (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               {/* Editor Side */}
-              <div className="lg:col-span-3 space-y-8">
+              <div className="lg:col-span-7 space-y-8">
                 <Card className="glass-card border-none rounded-[2rem] overflow-hidden">
-                  <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+                  <CardHeader className="p-8 pb-4 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                       <CardTitle className="font-headline text-2xl flex items-center gap-3">
                         <Sparkles className="w-6 h-6 text-primary" /> Signal Synthesis
@@ -184,7 +192,7 @@ export default function PromotionHubPage() {
                     <Button 
                       onClick={handleGenerate} 
                       disabled={isGenerating}
-                      className="rounded-xl bg-primary neon-glow-primary font-bold h-11 px-6 gap-2"
+                      className="w-full md:w-auto rounded-xl bg-primary neon-glow-primary font-bold h-11 px-6 gap-2"
                     >
                       {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
                       {promoContent ? 'Regenerate' : 'Generate Signals'}
@@ -254,93 +262,124 @@ export default function PromotionHubPage() {
               </div>
 
               {/* Visual Preview Side */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-5 space-y-6">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground ml-2">Visual Social Signal</h3>
                 
-                <div className="relative group">
-                  {/* The "Social Card" Preview */}
+                <div className="relative group perspective-1000">
+                  {/* The "Social Card" Preview - Image Ready */}
                   <div id="promo-card" className={cn(
-                    "aspect-[1.91/1] w-full rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4",
-                    assetType === 'task' ? "bg-gradient-to-br from-[#8457F1] to-[#3C62FF] border-[#8457F1]/30" :
-                    assetType === 'project' ? "bg-gradient-to-br from-[#3C62FF] to-[#00D1FF] border-[#3C62FF]/30" :
-                    "bg-gradient-to-br from-[#10B981] to-[#3C62FF] border-[#10B981]/30"
+                    "aspect-[1.91/1] w-full rounded-[2.5rem] p-10 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4 transition-all duration-700",
+                    assetType === 'task' ? "bg-gradient-to-br from-[#8457F1] via-[#6366F1] to-[#3C62FF] border-[#8457F1]/30" :
+                    assetType === 'project' ? "bg-gradient-to-br from-[#3C62FF] via-[#0EA5E9] to-[#00D1FF] border-[#3C62FF]/30" :
+                    "bg-gradient-to-br from-[#10B981] via-[#059669] to-[#3C62FF] border-[#10B981]/30"
                   )}>
-                    {/* Decorative Elements */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] -z-0 rounded-full" />
-                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/20 blur-[100px] -z-0 rounded-full" />
+                    {/* High-Fidelity Background Elements */}
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] -z-0 rounded-full animate-pulse" />
+                    <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-black/30 blur-[120px] -z-0 rounded-full" />
+                    <div className="absolute inset-0 bg-[url('https://placehold.co/1200x630/transparent/white/png?text=.')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
                     
                     <div className="relative z-10 flex justify-between items-start">
-                      <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-xl">
-                        {assetType === 'task' ? <Zap className="w-8 h-8 text-white" /> : 
-                         assetType === 'project' ? <Briefcase className="w-8 h-8 text-white" /> : 
-                         <Wrench className="w-8 h-8 text-white" />}
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-2xl">
+                          {assetType === 'task' ? <Zap className="w-8 h-8 text-white fill-white" /> : 
+                           assetType === 'project' ? <Briefcase className="w-8 h-8 text-white fill-white" /> : 
+                           <Wrench className="w-8 h-8 text-white fill-white" />}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-white uppercase tracking-[0.3em] drop-shadow-md">GigaLight Protocol</p>
+                          <Badge className="bg-black/30 border border-white/20 text-[8px] font-bold uppercase tracking-widest text-white/90">
+                            {assetType === 'task' ? 'MICRO GIG' : assetType === 'project' ? 'STRATEGIC PROJECT' : 'EXPERT SERVICE'}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">GIGALIGHT PROTOCOL</span>
+                      <div className="bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">LIVE SIGNAL</span>
                       </div>
                     </div>
 
-                    <div className="relative z-10 space-y-4">
-                      <h2 className="text-3xl sm:text-4xl font-headline font-bold text-white leading-tight tracking-tight drop-shadow-lg">
+                    <div className="relative z-10 space-y-6">
+                      <h2 className="text-4xl sm:text-5xl font-headline font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl">
                         {selectedAsset?.title}
                       </h2>
-                      <div className="flex flex-wrap gap-2">
-                         {selectedAsset?.skills?.slice(0, 3).map((s: any, i: number) => (
-                           <span key={i} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-sm">
+                      <div className="flex flex-wrap gap-2.5">
+                         {(selectedAsset?.skills || []).slice(0, 4).map((s: any, i: number) => (
+                           <span key={i} className="px-4 py-1.5 rounded-xl bg-black/20 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-xl">
                              {typeof s === 'string' ? s : s.name}
                            </span>
                          ))}
                       </div>
                     </div>
 
-                    <div className="relative z-10 flex items-end justify-between">
+                    <div className="relative z-10 flex items-end justify-between border-t border-white/10 pt-8 mt-2">
                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">POTENTIAL YIELD</p>
-                          <p className="text-3xl font-headline font-bold text-white">
+                          <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">TECHNICAL YIELD</p>
+                          <p className="text-4xl font-headline font-bold text-white tracking-tighter">
                             {assetType === 'task' ? `+${selectedAsset?.reward_amount?.toLocaleString()} SAT` : 
-                             assetType === 'project' ? `${selectedAsset?.budget_min?.toLocaleString()} SAT` : 
+                             assetType === 'project' ? `${selectedAsset?.budget?.min ? selectedAsset.budget.min.toLocaleString() : selectedAsset?.budget_min?.toLocaleString() || 'TBD'} SAT` : 
                              `${selectedAsset?.price_sats?.toLocaleString()} SAT`}
                           </p>
                        </div>
-                       <div className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl font-bold text-sm shadow-xl">
-                          JOIN NODE <ChevronRight className="w-4 h-4" />
+                       <div className="flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-[1.5rem] font-bold text-sm shadow-2xl hover:scale-105 transition-transform cursor-default">
+                          JOIN NODE <ArrowRight className="w-5 h-5" />
                        </div>
                     </div>
                   </div>
 
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
-                     <Button variant="secondary" className="rounded-xl font-bold h-12 gap-2 shadow-2xl">
-                       <Download className="w-4 h-4" /> Download Visual
-                     </Button>
-                     <Button variant="outline" className="rounded-xl bg-white/10 border-white/20 text-white font-bold h-12 gap-2">
-                       <Eye className="w-4 h-4" /> High-Res
-                     </Button>
+                  {/* Actions Overlay */}
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-md rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center gap-6 z-20">
+                     <div className="text-center space-y-2 mb-4">
+                       <h4 className="text-xl font-headline font-bold text-white">Visual Signal Ready</h4>
+                       <p className="text-xs text-white/60">Export high-resolution template for social cover.</p>
+                     </div>
+                     <div className="flex gap-4">
+                       <Button variant="secondary" className="rounded-2xl font-bold h-14 px-8 gap-3 shadow-2xl hover:scale-105 transition-transform">
+                         <Download className="w-5 h-5" /> Download Signal
+                       </Button>
+                       <Button variant="outline" className="rounded-2xl bg-white/10 border-white/20 text-white font-bold h-14 px-8 gap-3 hover:bg-white/20">
+                         <Eye className="w-5 h-5" /> 4K Preview
+                       </Button>
+                     </div>
                   </div>
                 </div>
 
+                {/* Technical Metadata Card */}
                 <Card className="glass-card border-none rounded-[2rem] p-8 space-y-6">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                        <ShieldCheck className="w-5 h-5" />
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <h4 className="font-bold">Protocol Identifier</h4>
                       </div>
-                      <h4 className="font-bold">Protocol Signal Link</h4>
+                      <Badge variant="outline" className="border-white/10 uppercase text-[8px] font-bold tracking-widest px-2">Unique Node Link</Badge>
                    </div>
-                   <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4">
-                      <p className="text-[10px] font-mono text-muted-foreground truncate flex-1">
+                   
+                   <div className="bg-black/60 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 group/addr relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 blur-xl -z-10" />
+                      <p className="text-[11px] font-mono text-muted-foreground truncate flex-1 leading-none">
                         {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
                       </p>
                       <Button 
-                        size="sm" 
+                        size="icon" 
                         variant="ghost" 
-                        className="h-8 rounded-lg text-[10px] font-bold"
+                        className="h-10 w-10 shrink-0 rounded-xl text-primary hover:bg-primary/10 transition-colors"
                         onClick={() => copyToClipboard(`${window.location.origin}/${assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}`, 'url')}
                       >
-                         {copiedField === 'url' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                         {copiedField === 'url' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
                    </div>
-                   <p className="text-xs text-muted-foreground leading-relaxed">
-                     Use this unique technical identifier in your social propagation signals to allow the network to trace back to your node.
-                   </p>
+                   
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-1">
+                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Visibility Potential</p>
+                         <p className="text-sm font-bold text-white flex items-center gap-2"><Eye className="w-3.5 h-3.5 text-primary" /> High Impact</p>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-1">
+                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Propagation Rail</p>
+                         <p className="text-sm font-bold text-white flex items-center gap-2"><Network className="w-3.5 h-3.5 text-secondary" /> L2 Satoshi</p>
+                      </div>
+                   </div>
                 </Card>
               </div>
             </div>
@@ -354,23 +393,34 @@ export default function PromotionHubPage() {
 function AssetCard({ asset, type, onSelect }: any) {
   const Icon = type === 'task' ? Zap : type === 'project' ? Briefcase : Wrench;
   const colorClass = type === 'task' ? 'text-primary' : type === 'project' ? 'text-secondary' : 'text-emerald-400';
+  const bgClass = type === 'task' ? 'bg-primary/5' : type === 'project' ? 'bg-secondary/5' : 'bg-emerald-500/5';
   
   return (
     <Card 
       onClick={onSelect}
-      className="glass-card border-none hover:border-white/20 transition-all cursor-pointer group relative overflow-hidden"
+      className={cn(
+        "glass-card border-none hover:border-white/20 transition-all cursor-pointer group relative overflow-hidden",
+        bgClass
+      )}
     >
       <CardContent className="p-5 flex items-center gap-4">
-        <div className={cn("w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform", colorClass)}>
-          <Icon className="w-5 h-5" />
+        <div className={cn("w-12 h-12 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500", colorClass)}>
+          <Icon className="w-6 h-6" />
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm truncate group-hover:text-white transition-colors">{asset.title}</h4>
-          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-0.5">
-            {type === 'task' ? `${asset.reward_amount} SAT` : type === 'project' ? 'Strategic' : 'Service'}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">
+              {type === 'task' ? `${asset.reward_amount?.toLocaleString()} SAT` : 
+               type === 'project' ? 'Strategic Yield' : 'Service Offering'}
+            </p>
+            <span className="text-white/10">•</span>
+            <span className="text-[9px] text-muted-foreground font-bold uppercase">{asset.status || 'Active'}</span>
+          </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground/30 group-hover:translate-x-1 transition-transform" />
+        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+          <ChevronRight className="w-4 h-4 text-white" />
+        </div>
       </CardContent>
     </Card>
   );
@@ -378,8 +428,8 @@ function AssetCard({ asset, type, onSelect }: any) {
 
 function EmptyMini({ type }: { type: string }) {
   return (
-    <div className="py-8 text-center border border-dashed border-white/5 rounded-2xl">
-       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No {type} Propagated</p>
+    <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">No {type} Propagated</p>
     </div>
   );
 }
