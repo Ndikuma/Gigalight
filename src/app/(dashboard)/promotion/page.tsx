@@ -28,7 +28,9 @@ import {
   Cpu,
   History,
   Layers,
-  Activity
+  Activity,
+  ArrowRight,
+  Network
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
