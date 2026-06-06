@@ -21,7 +21,8 @@ import {
   Rocket,
   ShieldCheck,
   Download,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RefreshCw as RefreshCwIcon
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -168,180 +169,182 @@ export default function PromotionHubPage() {
         </TabsContent>
 
         <TabsContent value="editor" className="mt-0 animate-in slide-in-from-right-4 duration-500">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-            {/* Editor Side */}
-            <div className="lg:col-span-3 space-y-8">
-              <Card className="glass-card border-none rounded-[2rem] overflow-hidden">
-                <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
-                      <Sparkles className="w-6 h-6 text-primary" /> Signal Synthesis
-                    </CardTitle>
-                    <CardDescription>AI will architect compelling copy for your social rails.</CardDescription>
-                  </div>
-                  <Button 
-                    onClick={handleGenerate} 
-                    disabled={isGenerating}
-                    className="rounded-xl bg-primary neon-glow-primary font-bold h-11 px-6 gap-2"
-                  >
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
-                    {promoContent ? 'Regenerate' : 'Generate Signals'}
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-8 pt-0 space-y-6">
-                  {!promoContent && !isGenerating ? (
-                    <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-3xl space-y-4">
-                      <Sparkles className="w-12 h-12 text-muted-foreground/20 mx-auto" />
-                      <p className="text-sm text-muted-foreground max-w-xs mx-auto">Propagate an AI signal to create your promotional professional content.</p>
+          {selectedAsset && (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+              {/* Editor Side */}
+              <div className="lg:col-span-3 space-y-8">
+                <Card className="glass-card border-none rounded-[2rem] overflow-hidden">
+                  <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                        <Sparkles className="w-6 h-6 text-primary" /> Signal Synthesis
+                      </CardTitle>
+                      <CardDescription>AI will architect compelling copy for your social rails.</CardDescription>
                     </div>
-                  ) : isGenerating ? (
-                    <div className="py-20 text-center space-y-4">
-                      <div className="flex justify-center"><Loader2 className="w-12 h-12 text-primary animate-spin" /></div>
-                      <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary animate-pulse">Synthesizing Network Signal...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-8">
-                      {/* X / Twitter */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <Twitter className="w-3.5 h-3.5" /> X Propagation (Short)
-                          </label>
-                          <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.twitter, 'twitter')} className="h-7 text-[10px] font-bold gap-2">
-                            {copiedField === 'twitter' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
-                          </Button>
+                    <Button 
+                      onClick={handleGenerate} 
+                      disabled={isGenerating}
+                      className="rounded-xl bg-primary neon-glow-primary font-bold h-11 px-6 gap-2"
+                    >
+                      {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCwIcon className="w-4 h-4" />}
+                      {promoContent ? 'Regenerate' : 'Generate Signals'}
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="p-8 pt-0 space-y-6">
+                    {!promoContent && !isGenerating ? (
+                      <div className="py-12 text-center border-2 border-dashed border-white/5 rounded-3xl space-y-4">
+                        <Sparkles className="w-12 h-12 text-muted-foreground/20 mx-auto" />
+                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">Propagate an AI signal to create your promotional professional content.</p>
+                      </div>
+                    ) : isGenerating ? (
+                      <div className="py-20 text-center space-y-4">
+                        <div className="flex justify-center"><Loader2 className="w-12 h-12 text-primary animate-spin" /></div>
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary animate-pulse">Synthesizing Network Signal...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                        {/* X / Twitter */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <Twitter className="w-3.5 h-3.5" /> X Propagation (Short)
+                            </label>
+                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.twitter, 'twitter')} className="h-7 text-[10px] font-bold gap-2">
+                              {copiedField === 'twitter' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
+                            </Button>
+                          </div>
+                          <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm leading-relaxed text-white/90 font-mono">
+                            {promoContent.twitter}
+                          </div>
                         </div>
-                        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm leading-relaxed text-white/90 font-mono">
-                          {promoContent.twitter}
+
+                        {/* LinkedIn */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <Linkedin className="w-3.5 h-3.5" /> LinkedIn Protocol (Professional)
+                            </label>
+                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.linkedin, 'linkedin')} className="h-7 text-[10px] font-bold gap-2">
+                              {copiedField === 'linkedin' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
+                            </Button>
+                          </div>
+                          <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm leading-relaxed text-white/90">
+                            {promoContent.linkedin}
+                          </div>
+                        </div>
+
+                        {/* Thread Hook */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <ChevronRight className="w-3.5 h-3.5" /> Strategic Thread Hook
+                            </label>
+                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.threadHook, 'hook')} className="h-7 text-[10px] font-bold gap-2">
+                              {copiedField === 'hook' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
+                            </Button>
+                          </div>
+                          <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm italic text-muted-foreground">
+                            "{promoContent.threadHook}"
+                          </div>
                         </div>
                       </div>
-
-                      {/* LinkedIn */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <Linkedin className="w-3.5 h-3.5" /> LinkedIn Protocol (Professional)
-                          </label>
-                          <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.linkedin, 'linkedin')} className="h-7 text-[10px] font-bold gap-2">
-                            {copiedField === 'linkedin' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
-                          </Button>
-                        </div>
-                        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm leading-relaxed text-white/90">
-                          {promoContent.linkedin}
-                        </div>
-                      </div>
-
-                      {/* Thread Hook */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                            <ChevronRight className="w-3.5 h-3.5" /> Strategic Thread Hook
-                          </label>
-                          <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.threadHook, 'hook')} className="h-7 text-[10px] font-bold gap-2">
-                            {copiedField === 'hook' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
-                          </Button>
-                        </div>
-                        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm italic text-muted-foreground">
-                          "{promoContent.threadHook}"
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Visual Preview Side */}
-            <div className="lg:col-span-2 space-y-6">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground ml-2">Visual Social Signal</h3>
-              
-              <div className="relative group">
-                {/* The "Social Card" Preview */}
-                <div id="promo-card" className={cn(
-                  "aspect-[1.91/1] w-full rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4",
-                  assetType === 'task' ? "bg-gradient-to-br from-[#8457F1] to-[#3C62FF] border-[#8457F1]/30" :
-                  assetType === 'project' ? "bg-gradient-to-br from-[#3C62FF] to-[#00D1FF] border-[#3C62FF]/30" :
-                  "bg-gradient-to-br from-[#10B981] to-[#3C62FF] border-[#10B981]/30"
-                )}>
-                  {/* Decorative Elements */}
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] -z-0 rounded-full" />
-                  <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/20 blur-[100px] -z-0 rounded-full" />
-                  
-                  <div className="relative z-10 flex justify-between items-start">
-                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-xl">
-                      {assetType === 'task' ? <Zap className="w-8 h-8 text-white" /> : 
-                       assetType === 'project' ? <Briefcase className="w-8 h-8 text-white" /> : 
-                       <Wrench className="w-8 h-8 text-white" />}
-                    </div>
-                    <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
-                      <span className="text-[10px] font-bold text-white uppercase tracking-widest">GIGALIGHT PROTOCOL</span>
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 space-y-4">
-                    <h2 className="text-3xl sm:text-4xl font-headline font-bold text-white leading-tight tracking-tight drop-shadow-lg">
-                      {selectedAsset.title}
-                    </h2>
-                    <div className="flex flex-wrap gap-2">
-                       {selectedAsset.skills?.slice(0, 3).map((s: any, i: number) => (
-                         <span key={i} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-sm">
-                           {typeof s === 'string' ? s : s.name}
-                         </span>
-                       ))}
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 flex items-end justify-between">
-                     <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">POTENTIAL YIELD</p>
-                        <p className="text-3xl font-headline font-bold text-white">
-                          {assetType === 'task' ? `+${selectedAsset.reward_amount.toLocaleString()} SAT` : 
-                           assetType === 'project' ? `${selectedAsset.budget_min?.toLocaleString()} SAT` : 
-                           `${selectedAsset.price_sats.toLocaleString()} SAT`}
-                        </p>
-                     </div>
-                     <div className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl font-bold text-sm shadow-xl">
-                        JOIN NODE <ChevronRight className="w-4 h-4" />
-                     </div>
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
-                   <Button variant="secondary" className="rounded-xl font-bold h-12 gap-2 shadow-2xl">
-                     <Download className="w-4 h-4" /> Download Visual
-                   </Button>
-                   <Button variant="outline" className="rounded-xl bg-white/10 border-white/20 text-white font-bold h-12 gap-2">
-                     <Eye className="w-4 h-4" /> High-Res
-                   </Button>
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
 
-              <Card className="glass-card border-none rounded-[2rem] p-8 space-y-6">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                      <ShieldCheck className="w-5 h-5" />
+              {/* Visual Preview Side */}
+              <div className="lg:col-span-2 space-y-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground ml-2">Visual Social Signal</h3>
+                
+                <div className="relative group">
+                  {/* The "Social Card" Preview */}
+                  <div id="promo-card" className={cn(
+                    "aspect-[1.91/1] w-full rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4",
+                    assetType === 'task' ? "bg-gradient-to-br from-[#8457F1] to-[#3C62FF] border-[#8457F1]/30" :
+                    assetType === 'project' ? "bg-gradient-to-br from-[#3C62FF] to-[#00D1FF] border-[#3C62FF]/30" :
+                    "bg-gradient-to-br from-[#10B981] to-[#3C62FF] border-[#10B981]/30"
+                  )}>
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] -z-0 rounded-full" />
+                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/20 blur-[100px] -z-0 rounded-full" />
+                    
+                    <div className="relative z-10 flex justify-between items-start">
+                      <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-xl">
+                        {assetType === 'task' ? <Zap className="w-8 h-8 text-white" /> : 
+                         assetType === 'project' ? <Briefcase className="w-8 h-8 text-white" /> : 
+                         <Wrench className="w-8 h-8 text-white" />}
+                      </div>
+                      <div className="flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">GIGALIGHT PROTOCOL</span>
+                      </div>
                     </div>
-                    <h4 className="font-bold">Protocol Signal Link</h4>
-                 </div>
-                 <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4">
-                    <p className="text-[10px] font-mono text-muted-foreground truncate flex-1">
-                      {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset.id}
-                    </p>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 rounded-lg text-[10px] font-bold"
-                      onClick={() => copyToClipboard(`${window.location.origin}/${assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset.id}`, 'url')}
-                    >
-                       {copiedField === 'url' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    </Button>
-                 </div>
-                 <p className="text-xs text-muted-foreground leading-relaxed">
-                   Use this unique technical identifier in your social propagation signals to allow the network to trace back to your node.
-                 </p>
-              </Card>
+
+                    <div className="relative z-10 space-y-4">
+                      <h2 className="text-3xl sm:text-4xl font-headline font-bold text-white leading-tight tracking-tight drop-shadow-lg">
+                        {selectedAsset?.title}
+                      </h2>
+                      <div className="flex flex-wrap gap-2">
+                         {selectedAsset?.skills?.slice(0, 3).map((s: any, i: number) => (
+                           <span key={i} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-sm">
+                             {typeof s === 'string' ? s : s.name}
+                           </span>
+                         ))}
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 flex items-end justify-between">
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">POTENTIAL YIELD</p>
+                          <p className="text-3xl font-headline font-bold text-white">
+                            {assetType === 'task' ? `+${selectedAsset?.reward_amount?.toLocaleString()} SAT` : 
+                             assetType === 'project' ? `${selectedAsset?.budget_min?.toLocaleString()} SAT` : 
+                             `${selectedAsset?.price_sats?.toLocaleString()} SAT`}
+                          </p>
+                       </div>
+                       <div className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl font-bold text-sm shadow-xl">
+                          JOIN NODE <ChevronRight className="w-4 h-4" />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-4">
+                     <Button variant="secondary" className="rounded-xl font-bold h-12 gap-2 shadow-2xl">
+                       <Download className="w-4 h-4" /> Download Visual
+                     </Button>
+                     <Button variant="outline" className="rounded-xl bg-white/10 border-white/20 text-white font-bold h-12 gap-2">
+                       <Eye className="w-4 h-4" /> High-Res
+                     </Button>
+                  </div>
+                </div>
+
+                <Card className="glass-card border-none rounded-[2rem] p-8 space-y-6">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-bold">Protocol Signal Link</h4>
+                   </div>
+                   <div className="bg-black/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between gap-4">
+                      <p className="text-[10px] font-mono text-muted-foreground truncate flex-1">
+                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
+                      </p>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 rounded-lg text-[10px] font-bold"
+                        onClick={() => copyToClipboard(`${window.location.origin}/${assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}`, 'url')}
+                      >
+                         {copiedField === 'url' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      </Button>
+                   </div>
+                   <p className="text-xs text-muted-foreground leading-relaxed">
+                     Use this unique technical identifier in your social propagation signals to allow the network to trace back to your node.
+                   </p>
+                </Card>
+              </div>
             </div>
-          </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -378,27 +381,5 @@ function EmptyMini({ type }: { type: string }) {
     <div className="py-8 text-center border border-dashed border-white/5 rounded-2xl">
        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">No {type} Propagated</p>
     </div>
-  );
-}
-
-function RefreshCwIcon(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M3 21v-5h5" />
-    </svg>
   );
 }
