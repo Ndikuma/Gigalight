@@ -1,8 +1,8 @@
 
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
@@ -16,19 +16,12 @@ import {
   Briefcase, 
   Wrench, 
   Loader2, 
-  ExternalLink,
   ChevronRight,
   Eye,
   Rocket,
   ShieldCheck,
   Download,
-  Image as ImageIcon,
   RefreshCw as RefreshCwIcon,
-  TrendingUp,
-  Cpu,
-  History,
-  Layers,
-  Activity,
   ArrowRight,
   Network
 } from 'lucide-react';
@@ -39,6 +32,13 @@ import { ProjectService } from '@/services/project-service';
 import { ServiceService } from '@/services/service-service';
 import { generateSocialPromotion, SocialPromotionOutput } from '@/ai/flows/social-promotion-generator';
 import { Badge } from '@/components/ui/badge';
+import { toPng } from 'html-to-image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function PromotionHubPage() {
   const [activeTab, setActiveTab] = useState('assets');
@@ -51,8 +51,12 @@ export default function PromotionHubPage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [promoContent, setPromoContent] = useState<SocialPromotionOutput | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchAssets() {
@@ -107,6 +111,23 @@ export default function PromotionHubPage() {
     }
   };
 
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `gigalight-signal-${selectedAsset?.id || 'export'}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast({ title: "Signal Exported", description: "PNG payload saved to your local terminal." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Export Error", description: "The visual signal could not be captured." });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
@@ -146,7 +167,6 @@ export default function PromotionHubPage() {
 
         <TabsContent value="assets" className="mt-0 px-4 sm:px-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Tasks Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary flex items-center gap-2 ml-2">
                 <Zap className="w-4 h-4" /> Your Micro Gigs
@@ -156,7 +176,6 @@ export default function PromotionHubPage() {
               )) : <EmptyMini type="Gigs" />}
             </div>
 
-            {/* Projects Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-widest text-secondary flex items-center gap-2 ml-2">
                 <Briefcase className="w-4 h-4" /> Strategic Projects
@@ -166,7 +185,6 @@ export default function PromotionHubPage() {
               )) : <EmptyMini type="Projects" />}
             </div>
 
-            {/* Services Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-2 ml-2">
                 <Wrench className="w-4 h-4" /> Expert Services
@@ -181,7 +199,6 @@ export default function PromotionHubPage() {
         <TabsContent value="editor" className="mt-0 px-4 sm:px-0 animate-in slide-in-from-right-4 duration-500">
           {selectedAsset && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-              {/* Editor Side */}
               <div className="lg:col-span-7 space-y-8">
                 <Card className="glass-card border-none rounded-[2rem] overflow-hidden">
                   <CardHeader className="p-8 pb-4 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -213,7 +230,6 @@ export default function PromotionHubPage() {
                       </div>
                     ) : (
                       <div className="space-y-8">
-                        {/* X / Twitter */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -228,7 +244,6 @@ export default function PromotionHubPage() {
                           </div>
                         </div>
 
-                        {/* LinkedIn */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -243,7 +258,6 @@ export default function PromotionHubPage() {
                           </div>
                         </div>
 
-                        {/* Thread Hook */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -263,89 +277,38 @@ export default function PromotionHubPage() {
                 </Card>
               </div>
 
-              {/* Visual Preview Side */}
               <div className="lg:col-span-5 space-y-6">
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground ml-2">Visual Social Signal</h3>
                 
                 <div className="relative group perspective-1000">
-                  {/* The "Social Card" Preview - Image Ready */}
-                  <div id="promo-card" className={cn(
-                    "aspect-[1.91/1] w-full rounded-[2.5rem] p-10 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4 transition-all duration-700",
-                    assetType === 'task' ? "bg-gradient-to-br from-[#8457F1] via-[#6366F1] to-[#3C62FF] border-[#8457F1]/30" :
-                    assetType === 'project' ? "bg-gradient-to-br from-[#3C62FF] via-[#0EA5E9] to-[#00D1FF] border-[#3C62FF]/30" :
-                    "bg-gradient-to-br from-[#10B981] via-[#059669] to-[#3C62FF] border-[#10B981]/30"
-                  )}>
-                    {/* High-Fidelity Background Elements */}
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] -z-0 rounded-full animate-pulse" />
-                    <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-black/30 blur-[120px] -z-0 rounded-full" />
-                    <div className="absolute inset-0 bg-[url('https://placehold.co/1200x630/transparent/white/png?text=.')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-                    
-                    <div className="relative z-10 flex justify-between items-start">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-2xl">
-                          {assetType === 'task' ? <Zap className="w-8 h-8 text-white fill-white" /> : 
-                           assetType === 'project' ? <Briefcase className="w-8 h-8 text-white fill-white" /> : 
-                           <Wrench className="w-8 h-8 text-white fill-white" />}
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-white uppercase tracking-[0.3em] drop-shadow-md">GigaLight Protocol</p>
-                          <Badge className="bg-black/30 border border-white/20 text-[8px] font-bold uppercase tracking-widest text-white/90">
-                            {assetType === 'task' ? 'MICRO GIG' : assetType === 'project' ? 'STRATEGIC PROJECT' : 'EXPERT SERVICE'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">LIVE SIGNAL</span>
-                      </div>
-                    </div>
+                  <SocialCard asset={selectedAsset} type={assetType} cardRef={cardRef} />
 
-                    <div className="relative z-10 space-y-6">
-                      <h2 className="text-4xl sm:text-5xl font-headline font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl">
-                        {selectedAsset?.title}
-                      </h2>
-                      <div className="flex flex-wrap gap-2.5">
-                         {(selectedAsset?.skills || []).slice(0, 4).map((s: any, i: number) => (
-                           <span key={i} className="px-4 py-1.5 rounded-xl bg-black/20 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-xl">
-                             {typeof s === 'string' ? s : s.name}
-                           </span>
-                         ))}
-                      </div>
-                    </div>
-
-                    <div className="relative z-10 flex items-end justify-between border-t border-white/10 pt-8 mt-2">
-                       <div className="space-y-1">
-                          <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">TECHNICAL YIELD</p>
-                          <p className="text-4xl font-headline font-bold text-white tracking-tighter">
-                            {assetType === 'task' ? `+${selectedAsset?.reward_amount?.toLocaleString()} SAT` : 
-                             assetType === 'project' ? `${selectedAsset?.budget?.min ? selectedAsset.budget.min.toLocaleString() : selectedAsset?.budget_min?.toLocaleString() || 'TBD'} SAT` : 
-                             `${selectedAsset?.price_sats?.toLocaleString()} SAT`}
-                          </p>
-                       </div>
-                       <div className="flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-[1.5rem] font-bold text-sm shadow-2xl hover:scale-105 transition-transform cursor-default">
-                          JOIN NODE <ArrowRight className="w-5 h-5" />
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Overlay */}
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-md rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center gap-6 z-20">
-                     <div className="text-center space-y-2 mb-4">
+                     <div className="text-center space-y-2 mb-4 px-8">
                        <h4 className="text-xl font-headline font-bold text-white">Visual Signal Ready</h4>
                        <p className="text-xs text-white/60">Export high-resolution template for social cover.</p>
                      </div>
-                     <div className="flex gap-4">
-                       <Button variant="secondary" className="rounded-2xl font-bold h-14 px-8 gap-3 shadow-2xl hover:scale-105 transition-transform">
-                         <Download className="w-5 h-5" /> Download Signal
+                     <div className="flex flex-col sm:flex-row gap-4 px-8 w-full justify-center">
+                       <Button 
+                        variant="secondary" 
+                        className="rounded-2xl font-bold h-14 px-8 gap-3 shadow-2xl hover:scale-105 transition-transform"
+                        onClick={handleDownload}
+                        disabled={isExporting}
+                       >
+                         {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                         Download Signal
                        </Button>
-                       <Button variant="outline" className="rounded-2xl bg-white/10 border-white/20 text-white font-bold h-14 px-8 gap-3 hover:bg-white/20">
+                       <Button 
+                        variant="outline" 
+                        className="rounded-2xl bg-white/10 border-white/20 text-white font-bold h-14 px-8 gap-3 hover:bg-white/20"
+                        onClick={() => setIsPreviewOpen(true)}
+                       >
                          <Eye className="w-5 h-5" /> 4K Preview
                        </Button>
                      </div>
                   </div>
                 </div>
 
-                {/* Technical Metadata Card */}
                 <Card className="glass-card border-none rounded-[2rem] p-8 space-y-6">
                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -388,6 +351,87 @@ export default function PromotionHubPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-5xl bg-background border-white/10 p-0 overflow-hidden rounded-[2.5rem]">
+          <DialogHeader className="p-8 pb-4">
+            <DialogTitle className="text-2xl font-headline font-bold">4K Signal Preview</DialogTitle>
+          </DialogHeader>
+          <div className="p-8 pt-0">
+             <div className="scale-110 origin-top transform my-12">
+               <SocialCard asset={selectedAsset} type={assetType} />
+             </div>
+             <div className="flex justify-center mt-12 pt-8 border-t border-white/5">
+                <Button className="rounded-2xl bg-primary neon-glow-primary font-bold h-14 px-12 gap-3" onClick={handleDownload}>
+                   <Download className="w-5 h-5" /> Download Professional PNG
+                </Button>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function SocialCard({ asset, type, cardRef }: { asset: any, type: any, cardRef?: React.RefObject<HTMLDivElement | null> }) {
+  if (!asset) return null;
+  
+  return (
+    <div ref={cardRef} className={cn(
+      "aspect-[1.91/1] w-full rounded-[2.5rem] p-10 flex flex-col justify-between relative overflow-hidden shadow-2xl border-4 transition-all duration-700",
+      type === 'task' ? "bg-gradient-to-br from-[#8457F1] via-[#6366F1] to-[#3C62FF] border-[#8457F1]/30" :
+      type === 'project' ? "bg-gradient-to-br from-[#3C62FF] via-[#0EA5E9] to-[#00D1FF] border-[#3C62FF]/30" :
+      "bg-gradient-to-br from-[#10B981] via-[#059669] to-[#3C62FF] border-[#10B981]/30"
+    )}>
+      <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] -z-0 rounded-full animate-pulse" />
+      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-black/30 blur-[120px] -z-0 rounded-full" />
+      
+      <div className="relative z-10 flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-2xl flex items-center justify-center border border-white/40 shadow-2xl">
+            {type === 'task' ? <Zap className="w-8 h-8 text-white fill-white" /> : 
+             type === 'project' ? <Briefcase className="w-8 h-8 text-white fill-white" /> : 
+             <Wrench className="w-8 h-8 text-white fill-white" />}
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-white uppercase tracking-[0.3em] drop-shadow-md">GigaLight Protocol</p>
+            <Badge className="bg-black/30 border border-white/20 text-[8px] font-bold uppercase tracking-widest text-white/90">
+              {type === 'task' ? 'MICRO GIG' : type === 'project' ? 'STRATEGIC PROJECT' : 'EXPERT SERVICE'}
+            </Badge>
+          </div>
+        </div>
+        <div className="bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/20 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-bold text-white uppercase tracking-widest">LIVE SIGNAL</span>
+        </div>
+      </div>
+
+      <div className="relative z-10 space-y-6">
+        <h2 className="text-4xl sm:text-5xl font-headline font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl">
+          {asset.title}
+        </h2>
+        <div className="flex flex-wrap gap-2.5">
+           {(asset.skills || []).slice(0, 4).map((s: any, i: number) => (
+             <span key={i} className="px-4 py-1.5 rounded-xl bg-black/20 border border-white/20 text-[10px] font-bold text-white uppercase tracking-widest backdrop-blur-xl">
+               {typeof s === 'string' ? s : s.name}
+             </span>
+           ))}
+        </div>
+      </div>
+
+      <div className="relative z-10 flex items-end justify-between border-t border-white/10 pt-8 mt-2">
+         <div className="space-y-1">
+            <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">TECHNICAL YIELD</p>
+            <p className="text-4xl font-headline font-bold text-white tracking-tighter">
+              {type === 'task' ? `+${asset.reward_amount?.toLocaleString()} SAT` : 
+               type === 'project' ? `${asset.budget?.min ? asset.budget.min.toLocaleString() : asset.budget_min?.toLocaleString() || 'TBD'} SAT` : 
+               `${asset.price_sats?.toLocaleString()} SAT`}
+            </p>
+         </div>
+         <div className="flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-[1.5rem] font-bold text-sm shadow-2xl hover:scale-105 transition-transform cursor-default">
+            JOIN NODE <ArrowRight className="w-5 h-5" />
+         </div>
+      </div>
     </div>
   );
 }
