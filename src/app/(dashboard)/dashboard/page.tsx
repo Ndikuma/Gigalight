@@ -314,7 +314,7 @@ export default function DashboardHome() {
                   We are integrating long-term career opportunities with borderless Bitcoin L2 payroll systems for enterprise squads.
                 </p>
                 <Button asChild variant="ghost" className="w-full text-[10px] h-9 font-bold text-primary hover:bg-primary/5 gap-2 rounded-xl">
-                  <Link href="/jobs">LEARN MORE <ArrowRight className="w-3 h-3" /></Link>
+                  <Link href="/enterprise">LEARN MORE <ArrowRight className="w-3 h-3" /></Link>
                 </Button>
               </div>
             </CardContent>

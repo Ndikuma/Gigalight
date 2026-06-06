@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { 
   Zap, 
@@ -11,40 +11,20 @@ import {
   Cpu, 
   ArrowRight, 
   CheckCircle, 
-  Copy, 
-  Check, 
   Bitcoin, 
-  Heart,
   Network,
   Activity,
   Layers,
-  Search,
-  Smartphone
+  History,
+  TrendingUp,
+  FileText,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
 
 export default function AboutPage() {
-  const [copiedL1, setCopiedL1] = useState(false);
-  const [copiedL2, setCopiedL2] = useState(false);
-
-  const bitcoinAddress = "bc1qgigalightprotocolsupportnode2023xyz";
-  const lightningAddress = "gigalight@satoshi.node"; // Placeholder for static LN signal
-
-  const handleCopy = (text: string, type: 'L1' | 'L2') => {
-    navigator.clipboard.writeText(text);
-    if (type === 'L1') {
-      setCopiedL1(true);
-      setTimeout(() => setCopiedL1(false), 2000);
-    } else {
-      setCopiedL2(true);
-      setTimeout(() => setCopiedL2(false), 2000);
-    }
-    toast({ title: "Signal Copied", description: `${type} protocol identifier captured to clipboard.` });
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* Dynamic Background */}
@@ -61,6 +41,7 @@ export default function AboutPage() {
         </Link>
         <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <Link href="/market" className="hover:text-primary transition-colors">Marketplace</Link>
+          <Link href="/jobs" className="hover:text-primary transition-colors">Career Nodes</Link>
           <Link href="/signup" className="hover:text-white transition-colors">Join Protocol</Link>
           <Button asChild className="rounded-xl bg-primary hover:brightness-110 neon-glow-primary px-8 h-11 font-bold">
             <Link href="/login">Initialize Node</Link>
@@ -109,94 +90,56 @@ export default function AboutPage() {
           </Card>
         </div>
 
-        {/* Support Section */}
-        <section id="support" className="space-y-16">
+        {/* Roadmap Section */}
+        <section id="governance" className="space-y-16">
           <div className="text-center space-y-6 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
-              <Heart className="w-3 h-3" /> Protocol Sustainability
+              <TrendingUp className="w-3 h-3" /> Protocol Evolution
             </div>
-            <h2 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">Fuel the <span className="text-emerald-400">Future.</span></h2>
+            <h2 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">The Technical <span className="text-emerald-400">Roadmap.</span></h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              GigaLight is a community-driven protocol. Support the network via L1 or L2 rails to help us scale infrastructure and onboarding.
+              We are scaling from an e-job marketplace into a full-scale sovereign workforce protocol.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-            {/* L1 Bitcoin Node */}
-            <Card className="glass-card border-white/10 rounded-[3rem] p-1 shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Bitcoin className="w-40 h-40 text-primary" />
-               </div>
-               <CardContent className="p-10 space-y-8 bg-black/40 rounded-[2.8rem] relative z-10 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             {[
+               {
+                 title: "v2.1 Workforce",
+                 status: "Active",
+                 desc: "Micro-gigs, strategic projects, and manual L2 validator audits.",
+                 icon: Zap,
+                 color: "primary"
+               },
+               {
+                 title: "v2.5 Automation",
+                 status: "Q4 2023",
+                 desc: "AI-integrated validator assistants and automated multi-sig release cycles.",
+                 icon: Cpu,
+                 color: "secondary"
+               },
+               {
+                 title: "v3.0 Sovereign",
+                 status: "2024",
+                 desc: "Enterprise career nodes, decentralized payroll, and protocol-level governance.",
+                 icon: Globe,
+                 color: "emerald"
+               }
+             ].map((milestone, i) => (
+               <Card key={i} className="glass-card border-none p-8 rounded-[2rem] space-y-6 relative overflow-hidden">
+                  <div className={cn("absolute top-0 right-0 w-24 h-24 blur-3xl -z-10", milestone.color === 'primary' ? 'bg-primary/20' : milestone.color === 'secondary' ? 'bg-secondary/20' : 'bg-emerald-500/20')} />
+                  <div className="flex justify-between items-start">
+                     <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border", milestone.color === 'primary' ? 'bg-primary/10 border-primary/20 text-primary' : milestone.color === 'secondary' ? 'bg-secondary/10 border-secondary/20 text-secondary' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400')}>
+                        <milestone.icon className="w-6 h-6" />
+                     </div>
+                     <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest">{milestone.status}</Badge>
+                  </div>
                   <div className="space-y-2">
-                    <h4 className="font-headline font-bold text-2xl">L1 Bitcoin Node</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.3em]">Direct On-Chain Propagation</p>
+                     <h4 className="font-headline font-bold text-xl">{milestone.title}</h4>
+                     <p className="text-xs text-muted-foreground leading-relaxed">{milestone.desc}</p>
                   </div>
-
-                  <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 transition-transform hover:scale-105">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(bitcoinAddress)}`} 
-                      alt="L1 QR Signal" 
-                      className="w-44 h-44 object-contain" 
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-background/80 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
-                       <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">{bitcoinAddress}</p>
-                       <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-10 w-10 rounded-xl text-primary hover:bg-primary/10"
-                        onClick={() => handleCopy(bitcoinAddress, 'L1')}
-                       >
-                         {copiedL1 ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                       </Button>
-                    </div>
-                    <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest border-primary/20 text-primary px-3">
-                      Satoshi Standard L1 Address
-                    </Badge>
-                  </div>
-               </CardContent>
-            </Card>
-
-            {/* L2 Lightning Node */}
-            <Card className="glass-card border-white/10 rounded-[3rem] p-1 shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Zap className="w-40 h-40 text-emerald-400" />
-               </div>
-               <CardContent className="p-10 space-y-8 bg-black/40 rounded-[2.8rem] relative z-10 text-center">
-                  <div className="space-y-2">
-                    <h4 className="font-headline font-bold text-2xl">L2 Lightning Node</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.3em]">High-Velocity Static Signal</p>
-                  </div>
-
-                  <div className="mx-auto bg-white p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-emerald-500/20 border-8 border-emerald-500/10 transition-transform hover:scale-105">
-                    <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=lightning:${encodeURIComponent(lightningAddress)}`} 
-                      alt="L2 QR Signal" 
-                      className="w-44 h-44 object-contain" 
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-background/80 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
-                       <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">{lightningAddress}</p>
-                       <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-10 w-10 rounded-xl text-emerald-400 hover:bg-emerald-400/10"
-                        onClick={() => handleCopy(lightningAddress, 'L2')}
-                       >
-                         {copiedL2 ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                       </Button>
-                    </div>
-                    <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest border-emerald-500/20 text-emerald-400 px-3">
-                      L2 Static Protocol Signal (LNURL)
-                    </Badge>
-                  </div>
-               </CardContent>
-            </Card>
+               </Card>
+             ))}
           </div>
         </section>
 
@@ -224,8 +167,10 @@ export default function AboutPage() {
         <div className="flex justify-center gap-8 text-xs font-bold uppercase tracking-widest text-white/40">
            <Link href="/" className="hover:text-white transition-colors">Home Hub</Link>
            <Link href="/market" className="hover:text-white transition-colors">Discovery</Link>
+           <Link href="/jobs" className="hover:text-white transition-colors">Careers</Link>
         </div>
       </footer>
     </div>
   );
 }
+

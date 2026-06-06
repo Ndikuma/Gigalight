@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -25,7 +26,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { StarRating } from '@/components/ui/star-rating';
 
 export default function LandingPage() {
   return (
@@ -40,8 +40,8 @@ export default function LandingPage() {
         </div>
         <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <Link href="/market" className="hover:text-primary transition-colors">Marketplace</Link>
-          <Link href="/about" className="hover:text-primary transition-colors">About Us</Link>
-          <Link href="/about#support" className="hover:text-primary transition-colors">Support</Link>
+          <Link href="/jobs" className="hover:text-primary transition-colors">Career Nodes</Link>
+          <Link href="/about" className="hover:text-primary transition-colors">About Protocol</Link>
           <div className="h-4 w-px bg-white/10"></div>
           <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
           <Button asChild className="rounded-xl bg-primary hover:brightness-110 neon-glow-primary px-8 h-11 font-bold">
@@ -266,11 +266,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Infrastructure */}
-      <section id="infrastructure" className="py-32 px-8 max-w-7xl mx-auto text-center space-y-20">
+      {/* Institutional Focus */}
+      <section className="py-32 px-8 max-w-7xl mx-auto text-center space-y-20 border-t border-white/5">
         <div className="space-y-4">
-          <h2 className="text-4xl md:text-6xl font-headline font-bold">Institutional Rails.</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Powered by custodial Bitcoin settlement infrastructure for global E-Job scaling.</p>
+          <h2 className="text-4xl md:text-6xl font-headline font-bold">Institutional Adoption.</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">GigaLight is built for enterprise-grade remote operations with automated L2 infrastructure.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -349,9 +349,9 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-6">
-            <h5 className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Protocol Support</h5>
+            <h5 className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Legal & Support</h5>
             <ul className="space-y-4 text-sm text-muted-foreground font-medium">
-              <li><Link href="/about#support" className="hover:text-emerald-400 transition-colors">Support Node</Link></li>
+              <li><Link href="/about#governance" className="hover:text-emerald-400 transition-colors">Governance</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Audit Guidelines</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Network Status</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Compliance Hub</Link></li>
@@ -372,3 +372,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
