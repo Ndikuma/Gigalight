@@ -15,7 +15,8 @@ import {
   Sparkles,
   Layers,
   Activity,
-  Cpu
+  Cpu,
+  Network
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,7 +51,7 @@ export default function PublicCareersPage() {
             Long-Term <span className="text-gradient">Career Nodes.</span>
           </h1>
           <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            GigaLight is expanding. Soon, we'll bridge the gap between micro-tasks and full-time professional roles with global entities, settled via L2 multi-sig payroll.
+            GigaLight is redefining the career lifecycle. Soon, we'll bridge the gap between micro-tasks and full-time professional roles with global entities, settled via borderless L2 multi-sig payroll.
           </p>
         </header>
 
@@ -58,19 +59,19 @@ export default function PublicCareersPage() {
           {[
             { 
               title: "L2 Payroll", 
-              desc: "Automatic SAT settlement every 10 minutes based on verifiable technical output.",
+              desc: "Automatic SAT settlement every 10 minutes based on verifiable technical output signals.",
               icon: Zap,
               color: "primary"
             },
             { 
               title: "Identity Portability", 
-              desc: "Take your professional reputation node from one project to another with ease.",
+              desc: "Take your professional reputation node from one project to another without gatekeepers.",
               icon: ShieldCheck,
               color: "secondary"
             },
             { 
               title: "Global Compliance", 
-              desc: "Built-in tax and regulatory technical tools for a truly borderless workforce.",
+              desc: "Built-in tax and regulatory technical tools for a truly borderless workforce protocol.",
               icon: Globe,
               color: "emerald"
             }
@@ -93,7 +94,7 @@ export default function PublicCareersPage() {
             <div className="p-16 space-y-8 flex-1">
               <h2 className="text-4xl md:text-5xl font-headline font-bold">Priority Access Program</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Nodes with a Reputation Score &gt; 90 will receive priority selection for the first batch of Institutional roles. Complete missions today to boost your standing.
+                Nodes with a Trust Index > 90 will receive priority selection for the first batch of Institutional roles. Build your reputation through technical missions today.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
@@ -108,22 +109,22 @@ export default function PublicCareersPage() {
                 ))}
               </div>
               <div className="pt-8">
-                <Button className="rounded-2xl h-16 px-10 font-bold bg-primary neon-glow-primary gap-3 text-lg">
-                  Join the Waitlist <ArrowRight className="w-5 h-5" />
+                <Button asChild className="rounded-2xl h-16 px-10 font-bold bg-primary neon-glow-primary gap-3 text-lg">
+                  <Link href="/signup">Initialize Node Identity <ArrowRight className="w-5 h-5" /></Link>
                 </Button>
               </div>
             </div>
             <div className="lg:w-1/3 bg-white/5 border-l border-white/5 p-16 flex flex-col justify-center items-center text-center space-y-8">
               <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center text-primary animate-pulse shadow-2xl shadow-primary/20">
-                <Rocket className="w-12 h-12" />
+                <Network className="w-12 h-12" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Expected Launch</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Expected Deployment</p>
                 <p className="text-3xl font-headline font-bold text-white">Q4 2023</p>
               </div>
               <div className="p-4 bg-black/40 rounded-2xl border border-white/10 space-y-1">
                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Signal</p>
-                 <p className="text-xs font-bold text-emerald-400 flex items-center gap-2 justify-center"><Activity className="w-3.5 h-3.5" /> Stable Development</p>
+                 <p className="text-xs font-bold text-emerald-400 flex items-center gap-2 justify-center"><Activity className="w-3.5 h-3.5" /> Stable Build</p>
               </div>
             </div>
           </div>
@@ -138,4 +139,3 @@ export default function PublicCareersPage() {
     </div>
   );
 }
-

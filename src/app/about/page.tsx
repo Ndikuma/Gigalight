@@ -5,24 +5,18 @@ import React from 'react';
 import Link from 'next/link';
 import { 
   Zap, 
-  ShieldCheck, 
   Globe, 
-  Database, 
   Cpu, 
-  ArrowRight, 
-  CheckCircle, 
-  Bitcoin, 
+  ShieldCheck, 
   Network,
   Activity,
   Layers,
-  History,
   TrendingUp,
-  FileText,
-  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function AboutPage() {
   return (
@@ -41,8 +35,7 @@ export default function AboutPage() {
         </Link>
         <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <Link href="/market" className="hover:text-primary transition-colors">Marketplace</Link>
-          <Link href="/jobs" className="hover:text-primary transition-colors">Career Nodes</Link>
-          <Link href="/signup" className="hover:text-white transition-colors">Join Protocol</Link>
+          <Link href="/jobs" className="hover:text-primary transition-colors">Roadmap</Link>
           <Button asChild className="rounded-xl bg-primary hover:brightness-110 neon-glow-primary px-8 h-11 font-bold">
             <Link href="/login">Initialize Node</Link>
           </Button>
@@ -59,7 +52,7 @@ export default function AboutPage() {
             Architecting the <span className="text-gradient">Satoshi Workforce.</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            GigaLight is an Omni-Gig protocol built on Bitcoin Layer-2. We are redefining the professional landscape by enabling instant, borderless, and verified technical value exchange.
+            GigaLight is a high-velocity workforce protocol built on Bitcoin Layer-2. We are redefining professional engagement by enabling instant, borderless, and verified technical value exchange.
           </p>
         </section>
 
@@ -72,7 +65,7 @@ export default function AboutPage() {
             <div className="space-y-4">
               <h3 className="text-3xl font-headline font-bold">Decentralized Trust</h3>
               <p className="text-muted-foreground leading-relaxed">
-                By leveraging L2 multi-sig escrow and the Validator Network, we remove the need for centralized oversight. Every mission is protected by technical protocols, not just promises.
+                By leveraging L2 multi-sig escrow and our global Validator Network, we eliminate the need for centralized intermediaries. Every technical mission is secured by code, not just promises.
               </p>
             </div>
           </Card>
@@ -82,23 +75,23 @@ export default function AboutPage() {
               <Layers className="w-7 h-7" />
             </div>
             <div className="space-y-4">
-              <h3 className="text-3xl font-headline font-bold">Hign-Velocity Yield</h3>
+              <h3 className="text-3xl font-headline font-bold">High-Velocity Yield</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Our workforce engine decomposes complex projects into rapid installments. Workers receive SAT yields instantly upon verification, ensuring a continuous flow of technical capital.
+                Complex objectives are decomposed into rapid, billable installments. Node operators receive SAT yields instantly upon verified technical delivery, ensuring constant liquidity flow.
               </p>
             </div>
           </Card>
         </div>
 
         {/* Roadmap Section */}
-        <section id="governance" className="space-y-16">
+        <section id="roadmap" className="space-y-16">
           <div className="text-center space-y-6 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
               <TrendingUp className="w-3 h-3" /> Protocol Evolution
             </div>
             <h2 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">The Technical <span className="text-emerald-400">Roadmap.</span></h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              We are scaling from an e-job marketplace into a full-scale sovereign workforce protocol.
+              We are scaling from a micro-gig engine into a full-scale sovereign workforce protocol for the Bitcoin era.
             </p>
           </div>
 
@@ -107,21 +100,21 @@ export default function AboutPage() {
                {
                  title: "v2.1 Workforce",
                  status: "Active",
-                 desc: "Micro-gigs, strategic projects, and manual L2 validator audits.",
+                 desc: "Micro-gigs, strategic projects, and manual L2 validator audits for technical proof.",
                  icon: Zap,
                  color: "primary"
                },
                {
                  title: "v2.5 Automation",
                  status: "Q4 2023",
-                 desc: "AI-integrated validator assistants and automated multi-sig release cycles.",
+                 desc: "AI-integrated validator assistants and automated multi-sig release cycles for high-volume nodes.",
                  icon: Cpu,
                  color: "secondary"
                },
                {
                  title: "v3.0 Sovereign",
                  status: "2024",
-                 desc: "Enterprise career nodes, decentralized payroll, and protocol-level governance.",
+                 desc: "Enterprise career nodes, decentralized payroll integration, and protocol-level governance.",
                  icon: Globe,
                  color: "emerald"
                }
@@ -148,7 +141,7 @@ export default function AboutPage() {
            {[
             { label: "Protocol Uptime", val: "99.99%", icon: Activity },
             { label: "Nodes Enabled", val: "150+", icon: Network },
-            { label: "Mission Velocity", val: "Hign", icon: Zap },
+            { label: "Mission Velocity", val: "High", icon: Zap },
             { label: "Trust Index", val: "Verified", icon: ShieldCheck },
           ].map((stat, i) => (
             <div key={i} className="space-y-2">
@@ -173,4 +166,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
