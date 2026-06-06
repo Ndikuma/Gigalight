@@ -38,9 +38,15 @@ export default function PublicServicePage() {
   const [service, setService] = useState<ProfessionalService | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCommissioning, setIsCommissioning] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Audit authentication status
+    const token = typeof window !== 'undefined' ? localStorage.getItem('gigalight_access') : null;
+    setIsLoggedIn(!!token);
+
     async function fetchService() {
+      if (!id) return;
       setIsLoading(true);
       try {
         const res = await ServiceService.getService(id as string);
@@ -53,6 +59,27 @@ export default function PublicServicePage() {
     }
     fetchService();
   }, [id]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = {
+      title: `GigaLight Protocol | ${service?.title}`,
+      text: service?.short_description || service?.description,
+      url: url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({ title: "Signal Propagated", description: "Native sharing interface active." });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Signal Copied", description: "Protocol URL captured to clipboard." });
+      }
+    } catch (err) {
+      console.warn("Share propagation aborted by user or protocol.");
+    }
+  };
 
   async function handleCommission() {
     setIsCommissioning(true);
@@ -98,17 +125,26 @@ export default function PublicServicePage() {
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-primary/10 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
 
       <nav className="h-20 border-b border-white/5 flex items-center justify-between px-8 max-w-7xl mx-auto w-full sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center neon-glow-primary">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center neon-glow-primary transition-transform group-hover:scale-110">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-headline font-bold text-2xl tracking-tight hidden sm:block">Giga<span className="text-primary">light</span></span>
         </Link>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5"><Share2 className="w-5 h-5" /></Button>
-          <Button asChild className="rounded-xl bg-primary neon-glow-primary px-8 font-bold">
-            <Link href="/signup">Join Network</Link>
+          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-white/5" onClick={handleShare}>
+            <Share2 className="w-5 h-5" />
           </Button>
+          {!isLoggedIn && (
+            <Button asChild className="rounded-xl bg-primary neon-glow-primary px-8 font-bold">
+              <Link href="/signup">Join Network</Link>
+            </Button>
+          )}
+          {isLoggedIn && (
+             <Button asChild variant="outline" className="rounded-xl border-white/10 px-8 font-bold hidden sm:flex">
+               <Link href="/dashboard">Terminal Hub</Link>
+             </Button>
+          )}
         </div>
       </nav>
 
@@ -128,7 +164,7 @@ export default function PublicServicePage() {
             </h1>
             <div className="flex items-center gap-6">
                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12 border-2 border-white/10">
+                  <Avatar className="w-12 h-12 border-2 border-white/10 shadow-lg">
                     <AvatarImage src={`https://picsum.photos/seed/${service.creator}/100/100`} />
                     <AvatarFallback>{service.creator_display?.[0]}</AvatarFallback>
                   </Avatar>
