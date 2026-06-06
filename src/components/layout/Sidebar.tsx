@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -18,7 +17,8 @@ import {
   Sparkles,
   Layers,
   Wrench,
-  Globe
+  Globe,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
@@ -45,6 +45,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
     { name: 'My Gigs', icon: Layers, href: '/my-tasks' },
     { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
     { name: 'My Services', icon: Wrench, href: '/my-services' },
+    { name: 'Promotion', icon: Share2, href: '/promotion' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
     { name: 'Settings', icon: Settings, href: '/settings' },
