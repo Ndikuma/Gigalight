@@ -1,4 +1,3 @@
-
 "use client"
 
 import React from 'react';
@@ -40,9 +39,9 @@ export default function LandingPage() {
           <span className="font-headline font-bold text-2xl tracking-tight">Giga<span className="text-primary">light</span></span>
         </div>
         <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          <Link href="#missions" className="hover:text-primary transition-colors">Marketplace</Link>
-          <Link href="#validator" className="hover:text-primary transition-colors">Validator Node</Link>
-          <Link href="#infrastructure" className="hover:text-primary transition-colors">Infrastructure</Link>
+          <Link href="/market" className="hover:text-primary transition-colors">Marketplace</Link>
+          <Link href="/about" className="hover:text-primary transition-colors">About Us</Link>
+          <Link href="/about#support" className="hover:text-primary transition-colors">Support</Link>
           <div className="h-4 w-px bg-white/10"></div>
           <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
           <Button asChild className="rounded-xl bg-primary hover:brightness-110 neon-glow-primary px-8 h-11 font-bold">
@@ -50,7 +49,7 @@ export default function LandingPage() {
           </Button>
         </div>
         <div className="lg:hidden">
-           <Button variant="ghost" size="icon"><Zap className="w-6 h-6 text-primary" /></Button>
+           <Link href="/dashboard"><Button variant="ghost" size="icon"><Zap className="w-6 h-6 text-primary" /></Button></Link>
         </div>
       </nav>
 
@@ -343,7 +342,7 @@ export default function LandingPage() {
             <h5 className="text-[10px] font-bold uppercase tracking-widest text-secondary">Node Operations</h5>
             <ul className="space-y-4 text-sm text-muted-foreground font-medium">
               <li><Link href="/dashboard" className="hover:text-secondary transition-colors">Dashboard Hub</Link></li>
-              <li><Link href="/audits" className="hover:text-secondary transition-colors">Validator Queue</Link></li>
+              <li><Link href="/about" className="hover:text-secondary transition-colors">About Protocol</Link></li>
               <li><Link href="/wallet" className="hover:text-secondary transition-colors">Financial Control</Link></li>
               <li><Link href="/settings" className="hover:text-secondary transition-colors">Identity Config</Link></li>
             </ul>
@@ -352,7 +351,7 @@ export default function LandingPage() {
           <div className="space-y-6">
             <h5 className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Protocol Support</h5>
             <ul className="space-y-4 text-sm text-muted-foreground font-medium">
-              <li><Link href="#" className="hover:text-emerald-400 transition-colors">L2 Bridge Documentation</Link></li>
+              <li><Link href="/about#support" className="hover:text-emerald-400 transition-colors">Support Node</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Audit Guidelines</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Network Status</Link></li>
               <li><Link href="#" className="hover:text-emerald-400 transition-colors">Compliance Hub</Link></li>
