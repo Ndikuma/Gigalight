@@ -43,6 +43,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { DepositSession } from '@/components/wallet/DepositSession';
+import { StarRating } from '@/components/ui/star-rating';
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletType | null>(null);
@@ -283,7 +284,7 @@ export default function WalletPage() {
             </div>
             <h4 className="font-bold text-sm">Node Standing</h4>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest leading-relaxed">
-              Maintain a trust index > 90 to qualify for Enterprise L1 payroll squads.
+              Maintain a trust index &gt; 90 to qualify for Enterprise L1 payroll squads.
             </p>
           </Card>
         </div>
@@ -378,16 +379,6 @@ function HealthItem({ label, status, icon: Icon, color }: any) {
         <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">{status}</span>
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
       </div>
-    </div>
-  );
-}
-
-function StarRating({ reputation }: { reputation: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {[1, 2, 3, 4, 5].map(i => (
-        <Shield key={i} className={cn("w-3 h-3", i <= Math.round(reputation / 20) ? "text-primary fill-primary" : "text-white/10")} />
-      ))}
     </div>
   );
 }
