@@ -130,17 +130,6 @@ export default function PublicCareersPage() {
             </div>
           </div>
         </section>
-
-        {/* Strategic CTA */}
-        <section className="text-center py-20 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 rounded-[4rem] border border-white/5">
-           <h2 className="text-4xl font-headline font-bold mb-6">Partner as an Enterprise</h2>
-           <p className="text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
-             Deploy professional squads on the Bitcoin L2 network. Automate your global payroll and verification infrastructure with GigaLight.
-           </p>
-           <Button variant="outline" className="rounded-xl h-14 px-12 border-primary/30 text-primary font-bold hover:bg-primary/5 uppercase tracking-widest text-xs">
-             Contact Institutional Node
-           </Button>
-        </section>
       </main>
 
       <footer className="border-t border-white/5 py-12 text-center bg-card/30">

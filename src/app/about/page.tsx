@@ -51,7 +51,7 @@ export default function AboutPage() {
         {/* Hero Section */}
         <section className="text-center space-y-8">
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            <Activity className="w-3 h-3 mr-2" /> Protocol Mission v2.1
+            <Activity className="w-3" /> Protocol Mission v2.1
           </Badge>
           <h1 className="text-6xl md:text-8xl font-headline font-bold tracking-tighter leading-[0.9] max-w-4xl mx-auto">
             Architecting the <span className="text-gradient">Satoshi Workforce.</span>
@@ -208,22 +208,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Stats Pulse */}
-        <section className="py-20 border-y border-white/5 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-           {[
-            { label: "Protocol Uptime", val: "99.99%", icon: Activity },
-            { label: "Nodes Enabled", val: "150+", icon: Network },
-            { label: "Mission Velocity", val: "High", icon: Zap },
-            { label: "Trust Index", val: "Verified", icon: ShieldCheck },
-          ].map((stat, i) => (
-            <div key={i} className="space-y-2">
-              <stat.icon className="w-5 h-5 text-primary mx-auto opacity-50" />
-              <p className="text-3xl font-headline font-bold">{stat.val}</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </section>
-
         {/* Footer Link */}
         <section className="text-center py-20">
            <h2 className="text-4xl font-headline font-bold mb-8">Ready to Initialize?</h2>
@@ -238,15 +222,10 @@ export default function AboutPage() {
         </section>
       </main>
 
-      <footer className="border-t border-white/5 py-12 text-center space-y-6 bg-card/30">
+      <footer className="border-t border-white/5 py-12 text-center bg-card/30">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">
           GigaLight Protocol Identity Node • Satoshi Standard v2.1.0
         </p>
-        <div className="flex justify-center gap-8 text-xs font-bold uppercase tracking-widest text-white/40">
-           <Link href="/" className="hover:text-white transition-colors">Home Hub</Link>
-           <Link href="/market" className="hover:text-white transition-colors">Discovery</Link>
-           <Link href="/jobs" className="hover:text-white transition-colors">Careers</Link>
-        </div>
       </footer>
     </div>
   );
