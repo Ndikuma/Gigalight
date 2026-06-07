@@ -273,9 +273,9 @@ export default function PromotionHubPage() {
                       <div className="space-y-8">
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                               <Twitter className="w-3.5 h-3.5" /> X Propagation
-                            </label>
+                            </div>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.twitter, 'twitter')} className="h-7 text-[10px] font-bold gap-2">
                               {copiedField === 'twitter' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
                             </Button>
@@ -287,9 +287,9 @@ export default function PromotionHubPage() {
 
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                               <Linkedin className="w-3.5 h-3.5" /> LinkedIn Protocol
-                            </label>
+                            </div>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.linkedin, 'linkedin')} className="h-7 text-[10px] font-bold gap-2">
                               {copiedField === 'linkedin' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
                             </Button>
@@ -364,7 +364,7 @@ export default function PromotionHubPage() {
                    <div className="bg-black/60 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 group/addr relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 blur-xl -z-10" />
                       <p className="text-[11px] font-mono text-muted-foreground truncate flex-1 leading-none">
-                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
+                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}
                       </p>
                       <Button 
                         size="icon" 

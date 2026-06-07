@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * @fileOverview Strategic redirect to resolve the Next.js Parallel Route Conflict.
- * Control is handed over to the public informational hub at /jobs or the internal hub at /enterprise.
+ * This file is moved to a unique sub-path to allow /jobs to be handled by the public hub.
  */
 export default function JobsRedirect() {
   const router = useRouter();
