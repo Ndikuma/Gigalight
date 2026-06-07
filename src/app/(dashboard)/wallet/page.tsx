@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { WalletService } from '@/services/wallet-service';
+import { WalletService, WithdrawDecodeResponse, WithdrawFeesResponse } from '@/services/wallet-service';
 import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
@@ -27,7 +27,9 @@ import {
   ArrowRightLeft,
   ExternalLink,
   Info,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +38,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,12 +61,21 @@ export default function WalletPage() {
   const [isFullLedgerOpen, setIsFullLedgerOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<WalletTransaction | null>(null);
   
+  // Deposit Form
   const [depositMethod, setDepositMethod] = useState<'lightning' | 'onchain'>('lightning');
   const [depositAmount, setDepositAmount] = useState('5000');
   const [invoiceData, setInvoiceData] = useState<DepositInvoiceResponse | null>(null);
   const [onchainData, setOnchainData] = useState<{ bitcoin_address: string, qr_code?: string } | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
+
+  // Withdraw Form
+  const [withdrawTarget, setWithdrawTarget] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawStep, setWithdrawStep] = useState<'input' | 'audit' | 'confirm'>('input');
+  const [decodedWithdraw, setDecodedWithdraw] = useState<WithdrawDecodeResponse | null>(null);
+  const [withdrawFees, setWithdrawFees] = useState<WithdrawFeesResponse | null>(null);
+  const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
 
   const fetchWalletData = async (silent = false) => {
     if (!silent) setIsRefreshing(true);
@@ -89,6 +101,16 @@ export default function WalletPage() {
     fetchWalletData(true);
   };
 
+  const cleanupWithdraw = () => {
+    setIsWithdrawOpen(false);
+    setWithdrawStep('input');
+    setWithdrawTarget('');
+    setWithdrawAmount('');
+    setDecodedWithdraw(null);
+    setWithdrawFees(null);
+    fetchWalletData(true);
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Signal Captured", description: `${label} copied to terminal.` });
@@ -111,6 +133,44 @@ export default function WalletPage() {
       if (res.data) setOnchainData(res.data);
     } finally {
       setIsLoadingOnchain(false);
+    }
+  }
+
+  async function handleAuditWithdrawal() {
+    if (!withdrawTarget) return;
+    setIsProcessingWithdraw(true);
+    try {
+      const decodeRes = await WalletService.withdrawDecode(withdrawTarget);
+      if (decodeRes.data) {
+        setDecodedWithdraw(decodeRes.data);
+        const feesRes = await WalletService.withdrawFees(withdrawTarget, withdrawAmount ? parseInt(withdrawAmount) : undefined);
+        if (feesRes.data) {
+          setWithdrawFees(feesRes.data);
+          setWithdrawStep('audit');
+        }
+      } else {
+        toast({ variant: "destructive", title: "Target Mismatch", description: "Invalid Bitcoin address or Lightning signal." });
+      }
+    } finally {
+      setIsProcessingWithdraw(false);
+    }
+  }
+
+  async function handleExecuteWithdrawal() {
+    setIsProcessingWithdraw(true);
+    try {
+      const res = await WalletService.initiateWithdrawal(
+        withdrawTarget, 
+        withdrawAmount ? parseInt(withdrawAmount) : undefined
+      );
+      if (res.data) {
+        toast({ title: "Payout Propagated", description: "L2 settlement signal initiated." });
+        setWithdrawStep('confirm');
+      } else {
+        toast({ variant: "destructive", title: "Settlement Failed", description: res.error || "Insufficient liquidity or rail error." });
+      }
+    } finally {
+      setIsProcessingWithdraw(false);
     }
   }
 
@@ -287,7 +347,113 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Deposit Dialog */}
+      {/* Payout Dialog */}
+      <Dialog open={isWithdrawOpen} onOpenChange={(open) => { if (!open) cleanupWithdraw(); }}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[500px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
+          <div className="p-8 space-y-6">
+            <DialogHeader className="p-0">
+               <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                    <ArrowUpRight className="w-6 h-6" />
+                  </div>
+                  Payout Terminal
+               </DialogTitle>
+               <DialogDescription className="text-sm">Initiate Satoshi settlement signal.</DialogDescription>
+            </DialogHeader>
+
+            {withdrawStep === 'input' && (
+              <div className="space-y-6 animate-in fade-in">
+                <div className="space-y-3">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Target Address or Invoice</Label>
+                  <Input 
+                    placeholder="bc1... or lnbc..." 
+                    className="h-14 bg-white/5 border-white/10 rounded-xl pl-6 text-xs font-mono"
+                    value={withdrawTarget}
+                    onChange={(e) => setWithdrawTarget(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-3">
+                   <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Amount (SAT) - Optional for invoices</Label>
+                   <Input 
+                    type="number"
+                    placeholder="Leave empty for fixed-amount invoices" 
+                    className="h-14 bg-white/5 border-white/10 rounded-xl pl-6 font-bold"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  className="w-full h-14 rounded-xl bg-primary neon-glow-primary font-bold"
+                  onClick={handleAuditWithdrawal}
+                  disabled={!withdrawTarget || isProcessingWithdraw}
+                >
+                  {isProcessingWithdraw ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Audit Signal'}
+                </Button>
+              </div>
+            )}
+
+            {withdrawStep === 'audit' && withdrawFees && (
+              <div className="space-y-6 animate-in slide-in-from-bottom-4">
+                 <div className="p-6 bg-black/40 border border-white/5 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Technical Rail</span>
+                       <Badge className="bg-secondary/10 text-secondary border-none uppercase text-[8px] font-bold">
+                         {decodedWithdraw?.rail === 'lightning' ? 'Lightning L2' : 'Bitcoin L1'}
+                       </Badge>
+                    </div>
+                    <div className="space-y-3">
+                       <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Requested Payload</span>
+                          <span>{withdrawFees.amount_sats.toLocaleString()} SAT</span>
+                       </div>
+                       <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Protocol/Miner Fee</span>
+                          <span className="text-destructive">-{withdrawFees.estimated_fee_sats.toLocaleString()} SAT</span>
+                       </div>
+                       <div className="flex justify-between items-end pt-3 border-t border-white/5">
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Total Wallet Debit</span>
+                          <span className="text-2xl font-headline font-bold text-white">{withdrawFees.wallet_debit_sats.toLocaleString()} SAT</span>
+                       </div>
+                    </div>
+                 </div>
+                 
+                 {!withdrawFees.can_withdraw && (
+                   <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl flex items-start gap-3">
+                      <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                      <p className="text-xs text-destructive font-medium leading-relaxed">{withdrawFees.message || "Insufficient node liquidity for this signal."}</p>
+                   </div>
+                 )}
+
+                 <div className="flex gap-3 pt-2">
+                    <Button variant="ghost" className="flex-1 rounded-xl font-bold" onClick={() => setWithdrawStep('input')}>Re-configure</Button>
+                    <Button 
+                      className="flex-[2] h-14 rounded-xl bg-primary neon-glow-primary font-bold"
+                      onClick={handleExecuteWithdrawal}
+                      disabled={!withdrawFees.can_withdraw || isProcessingWithdraw}
+                    >
+                      {isProcessingWithdraw ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Authorize Payout'}
+                    </Button>
+                 </div>
+              </div>
+            )}
+
+            {withdrawStep === 'confirm' && (
+              <div className="text-center py-10 space-y-8 animate-in zoom-in-95">
+                 <div className="mx-auto w-24 h-24 bg-emerald-500/10 border-4 border-emerald-500/20 rounded-[2rem] flex items-center justify-center text-emerald-400">
+                    <ShieldCheck className="w-12 h-12" />
+                 </div>
+                 <div className="space-y-2">
+                    <h3 className="text-2xl font-headline font-bold">Signal Propagated</h3>
+                    <p className="text-sm text-muted-foreground">Payout is being verified on the network rails. Check the ledger for updates.</p>
+                 </div>
+                 <Button className="w-full h-14 rounded-xl bg-emerald-500 font-bold" onClick={cleanupWithdraw}>Finalize Terminal</Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ledger, Transaction & Deposit dialogs... (Keeping established logic) */}
       <Dialog open={isDepositOpen} onOpenChange={(open) => { if (!open) cleanupDeposit(); }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
           <div className="p-6 sm:p-8 space-y-6">
@@ -358,7 +524,6 @@ export default function WalletPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Full Ledger Dialog */}
       <Dialog open={isFullLedgerOpen} onOpenChange={setIsFullLedgerOpen}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[700px] rounded-[2.5rem] p-0 shadow-2xl overflow-hidden">
            <DialogHeader className="p-8 border-b border-white/5">
@@ -401,7 +566,6 @@ export default function WalletPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Transaction Detail Dialog */}
       <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[500px] rounded-[2.5rem] p-0 shadow-2xl overflow-hidden">
           {selectedTx && (
