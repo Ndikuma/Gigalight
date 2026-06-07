@@ -1,3 +1,4 @@
+
 {
   "placeholderImages": [
     {
@@ -11,6 +12,12 @@
       "description": "Bitcoin Layer-2 Lightning Donation QR Signal",
       "imageUrl": "https://picsum.photos/seed/ln-donate/400/400",
       "imageHint": "QR code"
+    },
+    {
+      "id": "node-avatar-default",
+      "description": "Default Protocol Node Identity",
+      "imageUrl": "https://picsum.photos/seed/node/200/200",
+      "imageHint": "profile avatar"
     }
   ]
 }

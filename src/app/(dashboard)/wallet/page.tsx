@@ -1,9 +1,10 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { WalletService, WithdrawDecodeResponse } from '@/services/wallet-service';
+import { WalletService } from '@/services/wallet-service';
 import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
@@ -25,8 +26,6 @@ import {
   Layers,
   ArrowRightLeft,
   ExternalLink,
-  Search,
-  Eye,
   Info,
   ChevronRight
 } from 'lucide-react';
@@ -66,8 +65,6 @@ export default function WalletPage() {
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
 
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const fetchWalletData = async (silent = false) => {
     if (!silent) setIsRefreshing(true);
     try {
@@ -83,9 +80,6 @@ export default function WalletPage() {
 
   useEffect(() => {
     fetchWalletData();
-    return () => {
-      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    };
   }, []);
 
   const cleanupDeposit = () => {

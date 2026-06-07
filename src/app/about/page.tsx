@@ -1,7 +1,9 @@
+
 "use client"
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   Zap, 
   Globe, 
@@ -17,7 +19,6 @@ import {
   Target,
   Database,
   Copy,
-  Check,
   Bitcoin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,8 +26,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { PlaceHolderImages } from '@/app/lib/placeholder-images';
 
 export default function AboutPage() {
+  const qrL1 = PlaceHolderImages.find(img => img.id === 'qr-l1');
+  const qrL2 = PlaceHolderImages.find(img => img.id === 'qr-l2');
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Signal Captured", description: `${label} copied to terminal.` });
@@ -109,43 +114,61 @@ export default function AboutPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-            <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-6 opacity-5">
+            {qrL1 && (
+              <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-5">
                   <Bitcoin className="w-32 h-32 text-white" />
-               </div>
-               <div className="space-y-2">
+                </div>
+                <div className="space-y-2">
                   <h4 className="text-xl font-headline font-bold">L1 Mainnet</h4>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Bitcoin Base Layer</p>
-               </div>
-               <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
-                  <img src="https://picsum.photos/seed/btc-donate/400/400" alt="L1 QR" className="w-full h-full object-cover rounded-xl" data-ai-hint="QR code" />
-               </div>
-               <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
+                </div>
+                <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
+                  <Image 
+                    src={qrL1.imageUrl} 
+                    alt={qrL1.description} 
+                    width={400} 
+                    height={400} 
+                    className="w-full h-full object-cover rounded-xl"
+                    data-ai-hint={qrL1.imageHint}
+                  />
+                </div>
+                <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
                   <code className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">bc1q7y...p9z</code>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white transition-colors" onClick={() => copyToClipboard('bc1q7y...p9z', 'L1 Address')}>
                     <Copy className="w-4 h-4" />
                   </Button>
-               </div>
-            </Card>
+                </div>
+              </Card>
+            )}
 
-            <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-6 opacity-5">
+            {qrL2 && (
+              <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-5">
                   <Zap className="w-32 h-32 text-white" />
-               </div>
-               <div className="space-y-2">
+                </div>
+                <div className="space-y-2">
                   <h4 className="text-xl font-headline font-bold">L2 Lightning</h4>
                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Satoshi Rails</p>
-               </div>
-               <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
-                  <img src="https://picsum.photos/seed/ln-donate/400/400" alt="L2 QR" className="w-full h-full object-cover rounded-xl" data-ai-hint="QR code" />
-               </div>
-               <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
+                </div>
+                <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
+                  <Image 
+                    src={qrL2.imageUrl} 
+                    alt={qrL2.description} 
+                    width={400} 
+                    height={400} 
+                    className="w-full h-full object-cover rounded-xl"
+                    data-ai-hint={qrL2.imageHint}
+                  />
+                </div>
+                <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
                   <code className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">gigalight@satoshi.mail</code>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white transition-colors" onClick={() => copyToClipboard('gigalight@satoshi.mail', 'Lightning Address')}>
                     <Copy className="w-4 h-4" />
                   </Button>
-               </div>
-            </Card>
+                </div>
+              </Card>
+            )}
           </div>
         </section>
 

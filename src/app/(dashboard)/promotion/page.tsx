@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -259,9 +260,9 @@ export default function PromotionHubPage() {
 
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                               <ChevronRight className="w-3.5 h-3.5" /> Strategic Thread Hook
-                            </label>
+                            </div>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.threadHook, 'hook')} className="h-7 text-[10px] font-bold gap-2">
                               {copiedField === 'hook' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
                             </Button>
