@@ -38,7 +38,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/dialog";
 
 export default function PromotionHubPage() {
   const [activeTab, setActiveTab] = useState('assets');
@@ -265,7 +265,7 @@ export default function PromotionHubPage() {
                             </label>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.threadHook, 'hook')} className="h-7 text-[10px] font-bold gap-2">
                               {copiedField === 'hook' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
-                            </Button>
+                            </label>
                           </div>
                           <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm italic text-muted-foreground">
                             "{promoContent.threadHook}"
