@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -23,9 +22,7 @@ import {
   Download,
   RefreshCw as RefreshCwIcon,
   ArrowRight,
-  Network,
-  Bitcoin,
-  Shield
+  Network
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';

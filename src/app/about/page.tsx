@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { 
   Zap, 
@@ -13,21 +12,26 @@ import {
   Layers,
   TrendingUp,
   ArrowRight,
-  CheckCircle2,
+  CheckCircle,
   Lock,
   Target,
   Database,
   Copy,
   Check,
-  QrCode
+  Bitcoin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function AboutPage() {
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Signal Captured", description: `${label} copied to terminal.` });
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* Dynamic Background */}
@@ -92,65 +96,56 @@ export default function AboutPage() {
           </Card>
         </div>
 
-        {/* Core Architecture */}
-        <section className="space-y-16">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 space-y-8">
-              <h2 className="text-4xl font-headline font-bold">Technical <span className="text-primary">Architecture.</span></h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                The GigaLight Protocol is built to settle professional technical value as efficiently as the Lightning Network settles payments. Our multi-layer approach ensures total transparency and high-fidelity auditability.
-              </p>
-              <div className="space-y-4">
-                {[
-                  { title: "Layer-1 Settlement", desc: "Finality secured by the Bitcoin blockchain for large-scale escrow funding.", icon: Database },
-                  { title: "Layer-2 Rails", desc: "Instant propagation of mission yields via the Satoshi Lightning Network.", icon: Zap },
-                  { title: "Verification-as-a-Service", desc: "Global validator nodes auditing technical proof via AI-assisted interfaces.", icon: ShieldCheck }
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4 p-5 rounded-2xl bg-white/5 border border-white/5 group hover:bg-white/10 transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white">{item.title}</h4>
-                      <p className="text-sm text-muted-foreground">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* Support Section */}
+        <section className="space-y-16 border-t border-white/5 pt-20">
+          <div className="text-center space-y-6 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-widest border border-amber-500/20">
+              <Zap className="w-3 h-3" /> Signal Support
             </div>
-            <div className="flex-1 w-full lg:w-auto">
-               <Card className="glass-card border-none p-1 rounded-[3rem] shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[80px] -z-10 rounded-full" />
-                  <div className="bg-black/40 rounded-[2.8rem] p-10 space-y-8">
-                     <div className="flex items-center justify-between">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Protocol State Machine</h4>
-                        <Badge className="bg-emerald-500/10 text-emerald-400 border-none px-2 py-0.5 text-[8px] uppercase tracking-tighter">Verified Node</Badge>
-                     </div>
-                     <div className="space-y-6">
-                        <div className="flex items-center gap-4">
-                           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                           <p className="text-sm font-mono text-white/80 uppercase">Awaiting Technical Proof...</p>
-                        </div>
-                        <div className="h-px bg-white/10" />
-                        <div className="flex items-center gap-4 opacity-40">
-                           <div className="w-2 h-2 rounded-full bg-white/20" />
-                           <p className="text-sm font-mono text-white/80 uppercase">Multi-sig Escrow Release</p>
-                        </div>
-                        <div className="h-px bg-white/10" />
-                        <div className="flex items-center gap-4 opacity-40">
-                           <div className="w-2 h-2 rounded-full bg-white/20" />
-                           <p className="text-sm font-mono text-white/80 uppercase">L2 Propagation Finalized</p>
-                        </div>
-                     </div>
-                     <div className="pt-4">
-                        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 flex items-center justify-between">
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Avg Settle Time</span>
-                           <span className="text-xl font-headline font-bold">12.4 MINS</span>
-                        </div>
-                     </div>
-                  </div>
-               </Card>
-            </div>
+            <h2 className="text-4xl md:text-6xl font-headline font-bold tracking-tight">Support the <span className="text-amber-500">Protocol.</span></h2>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Help us accelerate the Satoshi workforce. Your contributions directly fund protocol development and open-source infrastructure for decentralized node operators.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
+            <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-6 opacity-5">
+                  <Bitcoin className="w-32 h-32 text-white" />
+               </div>
+               <div className="space-y-2">
+                  <h4 className="text-xl font-headline font-bold">L1 Mainnet</h4>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Bitcoin Base Layer</p>
+               </div>
+               <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
+                  <img src="https://picsum.photos/seed/btc-donate/400/400" alt="L1 QR" className="w-full h-full object-cover rounded-xl" data-ai-hint="QR code" />
+               </div>
+               <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
+                  <code className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">bc1q7y...p9z</code>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white transition-colors" onClick={() => copyToClipboard('bc1q7y...p9z', 'L1 Address')}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+               </div>
+            </Card>
+
+            <Card className="glass-card border-none p-10 rounded-[3rem] space-y-8 text-center relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-6 opacity-5">
+                  <Zap className="w-32 h-32 text-white" />
+               </div>
+               <div className="space-y-2">
+                  <h4 className="text-xl font-headline font-bold">L2 Lightning</h4>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Satoshi Rails</p>
+               </div>
+               <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative">
+                  <img src="https://picsum.photos/seed/ln-donate/400/400" alt="L2 QR" className="w-full h-full object-cover rounded-xl" data-ai-hint="QR code" />
+               </div>
+               <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-2xl p-3">
+                  <code className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">gigalight@satoshi.mail</code>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white transition-colors" onClick={() => copyToClipboard('gigalight@satoshi.mail', 'Lightning Address')}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+               </div>
+            </Card>
           </div>
         </section>
 

@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "qr-l1",
+      "description": "Bitcoin Layer-1 Donation QR Signal",
+      "imageUrl": "https://picsum.photos/seed/btc-donate/400/400",
+      "imageHint": "QR code"
+    },
+    {
+      "id": "qr-l2",
+      "description": "Bitcoin Layer-2 Lightning Donation QR Signal",
+      "imageUrl": "https://picsum.photos/seed/ln-donate/400/400",
+      "imageHint": "QR code"
+    }
+  ]
+}

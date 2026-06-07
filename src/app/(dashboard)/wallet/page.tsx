@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -29,7 +28,7 @@ import {
   Search,
   Eye,
   Info,
-  Terminal
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,8 +37,7 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
-  DialogFooter
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,12 +65,7 @@ export default function WalletPage() {
   const [onchainData, setOnchainData] = useState<{ bitcoin_address: string, qr_code?: string } | null>(null);
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
   const [isLoadingOnchain, setIsLoadingOnchain] = useState(false);
-  const [hasCopied, setHasCopied] = useState(false);
 
-  const [withdrawTarget, setWithdrawTarget] = useState('');
-  const [isDecoding, setIsDecoding] = useState(false);
-  const [decodeData, setDecodeData] = useState<WithdrawDecodeResponse | null>(null);
-  
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchWalletData = async (silent = false) => {
@@ -100,10 +93,6 @@ export default function WalletPage() {
     setOnchainData(null);
     setIsDepositOpen(false);
     fetchWalletData(true);
-  };
-
-  const handleTransactionClick = (tx: WalletTransaction) => {
-    setSelectedTx(tx);
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -230,7 +219,7 @@ export default function WalletPage() {
                     <button 
                       key={tx.id || i} 
                       className="w-full flex items-center justify-between p-6 hover:bg-white/[0.04] transition-all text-left group"
-                      onClick={() => handleTransactionClick(tx)}
+                      onClick={() => setSelectedTx(tx)}
                     >
                       <div className="flex items-center gap-5">
                         <div className={cn(
@@ -415,9 +404,6 @@ export default function WalletPage() {
                  ))}
               </div>
            </ScrollArea>
-           <div className="p-6 border-t border-white/5 bg-black/20 text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">End of Protocol History</p>
-           </div>
         </DialogContent>
       </Dialog>
 
@@ -522,23 +508,4 @@ function HealthItem({ label, status, icon: Icon, color }: any) {
       </div>
     </div>
   );
-}
-
-function ChevronRight(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  )
 }
