@@ -28,16 +28,6 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function AboutPage() {
-  const [hasCopied, setHasCopied] = useState(false);
-  const supportAddress = "bc1qgigalightprotocolsupportnodev2example";
-
-  const copyAddress = () => {
-    navigator.clipboard.writeText(supportAddress);
-    setHasCopied(true);
-    setTimeout(() => setHasCopied(false), 2000);
-    toast({ title: "Signal Copied", description: "L1 Support Address captured to clipboard." });
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
       {/* Dynamic Background */}
@@ -220,53 +210,6 @@ export default function AboutPage() {
                </Card>
              ))}
           </div>
-        </section>
-
-        {/* Support Section */}
-        <section className="max-w-4xl mx-auto space-y-12">
-           <div className="text-center space-y-4">
-              <h2 className="text-4xl font-headline font-bold">Protocol <span className="text-secondary">Governance.</span></h2>
-              <p className="text-muted-foreground">Community support ensures the independence and technical scaling of the GigaLight Protocol.</p>
-           </div>
-
-           <Card className="glass-card border-none rounded-[3rem] overflow-hidden bg-gradient-to-br from-secondary/10 via-card to-background">
-              <div className="flex flex-col md:flex-row items-center">
-                 <div className="p-12 space-y-6 flex-1">
-                    <div className="w-14 h-14 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary shadow-xl">
-                       <QrCode className="w-8 h-8" />
-                    </div>
-                    <div className="space-y-2">
-                       <h3 className="text-3xl font-headline font-bold">Support the Node</h3>
-                       <p className="text-muted-foreground leading-relaxed">
-                          Your contributions are propagated directly to protocol development and validator incentives. Maintain the Satoshi Standard by supporting decentralized infrastructure.
-                       </p>
-                    </div>
-                    <div className="space-y-4">
-                       <div className="p-4 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-between group">
-                          <div className="truncate flex-1">
-                             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">L1 Protocol Address</p>
-                             <p className="text-[11px] font-mono text-white/70 truncate">{supportAddress}</p>
-                          </div>
-                          <Button size="icon" variant="ghost" className="h-10 w-10 text-secondary hover:bg-secondary/10" onClick={copyAddress}>
-                             {hasCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                          </Button>
-                       </div>
-                    </div>
-                 </div>
-                 <div className="p-12 bg-white/5 border-l border-white/5 flex flex-col items-center justify-center space-y-6">
-                    <div className="bg-white p-5 rounded-3xl shadow-2xl">
-                       <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${supportAddress}`} 
-                          alt="Support QR" 
-                          className="w-40 h-40 object-contain"
-                       />
-                    </div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                       <Database className="w-3 h-3" /> L1 On-chain Signal
-                    </p>
-                 </div>
-              </div>
-           </Card>
         </section>
 
         {/* Footer Link */}
