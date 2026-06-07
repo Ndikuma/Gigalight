@@ -2,7 +2,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/image';
+import Link from 'next/link';
 import Image from 'next/image';
 import { 
   Zap, 
@@ -60,7 +60,7 @@ export default function AboutPage() {
         </Link>
         <div className="hidden lg:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <Link href="/market" className="hover:text-primary transition-colors">Marketplace</Link>
-          <Link href="/jobs" className="hover:text-primary transition-colors">Roadmap</Link>
+          <Link href="/dashboard" className="hover:text-primary transition-colors">Terminal Hub</Link>
           <Button asChild className="rounded-xl bg-primary hover:brightness-110 neon-glow-primary px-8 h-11 font-bold">
             <Link href="/login">Initialize Node</Link>
           </Button>

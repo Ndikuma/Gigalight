@@ -159,13 +159,14 @@ export default function WalletPage() {
   async function handleExecuteWithdrawal() {
     setIsProcessingWithdraw(true);
     
-    const parsedAmount = withdrawAmount ? parseInt(withdrawAmount, 10) : undefined;
-    const finalAmount = (parsedAmount !== undefined && !isNaN(parsedAmount)) ? parsedAmount : undefined;
+    // Strictly parse as whole SAT number
+    const finalAmount = parseInt(withdrawAmount, 10);
+    const amountToSend = isNaN(finalAmount) ? undefined : finalAmount;
 
     try {
       const res = await WalletService.initiateWithdrawal(
         withdrawTarget, 
-        finalAmount
+        amountToSend
       );
       if (res.data) {
         toast({ title: "Payout Propagated", description: "L2 settlement signal initiated." });

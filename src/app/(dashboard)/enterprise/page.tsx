@@ -73,7 +73,7 @@ export default function ProfessionalRolesPage() {
           </p>
         </div>
         <Button asChild variant="outline" className="rounded-xl border-white/10 font-bold h-11 px-6 gap-2">
-           <Link href="/jobs">Public Roadmap <ArrowRight className="w-4 h-4" /></Link>
+           <Link href="/market">Public Roadmap <ArrowRight className="w-4 h-4" /></Link>
         </Button>
       </header>
 

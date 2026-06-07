@@ -363,7 +363,7 @@ export default function PromotionHubPage() {
                    <div className="bg-black/60 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 group/addr relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 blur-xl -z-10" />
                       <p className="text-[11px] font-mono text-muted-foreground truncate flex-1 leading-none">
-                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
+                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}
                       </p>
                       <Button 
                         size="icon" 
