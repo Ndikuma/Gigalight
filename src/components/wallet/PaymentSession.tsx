@@ -10,10 +10,12 @@ import {
   Loader2, 
   Activity, 
   CheckCircle2, 
-  ArrowRight,
   ShieldCheck,
   AlertCircle,
-  QrCode
+  QrCode,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -98,6 +100,12 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
     ? paymentData.qr_code 
     : `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(paymentData.payment_request)}`;
 
+  const config = {
+    deposit: { icon: ArrowDownLeft, color: 'text-secondary', bg: 'bg-secondary/10', label: 'Node Liquidity' },
+    tier: { icon: Zap, color: 'text-primary', bg: 'bg-primary/10', label: 'Tier Activation' },
+    validator: { icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Validator Stake' },
+  }[type] || { icon: Activity, color: 'text-primary', bg: 'bg-primary/10', label: 'Technical Signal' };
+
   if (isConfirmed) {
     return (
       <div className="space-y-8 text-center animate-in zoom-in-95 duration-500 py-10 px-4">
@@ -135,9 +143,9 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
   }
 
   return (
-    <div className="space-y-8 text-center animate-in zoom-in-95 duration-300 px-4 sm:px-0">
-      <div className="mx-auto bg-white p-4 sm:p-5 rounded-[2.5rem] w-fit shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
-        <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl flex items-center justify-center relative bg-white">
+    <div className="space-y-8 text-center animate-in zoom-in-30 duration-300 px-2 sm:px-0">
+      <div className="mx-auto bg-white p-4 sm:p-6 rounded-[2.5rem] w-full max-w-[280px] aspect-square shadow-2xl shadow-primary/20 border-8 border-primary/10 relative overflow-hidden group">
+        <div className="w-full h-full rounded-2xl flex items-center justify-center relative bg-white overflow-hidden">
           <img 
             src={qrUrl} 
             alt="Payment QR Signal" 
@@ -152,15 +160,18 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-          <Activity className="w-3 h-3 text-primary animate-pulse" />
-          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Awaiting Technical Signal</span>
+      <div className="flex flex-col items-center gap-3">
+        <div className={cn("flex items-center gap-2 px-4 py-1.5 rounded-full border", config.bg, config.color.replace('text-', 'border-'))}>
+          <config.icon className={cn("w-3.5 h-3.5", config.color)} />
+          <span className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", config.color)}>{config.label}</span>
         </div>
-        <p className="text-2xl font-headline font-bold text-white">{paymentData.amount_sats.toLocaleString()} SAT</p>
+        <div className="space-y-1">
+           <p className="text-3xl font-headline font-bold text-white">{paymentData.amount_sats.toLocaleString()} SAT</p>
+           <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest">Awaiting Technical Signal</p>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 px-2">
         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest px-2">
           <span className="text-muted-foreground">Session Expiry</span>
           <span className={cn("flex items-center gap-1.5", timeLeft && timeLeft < 300 ? "text-destructive" : "text-primary")}>
@@ -172,12 +183,12 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
         <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace relative">
           <div className="flex-1 text-left overflow-hidden">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
-            <p className="text-[11px] font-mono text-white/70 break-all leading-relaxed select-all">{paymentData.payment_request}</p>
+            <p className="text-[11px] font-mono text-white/70 break-all leading-relaxed line-clamp-2 select-all">{paymentData.payment_request}</p>
           </div>
           <Button 
             size="icon" 
             variant="secondary" 
-            className="h-10 w-10 shrink-0 rounded-xl neon-glow-primary hover:scale-105 transition-transform"
+            className="h-10 w-10 shrink-0 rounded-xl neon-glow-primary hover:scale-105 transition-transform flex-none"
             onClick={() => {
               navigator.clipboard.writeText(paymentData.payment_request);
               setHasCopied(true);
