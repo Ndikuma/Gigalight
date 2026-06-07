@@ -47,6 +47,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
     { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
     { name: 'My Services', icon: Wrench, href: '/my-services' },
     { name: 'Promotion', icon: Share2, href: '/promotion' },
+    { name: 'Enterprise', icon: Rocket, href: '/enterprise' },
     { name: 'Wallet', icon: Wallet, href: '/wallet' },
     ...(role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
     { name: 'Settings', icon: Settings, href: '/settings' },
@@ -93,7 +94,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
         </DropdownMenu>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
