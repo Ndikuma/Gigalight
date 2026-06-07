@@ -2,21 +2,16 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Globe, 
   Rocket, 
   Sparkles, 
   ArrowRight, 
-  Lock, 
   CheckCircle,
-  Briefcase,
   ShieldCheck,
   Zap,
-  Network,
   Trophy,
-  Activity,
   Loader2,
   Users,
   Target
@@ -24,7 +19,6 @@ import {
 import Link from 'next/link';
 import { ProfileService } from '@/services/profile-service';
 import { User } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -53,7 +47,6 @@ export default function ProfessionalRolesPage() {
 
   async function handleJoinWaitlist() {
     setIsJoining(true);
-    // Simulate API call to join waitlist
     setTimeout(() => {
       setIsJoining(false);
       toast({
@@ -85,17 +78,17 @@ export default function ProfessionalRolesPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Side: Stats & Eligibility */}
         <div className="lg:col-span-2 space-y-8 px-4 md:px-0">
           <Card className="glass-card border-none bg-gradient-to-br from-secondary/5 to-transparent rounded-[2.5rem] p-10 space-y-8 overflow-hidden relative">
              <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Rocket className="w-40 h-40 text-secondary" />
              </div>
              <div className="relative z-10 space-y-10">
-                <div className="space-y-2">
-                   <h2 className="text-3xl font-headline font-bold">Sovereign Career Path</h2>
+                <div className="space-y-4">
+                   <h2 className="text-3xl font-headline font-bold">Priority Access Program</h2>
                    <p className="text-muted-foreground leading-relaxed">
-                     Enterprise roles provide stability through recurring SAT settlements and direct integration with institutional-grade Bitcoin squads.
+                     Nodes with a Trust Index (Reputation Score) &gt; 90 will receive priority selection for the first batch of Enterprise roles. 
+                     Maintain high-fidelity output on micro-missions to build your standing.
                    </p>
                 </div>
 
@@ -131,7 +124,7 @@ export default function ProfessionalRolesPage() {
                       
                       <div className="space-y-3">
                         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest">
-                           <span className="text-muted-foreground flex items-center gap-2"><CheckCircle className="w-4 h-4 text-primary" /> Micro-missions Finalized</span>
+                           <span className="text-muted-foreground flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Micro-missions Finalized</span>
                            <span className={cn((me?.tasks_completed || 0) >= 50 ? "text-emerald-400" : "text-amber-500")}>
                              {me?.tasks_completed || 0} / 50 REQUIRED
                            </span>
@@ -144,13 +137,12 @@ export default function ProfessionalRolesPage() {
           </Card>
         </div>
 
-        {/* Right Side: Action Card */}
         <div className="space-y-6 px-4 md:px-0">
            <Card className="glass-card border-none rounded-[2.5rem] p-10 bg-gradient-to-b from-card to-background text-center space-y-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-secondary to-transparent" />
               
               <div className="w-16 h-16 rounded-3xl bg-secondary/20 flex items-center justify-center mx-auto text-secondary shadow-2xl">
-                 <Rocket className="w-8 h-8" />
+                 <Target className="w-8 h-8" />
               </div>
               
               <div className="space-y-2">
@@ -195,16 +187,6 @@ export default function ProfessionalRolesPage() {
               <div>
                  <h4 className="font-bold text-sm">Squad Directory</h4>
                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Launch Q4 2023</p>
-              </div>
-           </Card>
-
-           <Card className="glass-card border-none p-8 rounded-[2rem] flex items-center gap-5 group hover:bg-white/5 transition-colors">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
-                 <Lock className="w-6 h-6" />
-              </div>
-              <div>
-                 <h4 className="font-bold text-sm">Escrow Governance</h4>
-                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">v3.1 Preview</p>
               </div>
            </Card>
         </div>

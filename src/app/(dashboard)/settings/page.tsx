@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,7 @@ import {
   Smartphone,
   Camera,
   Loader2,
-  Zap,
-  Activity,
-  Clock,
-  Copy,
-  Check,
-  AlertCircle
+  Zap
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -40,7 +35,7 @@ import {
   DialogTitle, 
   DialogDescription
 } from '@/components/ui/dialog';
-import { PaymentSession } from '@/components/wallet/PaymentSession';
+import { TierUpgradeSession } from '@/components/wallet/TierUpgradeSession';
 
 type SettingsSection = 'identity' | 'tiers' | 'security';
 
@@ -97,27 +92,16 @@ export default function SettingsPage() {
         display_name: user.display_name,
       });
       if (res.data) {
-        toast({
-          title: "Protocol Synced",
-          description: "Settings metadata has been propagated across your node identity.",
-        });
-      } else {
-        toast({ variant: "destructive", title: "Update Failed", description: res.error || "Could not sync identity changes." });
+        toast({ title: "Protocol Synced", description: "Identity metadata propagated." });
       }
     } catch (e) {
-      toast({ variant: "destructive", title: "Interface Error", description: "Failed to communicate with the gateway." });
+      toast({ variant: "destructive", title: "Update Failed", description: "Could not sync identity changes." });
     }
   }
 
   async function handleUpgrade(tier: Tier) {
-    const isActive = user?.current_tier?.id === tier.id;
-    if (isActive) {
-       toast({ title: "Tier Active", description: "Your node is already operating at this protocol level." });
-       return;
-    }
-
-    if (tier.cost_sats === 0) {
-       toast({ title: "Base Protocol", description: "This is a default node standing." });
+    if (user?.current_tier?.id === tier.id) {
+       toast({ title: "Tier Active", description: "Node already operating at this level." });
        return;
     }
     
@@ -127,9 +111,8 @@ export default function SettingsPage() {
       if (res.data) {
         setPaymentData(res.data);
         setIsPaymentOpen(true);
-        toast({ title: "Invoice Propagated", description: `Waiting for ${tier.display_label} activation signal.` });
       } else {
-        toast({ variant: "destructive", title: "Gateway Error", description: res.error || "Could not generate invoice." });
+        toast({ variant: "destructive", title: "Invoice Error", description: res.error || "Could not generate upgrade path." });
       }
     } catch (e) {
       toast({ variant: "destructive", title: "Network Error", description: "The protocol node is unreachable." });
@@ -139,11 +122,7 @@ export default function SettingsPage() {
   }
 
   const handleSuccess = async () => {
-    toast({ 
-      title: "Activation Confirmed", 
-      description: `Your node has been upgraded to ${paymentData?.tier?.display_label} Class.` 
-    });
-    // Refresh profile to update tier badge
+    toast({ title: "Activation Confirmed", description: "Node upgraded across the network." });
     const profRes = await ProfileService.getMyProfile();
     if (profRes.data) setUser(profRes.data);
   };
@@ -247,7 +226,7 @@ export default function SettingsPage() {
                     className="w-full min-h-[140px] bg-black/40 border-white/5 rounded-2xl p-6 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/40"
                     value={user.profile?.bio || ''}
                     onChange={(e) => setUser({...user, profile: {...user.profile, bio: e.target.value}})}
-                    placeholder="Describe your technical expertise and node history..."
+                    placeholder="Describe your technical expertise..."
                   />
                 </div>
 
@@ -308,12 +287,6 @@ export default function SettingsPage() {
                                     <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {benefit.replace('- ', '')}
                                   </li>
                                 ))}
-                                <li className="text-[10px] text-white/70 flex items-start gap-2">
-                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_task}% Task Fee Signal
-                                </li>
-                                <li className="text-[10px] text-white/70 flex items-start gap-2">
-                                  <div className="w-1 h-1 rounded-full bg-secondary shrink-0 mt-1.5" /> {tier.fee_project}% Project Fee Signal
-                                </li>
                              </ul>
                           </div>
                         </div>
@@ -383,7 +356,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Payment Dialog */}
+      {/* Tier Upgrade Payment Dialog */}
       <Dialog open={isPaymentOpen} onOpenChange={(open) => {
         setIsPaymentOpen(open);
         if (!open) cleanupPayment();
@@ -392,7 +365,7 @@ export default function SettingsPage() {
           <div className="p-8 space-y-6">
             <DialogHeader className="p-0">
               <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
                   <Zap className="w-6 h-6" />
                 </div>
                 Activation Path
@@ -403,10 +376,8 @@ export default function SettingsPage() {
             </DialogHeader>
 
             {paymentData && (
-              <PaymentSession 
+              <TierUpgradeSession 
                 paymentData={paymentData}
-                title="Tier Activation"
-                type="tier"
                 onSuccess={handleSuccess}
                 onCancel={cleanupPayment}
               />
