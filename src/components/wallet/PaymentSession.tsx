@@ -172,7 +172,7 @@ export function PaymentSession({ paymentData, title, type = 'deposit', onSuccess
         <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-2xl p-4 overflow-hidden group/trace relative">
           <div className="flex-1 text-left overflow-hidden">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Signal Trace (BOLT11)</p>
-            <p className="text-[11px] font-mono text-white/70 truncate leading-none select-all">{paymentData.payment_request}</p>
+            <p className="text-[11px] font-mono text-white/70 break-all leading-relaxed select-all">{paymentData.payment_request}</p>
           </div>
           <Button 
             size="icon" 

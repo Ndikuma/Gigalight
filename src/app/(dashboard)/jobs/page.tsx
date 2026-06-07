@@ -13,7 +13,7 @@ export default function JobsRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/jobs');
+    router.replace('/enterprise');
   }, [router]);
 
   return (

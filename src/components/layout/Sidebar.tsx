@@ -88,7 +88,7 @@ export function Sidebar({ role, onRoleChange }: SidebarProps) {
             <DropdownMenuItem onClick={() => onRoleChange('standard')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-primary/20">
               <Sparkles className="w-4 h-4 text-primary" /> Standard Mode
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-pointer rounded-lg p-2 focus:bg-emerald-400/20">
+            <DropdownMenuItem onClick={() => onRoleChange('validator')} className="flex items-center gap-2 cursor-lg p-2 focus:bg-emerald-400/20">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> Validator Mode
             </DropdownMenuItem>
           </DropdownMenuContent>
