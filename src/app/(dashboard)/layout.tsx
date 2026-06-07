@@ -25,7 +25,8 @@ import {
   Loader2,
   Layers,
   Wrench,
-  Share2
+  Share2,
+  Rocket
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -139,6 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'My Projects', icon: Briefcase, href: '/my-projects' },
     { name: 'My Services', icon: Wrench, href: '/my-services' },
     { name: 'Promotion', icon: Share2, href: '/promotion' },
+    { name: 'Enterprise', icon: Rocket, href: '/enterprise' },
     { name: 'Financials', icon: WalletIcon, href: '/wallet' },
     ...(user?.is_validator && role === 'validator' ? [{ name: 'Audits', icon: ShieldCheck, href: '/audits' }] : []),
   ];
