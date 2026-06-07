@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { WalletService, WithdrawDecodeResponse, WithdrawFeesResponse } from '@/services/wallet-service';
+import { WalletService, WithdrawDecodeResponse } from '@/services/wallet-service';
 import { Wallet as WalletType, WalletTransaction, DepositInvoiceResponse } from '@/lib/types';
 import { 
   Wallet as WalletIcon, 
@@ -18,15 +18,18 @@ import {
   Clock, 
   RefreshCw, 
   Activity, 
-  Database, 
   Bitcoin, 
   CheckCircle2, 
   ShieldAlert, 
-  Send,
   Network,
   Shield,
   Layers,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ExternalLink,
+  Search,
+  Eye,
+  Info,
+  Terminal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,11 +38,13 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { DepositSession } from '@/components/wallet/DepositSession';
@@ -49,8 +54,12 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Dialog States
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isFullLedgerOpen, setIsFullLedgerOpen] = useState(false);
+  const [selectedTx, setSelectedTx] = useState<WalletTransaction | null>(null);
   
   const [depositMethod, setDepositMethod] = useState<'lightning' | 'onchain'>('lightning');
   const [depositAmount, setDepositAmount] = useState('5000');
@@ -93,19 +102,13 @@ export default function WalletPage() {
     fetchWalletData(true);
   };
 
-  const handleTargetChange = async (val: string) => {
-    setWithdrawTarget(val);
-    if (!val) {
-      setDecodeData(null);
-      return;
-    }
-    setIsDecoding(true);
-    try {
-      const res = await WalletService.withdrawDecode(val);
-      if (res.data) setDecodeData(res.data);
-    } finally {
-      setIsDecoding(false);
-    }
+  const handleTransactionClick = (tx: WalletTransaction) => {
+    setSelectedTx(tx);
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Signal Captured", description: `${label} copied to terminal.` });
   };
 
   async function handleGenerateInvoice() {
@@ -127,6 +130,8 @@ export default function WalletPage() {
       setIsLoadingOnchain(false);
     }
   }
+
+  const recentTransactions = (wallet?.transactions || []).slice(0, 10);
 
   if (isLoading) {
     return <div className="h-[80vh] flex items-center justify-center"><Loader2 className="w-12 h-12 text-primary animate-spin" /></div>;
@@ -210,27 +215,36 @@ export default function WalletPage() {
 
           <Card className="glass-card border-none rounded-[2.5rem] overflow-hidden">
             <CardHeader className="p-8 pb-4 flex flex-row items-center justify-between">
-              <CardTitle className="font-headline text-2xl">Protocol Ledger</CardTitle>
-              <History className="w-6 h-6 text-muted-foreground/30" />
+              <div className="space-y-1">
+                <CardTitle className="font-headline text-2xl">Protocol Ledger</CardTitle>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Recent Technical Signals</p>
+              </div>
+              <Button variant="ghost" size="sm" className="rounded-xl border border-white/5 h-9 font-bold text-[10px] uppercase tracking-widest gap-2" onClick={() => setIsFullLedgerOpen(true)}>
+                Audit Full Ledger <ChevronRight className="w-3 h-3" />
+              </Button>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-white/5">
-                {Array.isArray(wallet?.transactions) && wallet.transactions.length > 0 ? (
-                  wallet.transactions.map((tx: WalletTransaction, i: number) => (
-                    <div key={tx.id || i} className="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-all">
+                {recentTransactions.length > 0 ? (
+                  recentTransactions.map((tx, i) => (
+                    <button 
+                      key={tx.id || i} 
+                      className="w-full flex items-center justify-between p-6 hover:bg-white/[0.04] transition-all text-left group"
+                      onClick={() => handleTransactionClick(tx)}
+                    >
                       <div className="flex items-center gap-5">
                         <div className={cn(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center border", 
+                          "w-12 h-12 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-105", 
                           tx.amount > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-primary/10 text-primary border-primary/20"
                         )}>
                           {tx.amount > 0 ? <ArrowDownLeft className="w-6 h-6" /> : <ArrowUpRight className="w-6 h-6" />}
                         </div>
                         <div>
-                          <p className="font-bold text-sm">{tx.description}</p>
+                          <p className="font-bold text-sm group-hover:text-white transition-colors">{tx.description}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{new Date(tx.created_at).toLocaleDateString()}</p>
                              <span className="text-white/10">•</span>
-                             <Badge className="bg-white/5 text-[8px] border-none text-muted-foreground uppercase h-4">{tx.status}</Badge>
+                             <Badge className="bg-white/5 text-[8px] border-none text-muted-foreground uppercase h-4">{tx.status_display}</Badge>
                           </div>
                         </div>
                       </div>
@@ -238,11 +252,11 @@ export default function WalletPage() {
                         <p className={cn("font-headline font-bold text-xl", tx.amount > 0 ? "text-emerald-400" : "text-foreground")}>{tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()} SAT</p>
                         <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{tx.type_display}</p>
                       </div>
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div className="text-center py-24 text-muted-foreground font-bold flex flex-col items-center gap-4">
-                    <Database className="w-12 h-12 opacity-10" />
+                    <History className="w-12 h-12 opacity-10" />
                     <p className="text-xs uppercase tracking-widest">No ledger activity propagated.</p>
                   </div>
                 )}
@@ -360,6 +374,133 @@ export default function WalletPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Full Ledger Dialog */}
+      <Dialog open={isFullLedgerOpen} onOpenChange={setIsFullLedgerOpen}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[700px] rounded-[2.5rem] p-0 shadow-2xl overflow-hidden">
+           <DialogHeader className="p-8 border-b border-white/5">
+              <DialogTitle className="text-2xl font-headline font-bold flex items-center gap-3">
+                 <History className="w-6 h-6 text-primary" /> Full Technical Ledger
+              </DialogTitle>
+              <DialogDescription>A complete chronological audit of all node signal activity.</DialogDescription>
+           </DialogHeader>
+           <ScrollArea className="h-[60vh]">
+              <div className="divide-y divide-white/5">
+                 {wallet?.transactions.map((tx, i) => (
+                    <button 
+                      key={tx.id || i} 
+                      className="w-full flex items-center justify-between p-6 hover:bg-white/[0.04] transition-all text-left group"
+                      onClick={() => {
+                        setIsFullLedgerOpen(false);
+                        setSelectedTx(tx);
+                      }}
+                    >
+                      <div className="flex items-center gap-5">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center border", 
+                          tx.amount > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-primary/10 text-primary border-primary/20"
+                        )}>
+                          {tx.amount > 0 ? <ArrowDownLeft className="w-5 h-5" /> : <ArrowUpRight className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">{tx.description}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">{new Date(tx.created_at).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={cn("font-headline font-bold text-lg", tx.amount > 0 ? "text-emerald-400" : "text-foreground")}>{tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()} SAT</p>
+                        <Badge className="bg-white/5 text-[7px] border-none text-muted-foreground uppercase h-3.5">{tx.status_display}</Badge>
+                      </div>
+                    </button>
+                 ))}
+              </div>
+           </ScrollArea>
+           <div className="p-6 border-t border-white/5 bg-black/20 text-center">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">End of Protocol History</p>
+           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transaction Detail Dialog */}
+      <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
+        <DialogContent className="glass-card border-white/10 sm:max-w-[500px] rounded-[2.5rem] p-0 shadow-2xl overflow-hidden">
+          {selectedTx && (
+            <>
+              <DialogHeader className="p-8 pb-0 text-center">
+                <div className={cn(
+                  "w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border-4",
+                  selectedTx.amount > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-primary/10 text-primary border-primary/20"
+                )}>
+                  {selectedTx.amount > 0 ? <ArrowDownLeft className="w-10 h-10" /> : <ArrowUpRight className="w-10 h-10" />}
+                </div>
+                <DialogTitle className="text-3xl font-headline font-bold mb-1">
+                  {selectedTx.amount > 0 ? '+' : ''}{selectedTx.amount.toLocaleString()} SAT
+                </DialogTitle>
+                <div className="flex items-center justify-center gap-2">
+                   <Badge className="bg-white/5 text-[9px] font-bold border-none uppercase tracking-widest px-3 py-1">
+                     {selectedTx.status_display}
+                   </Badge>
+                   <Badge variant="outline" className="border-white/10 text-[9px] font-bold uppercase tracking-widest px-3 py-1">
+                     {selectedTx.type_display}
+                   </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="p-8 space-y-6">
+                <div className="space-y-4">
+                   <div className="p-4 bg-black/40 border border-white/5 rounded-2xl space-y-1">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Narration</p>
+                      <p className="text-sm font-medium">{selectedTx.description}</p>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-black/40 border border-white/5 rounded-2xl space-y-1">
+                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Propagation Node</p>
+                         <p className="text-xs font-bold text-white flex items-center gap-2"><Clock className="w-3 h-3 text-primary" /> {new Date(selectedTx.created_at).toLocaleString()}</p>
+                      </div>
+                      <div className="p-4 bg-black/40 border border-white/5 rounded-2xl space-y-1">
+                         <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Settlement Rails</p>
+                         <p className="text-xs font-bold text-white flex items-center gap-2"><Zap className="w-3 h-3 text-secondary" /> Lightning L2</p>
+                      </div>
+                   </div>
+
+                   {selectedTx.lnd_payment_hash && (
+                      <div className="space-y-2">
+                        <Label className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest ml-1">L2 Signal Hash (SHA-256)</Label>
+                        <div className="flex items-center gap-3 p-4 bg-black/60 border border-white/5 rounded-2xl overflow-hidden group/hash">
+                           <p className="text-[10px] font-mono text-muted-foreground truncate flex-1 leading-none">{selectedTx.lnd_payment_hash}</p>
+                           <button onClick={() => copyToClipboard(selectedTx.lnd_payment_hash, "Payment Hash")} className="text-primary hover:text-white transition-colors opacity-0 group-hover/hash:opacity-100">
+                             <Copy className="w-4 h-4" />
+                           </button>
+                        </div>
+                      </div>
+                   )}
+
+                   {selectedTx.linked_object_id && (
+                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                           <Info className="w-4 h-4 text-primary" />
+                           <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Linked Objective</span>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10">
+                           <a href={`/${selectedTx.linked_object_type === 'task' ? 'market' : 'my-projects'}/${selectedTx.linked_object_id}`}>
+                             Audit Trace <ExternalLink className="w-3 h-3 ml-2" />
+                           </a>
+                        </Button>
+                     </div>
+                   )}
+                </div>
+
+                <div className="pt-4 border-t border-white/5">
+                   <Button variant="outline" className="w-full h-12 rounded-xl border-white/10 font-bold uppercase tracking-widest text-[10px]" onClick={() => setSelectedTx(null)}>
+                      Close Signal Trace
+                   </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -381,4 +522,23 @@ function HealthItem({ label, status, icon: Icon, color }: any) {
       </div>
     </div>
   );
+}
+
+function ChevronRight(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
 }
