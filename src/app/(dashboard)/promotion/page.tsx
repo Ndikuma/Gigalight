@@ -23,7 +23,9 @@ import {
   Download,
   RefreshCw as RefreshCwIcon,
   ArrowRight,
-  Network
+  Network,
+  Bitcoin,
+  Shield
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -38,7 +40,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/dialog";
+} from "@/components/ui/dialog";
 
 export default function PromotionHubPage() {
   const [activeTab, setActiveTab] = useState('assets');
@@ -265,7 +267,7 @@ export default function PromotionHubPage() {
                             </label>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(promoContent.threadHook, 'hook')} className="h-7 text-[10px] font-bold gap-2">
                               {copiedField === 'hook' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy
-                            </label>
+                            </Button>
                           </div>
                           <div className="p-5 bg-black/40 border border-white/5 rounded-2xl text-sm italic text-muted-foreground">
                             "{promoContent.threadHook}"
@@ -323,7 +325,7 @@ export default function PromotionHubPage() {
                    <div className="bg-black/60 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 group/addr relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 blur-xl -z-10" />
                       <p className="text-[11px] font-mono text-muted-foreground truncate flex-1 leading-none">
-                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}
+                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
                       </p>
                       <Button 
                         size="icon" 
