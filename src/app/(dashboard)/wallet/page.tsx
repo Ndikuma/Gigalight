@@ -427,7 +427,7 @@ export default function WalletPage() {
       }}>
         <DialogContent className="glass-card border-white/10 sm:max-w-[450px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
           <div className="p-6 sm:p-8 space-y-6">
-            <DialogHeader className="p-0 space-y-1.5">
+            <DialogHeader className="p-0 space-y-1.5 text-left">
               <DialogTitle className="text-xl sm:text-2xl font-headline font-bold flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
                   <ArrowDownLeft className="w-6 h-6" />
@@ -568,7 +568,7 @@ export default function WalletPage() {
                  <p className="text-[11px] font-mono text-white/70 truncate break-all">{lastWithdrawData?.target}</p>
                  <div className="flex items-center gap-1.5 mt-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">{lastWithdrawData?.rail?.toUpperCase()} RAIL PROPAGATED</span>
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">{lastWithdrawData?.rail?.toUpperCase() || 'L2'} RAIL PROPAGATED</span>
                  </div>
               </div>
               <Button className="w-full h-14 sm:h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-lg shadow-lg shadow-emerald-500/20" onClick={cleanupWithdraw}>
@@ -644,7 +644,7 @@ export default function WalletPage() {
                   <div className="bg-black/40 border border-white/10 rounded-[2rem] p-5 sm:p-6 space-y-4 animate-in slide-in-from-bottom-2">
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       <span>Protocol Audit</span>
-                      <span>{decodeData?.rail.toUpperCase()} RAIL</span>
+                      <span>{decodeData?.rail.toUpperCase() || 'L2'} RAIL</span>
                     </div>
                     <div className="space-y-2 border-t border-white/5 pt-4">
                       <div className="flex justify-between items-center text-xs font-bold">
@@ -652,7 +652,7 @@ export default function WalletPage() {
                         <span className="text-white">{feeData.amount_sats.toLocaleString()} SAT</span>
                       </div>
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-muted-foreground">Network Service Fee</span>
+                        <span className="text-primary">Network Service Fee</span>
                         <span className="text-primary">+{feeData.estimated_fee_sats.toLocaleString()} SAT</span>
                       </div>
                       <div className="h-px bg-white/5 my-2" />
