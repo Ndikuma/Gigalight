@@ -455,20 +455,6 @@ export default function WalletPage() {
                         </div>
                       </div>
                    )}
-
-                   {selectedTx.linked_object_id && (
-                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                           <Info className="w-4 h-4 text-primary" />
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">Linked Objective</span>
-                        </div>
-                        <Button variant="ghost" size="sm" asChild className="h-7 text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary/10">
-                           <a href={`/${selectedTx.linked_object_type === 'task' ? 'market' : 'my-projects'}/${selectedTx.linked_object_id}`}>
-                             Audit Trace <ExternalLink className="w-3 h-3 ml-2" />
-                           </a>
-                        </Button>
-                     </div>
-                   )}
                 </div>
 
                 <div className="pt-4 border-t border-white/5">
