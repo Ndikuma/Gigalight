@@ -19,7 +19,8 @@ import {
   Layers,
   Wrench,
   Globe,
-  Share2
+  Share2,
+  Rocket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserRole } from '@/lib/types';
