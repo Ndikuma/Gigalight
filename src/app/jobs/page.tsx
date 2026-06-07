@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function PublicCareersPage() {
   return (
@@ -94,7 +95,7 @@ export default function PublicCareersPage() {
             <div className="p-16 space-y-8 flex-1">
               <h2 className="text-4xl md:text-5xl font-headline font-bold">Priority Access Program</h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Nodes with a Trust Index > 90 will receive priority selection for the first batch of Institutional roles. Build your reputation through technical missions today.
+                Nodes with a Trust Index (Reputation Score) > 90 will receive priority selection for the first batch of Enterprise roles. Build your reputation through high-fidelity micro-missions today.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
@@ -129,9 +130,20 @@ export default function PublicCareersPage() {
             </div>
           </div>
         </section>
+
+        {/* Strategic CTA */}
+        <section className="text-center py-20 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 rounded-[4rem] border border-white/5">
+           <h2 className="text-4xl font-headline font-bold mb-6">Partner as an Enterprise</h2>
+           <p className="text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
+             Deploy professional squads on the Bitcoin L2 network. Automate your global payroll and verification infrastructure with GigaLight.
+           </p>
+           <Button variant="outline" className="rounded-xl h-14 px-12 border-primary/30 text-primary font-bold hover:bg-primary/5 uppercase tracking-widest text-xs">
+             Contact Institutional Node
+           </Button>
+        </section>
       </main>
 
-      <footer className="border-t border-white/5 py-12 text-center">
+      <footer className="border-t border-white/5 py-12 text-center bg-card/30">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">
           GigaLight Institutional Roadmap • Satoshi Standard v2.1.0
         </p>

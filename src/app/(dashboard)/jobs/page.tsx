@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 /**
  * @fileOverview Strategic redirect to de-conflict public /jobs and dashboard routes.
+ * This file is being phased out in favor of the unique /enterprise dashboard path.
  */
 export default function JobsRedirect() {
   const router = useRouter();
