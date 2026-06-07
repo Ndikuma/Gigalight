@@ -12,6 +12,6 @@ export type ImagePlaceholder = {
 };
 
 // Guarantee an array export to prevent runtime .find() errors
-export const PlaceHolderImages: ImagePlaceholder[] = Array.isArray(data.placeholderImages) 
+export const PlaceHolderImages: ImagePlaceholder[] = (data && Array.isArray(data.placeholderImages)) 
   ? data.placeholderImages 
   : [];

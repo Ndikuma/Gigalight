@@ -213,7 +213,6 @@ export default function PromotionHubPage() {
           {selectedAsset && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
               <div className="lg:col-span-7 space-y-8">
-                {/* Template Picker */}
                 <Card className="glass-card border-none rounded-[2rem]">
                   <CardHeader className="p-8 pb-4">
                     <CardTitle className="text-lg font-headline flex items-center gap-2">
@@ -364,7 +363,7 @@ export default function PromotionHubPage() {
                    <div className="bg-black/60 border border-white/10 rounded-2xl p-5 flex items-center justify-between gap-4 group/addr relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 blur-xl -z-10" />
                       <p className="text-[11px] font-mono text-muted-foreground truncate flex-1 leading-none">
-                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/${selectedAsset?.id}
+                        {window.location.origin}/{assetType === 'service' ? 'services' : assetType === 'task' ? 'market' : 'my-projects'}/{selectedAsset?.id}
                       </p>
                       <Button 
                         size="icon" 

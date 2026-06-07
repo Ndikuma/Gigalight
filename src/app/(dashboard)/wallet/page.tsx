@@ -117,9 +117,11 @@ export default function WalletPage() {
   };
 
   async function handleGenerateInvoice() {
+    const amt = parseInt(depositAmount, 10);
+    if (isNaN(amt) || amt <= 0) return;
     setIsGeneratingInvoice(true);
     try {
-      const res = await WalletService.generateDepositInvoice(parseInt(depositAmount));
+      const res = await WalletService.generateDepositInvoice(amt);
       if (res.data) setInvoiceData(res.data);
     } finally {
       setIsGeneratingInvoice(false);
@@ -130,7 +132,6 @@ export default function WalletPage() {
     if (!withdrawTarget) return;
     setIsProcessingWithdraw(true);
 
-    // Strictly parse the amount as a base-10 integer
     const parsedAmount = withdrawAmount ? parseInt(withdrawAmount, 10) : undefined;
     const finalAmount = (parsedAmount !== undefined && !isNaN(parsedAmount)) ? parsedAmount : undefined;
 
@@ -466,7 +467,7 @@ export default function WalletPage() {
            </DialogHeader>
            <ScrollArea className="h-[60vh]">
               <div className="divide-y divide-white/5">
-                 {wallet?.transactions.map((tx, i) => (
+                 {(wallet?.transactions || []).map((tx, i) => (
                     <button 
                       key={tx.id || i} 
                       className="w-full flex items-center justify-between p-6 hover:bg-white/[0.04] transition-all text-left group"
