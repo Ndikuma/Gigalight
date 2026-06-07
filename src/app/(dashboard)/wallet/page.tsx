@@ -126,31 +126,30 @@ export default function WalletPage() {
     }
   }
 
-  async function handleGetOnchainAddress() {
-    setIsLoadingOnchain(true);
-    try {
-      const res = await WalletService.getBitcoinAddress();
-      if (res.data) setOnchainData(res.data);
-    } finally {
-      setIsLoadingOnchain(false);
-    }
-  }
-
   async function handleAuditWithdrawal() {
     if (!withdrawTarget) return;
     setIsProcessingWithdraw(true);
+
+    // Strictly parse the amount as a base-10 integer
+    const parsedAmount = withdrawAmount ? parseInt(withdrawAmount, 10) : undefined;
+    const finalAmount = (parsedAmount !== undefined && !isNaN(parsedAmount)) ? parsedAmount : undefined;
+
     try {
       const decodeRes = await WalletService.withdrawDecode(withdrawTarget);
       if (decodeRes.data) {
         setDecodedWithdraw(decodeRes.data);
-        const feesRes = await WalletService.withdrawFees(withdrawTarget, withdrawAmount ? parseInt(withdrawAmount) : undefined);
+        const feesRes = await WalletService.withdrawFees(withdrawTarget, finalAmount);
         if (feesRes.data) {
           setWithdrawFees(feesRes.data);
           setWithdrawStep('audit');
+        } else {
+           toast({ variant: "destructive", title: "Audit Error", description: feesRes.error || "Could not synthesize payout path." });
         }
       } else {
         toast({ variant: "destructive", title: "Target Mismatch", description: "Invalid Bitcoin address or Lightning signal." });
       }
+    } catch (e) {
+      toast({ variant: "destructive", title: "Protocol Error", description: "Signal check failed on the network rail." });
     } finally {
       setIsProcessingWithdraw(false);
     }
@@ -158,10 +157,14 @@ export default function WalletPage() {
 
   async function handleExecuteWithdrawal() {
     setIsProcessingWithdraw(true);
+    
+    const parsedAmount = withdrawAmount ? parseInt(withdrawAmount, 10) : undefined;
+    const finalAmount = (parsedAmount !== undefined && !isNaN(parsedAmount)) ? parsedAmount : undefined;
+
     try {
       const res = await WalletService.initiateWithdrawal(
         withdrawTarget, 
-        withdrawAmount ? parseInt(withdrawAmount) : undefined
+        finalAmount
       );
       if (res.data) {
         toast({ title: "Payout Propagated", description: "L2 settlement signal initiated." });

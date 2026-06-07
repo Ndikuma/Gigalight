@@ -8,13 +8,13 @@ import {
   Rocket, 
   Sparkles, 
   ArrowRight, 
-  CheckCircle,
-  ShieldCheck,
-  Zap,
-  Trophy,
-  Loader2,
-  Users,
-  Target
+  CheckCircle, 
+  ShieldCheck, 
+  Zap, 
+  Trophy, 
+  Loader2, 
+  Users, 
+  Target 
 } from 'lucide-react';
 import Link from 'next/link';
 import { ProfileService } from '@/services/profile-service';

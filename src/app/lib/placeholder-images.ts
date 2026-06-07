@@ -1,4 +1,7 @@
 
+/**
+ * @fileOverview Professional metadata export for protocol placeholder assets.
+ */
 import data from './placeholder-images.json';
 
 export type ImagePlaceholder = {
@@ -8,4 +11,7 @@ export type ImagePlaceholder = {
   imageHint: string;
 };
 
-export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages || [];
+// Guarantee an array export to prevent runtime .find() errors
+export const PlaceHolderImages: ImagePlaceholder[] = Array.isArray(data.placeholderImages) 
+  ? data.placeholderImages 
+  : [];

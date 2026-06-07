@@ -35,8 +35,9 @@ export default function AboutPage() {
     setMounted(true);
   }, []);
 
-  const qrL1 = PlaceHolderImages.find(img => img.id === 'qr-l1');
-  const qrL2 = PlaceHolderImages.find(img => img.id === 'qr-l2');
+  // Defensive find to prevent hydration/runtime errors
+  const qrL1 = (PlaceHolderImages || []).find(img => img.id === 'qr-l1');
+  const qrL2 = (PlaceHolderImages || []).find(img => img.id === 'qr-l2');
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -47,11 +48,9 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
-      {/* Dynamic Background */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-primary/10 blur-[140px] rounded-full -z-10 pointer-events-none"></div>
 
-      {/* Navigation */}
       <nav className="h-20 border-b border-white/5 flex items-center justify-between px-8 max-w-7xl mx-auto w-full sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center neon-glow-primary transition-transform group-hover:scale-110">
@@ -69,7 +68,6 @@ export default function AboutPage() {
       </nav>
 
       <main className="max-w-6xl mx-auto px-8 py-20 space-y-32 animate-in fade-in duration-700">
-        {/* Hero Section */}
         <section className="text-center space-y-8">
           <Badge className="bg-primary/10 text-primary border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]">
             <Activity className="w-3.5 h-3.5 mr-2" /> Protocol Mission v2.1
@@ -82,7 +80,6 @@ export default function AboutPage() {
           </p>
         </section>
 
-        {/* Vision Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Card className="glass-card border-none p-10 rounded-[3rem] space-y-6 hover:border-primary/20 transition-all group">
             <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-xl shadow-primary/10">
@@ -109,7 +106,6 @@ export default function AboutPage() {
           </Card>
         </div>
 
-        {/* Support Section */}
         <section className="space-y-16 border-t border-white/5 pt-20">
           <div className="text-center space-y-6 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-widest border border-amber-500/20">
@@ -180,7 +176,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Roadmap Section */}
         <section id="roadmap" className="space-y-16">
           <div className="text-center space-y-6 max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
@@ -238,7 +233,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Footer Link */}
         <section className="text-center py-20">
            <h2 className="text-4xl font-headline font-bold mb-8">Ready to Initialize?</h2>
            <div className="flex flex-col sm:flex-row justify-center gap-6">
