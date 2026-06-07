@@ -1,7 +1,7 @@
 
 "use client"
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -29,6 +29,12 @@ import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/app/lib/placeholder-images';
 
 export default function AboutPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const qrL1 = PlaceHolderImages.find(img => img.id === 'qr-l1');
   const qrL2 = PlaceHolderImages.find(img => img.id === 'qr-l2');
 
@@ -36,6 +42,8 @@ export default function AboutPage() {
     navigator.clipboard.writeText(text);
     toast({ title: "Signal Captured", description: `${label} copied to terminal.` });
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">

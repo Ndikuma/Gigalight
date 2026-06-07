@@ -200,7 +200,7 @@ export default function WalletPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Liquid Balance" value={`${(wallet?.available_balance || 0).toLocaleString()} SAT`} icon={WalletIcon} subValue="L2 Available" color="primary" />
         <StatCard label="Pending Audit" value={`${(wallet?.pending_balance || 0).toLocaleString()} SAT`} icon={Clock} subValue="Incoming signals" color="secondary" />
         <StatCard label="Locked Escrow" value={`${(wallet?.locked_balance || 0).toLocaleString()} SAT`} icon={Shield} subValue="Contractual custody" color="emerald" />
@@ -404,15 +404,15 @@ export default function WalletPage() {
                     <div className="space-y-3">
                        <div className="flex justify-between text-xs font-bold">
                           <span className="text-muted-foreground">Requested Payload</span>
-                          <span>{withdrawFees.amount_sats.toLocaleString()} SAT</span>
+                          <span>{(withdrawFees?.amount_sats ?? 0).toLocaleString()} SAT</span>
                        </div>
                        <div className="flex justify-between text-xs font-bold">
                           <span className="text-muted-foreground">Protocol/Miner Fee</span>
-                          <span className="text-destructive">-{withdrawFees.estimated_fee_sats.toLocaleString()} SAT</span>
+                          <span className="text-destructive">-{(withdrawFees?.estimated_fee_sats ?? 0).toLocaleString()} SAT</span>
                        </div>
                        <div className="flex justify-between items-end pt-3 border-t border-white/5">
                           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Total Wallet Debit</span>
-                          <span className="text-2xl font-headline font-bold text-white">{withdrawFees.wallet_debit_sats.toLocaleString()} SAT</span>
+                          <span className="text-2xl font-headline font-bold text-white">{(withdrawFees?.wallet_debit_sats ?? 0).toLocaleString()} SAT</span>
                        </div>
                     </div>
                  </div>
@@ -448,77 +448,6 @@ export default function WalletPage() {
                  </div>
                  <Button className="w-full h-14 rounded-xl bg-emerald-500 font-bold" onClick={cleanupWithdraw}>Finalize Terminal</Button>
               </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Ledger, Transaction & Deposit dialogs... (Keeping established logic) */}
-      <Dialog open={isDepositOpen} onOpenChange={(open) => { if (!open) cleanupDeposit(); }}>
-        <DialogContent className="glass-card border-white/10 sm:max-w-[450px] w-[95vw] sm:w-full rounded-[2.5rem] overflow-hidden p-0 shadow-2xl">
-          <div className="p-6 sm:p-8 space-y-6">
-            <DialogHeader className="p-0 text-left">
-              <DialogTitle className="text-xl sm:text-2xl font-headline font-bold flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shadow-inner">
-                  <ArrowDownLeft className="w-6 h-6" />
-                </div>
-                Fund Node
-              </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm text-muted-foreground">Select preferred settlement path.</DialogDescription>
-            </DialogHeader>
-
-            {invoiceData ? (
-              <DepositSession paymentData={invoiceData} onSuccess={() => fetchWalletData(true)} onCancel={cleanupDeposit} />
-            ) : (
-              <Tabs defaultValue="lightning" onValueChange={(v) => setDepositMethod(v as any)} className="w-full">
-                <TabsList className="grid grid-cols-2 bg-white/5 p-1 rounded-xl h-auto mb-6">
-                  <TabsTrigger value="lightning" className="rounded-lg py-2.5 font-bold text-xs gap-2 data-[state=active]:bg-secondary">
-                    <Zap className="w-3.5 h-3.5" /> Lightning
-                  </TabsTrigger>
-                  <TabsTrigger value="onchain" className="rounded-lg py-2.5 font-bold text-xs gap-2 data-[state=active]:bg-primary">
-                    <Bitcoin className="w-3.5 h-3.5" /> On-Chain
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="lightning" className="space-y-6 mt-0 animate-in fade-in">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">Liquidity Amount (SAT)</Label>
-                    <Input 
-                      type="number" 
-                      value={depositAmount} 
-                      onChange={(e) => setDepositAmount(e.target.value.replace(/[^0-9]/g, ''))} 
-                      className="h-16 bg-white/5 border-white/10 rounded-2xl text-2xl font-headline font-bold pl-6 focus:ring-secondary/40" 
-                    />
-                  </div>
-                  <Button 
-                    className="w-full h-16 rounded-2xl bg-secondary hover:brightness-110 font-bold text-lg neon-glow-secondary" 
-                    onClick={handleGenerateInvoice} 
-                    disabled={isGeneratingInvoice}
-                  >
-                    {isGeneratingInvoice ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Generate L2 Invoice'}
-                  </Button>
-                </TabsContent>
-                <TabsContent value="onchain" className="py-10 text-center space-y-6">
-                   {!onchainData ? (
-                     <div className="space-y-6">
-                        <Bitcoin className="w-12 h-12 text-primary/20 mx-auto" />
-                        <p className="text-sm text-muted-foreground">Propagate a permanent L1 deposit address for large-scale node funding.</p>
-                        <Button variant="outline" className="w-full border-primary/20 text-primary font-bold h-12 rounded-xl" onClick={handleGetOnchainAddress} disabled={isLoadingOnchain}>
-                          {isLoadingOnchain ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generate L1 Address'}
-                        </Button>
-                     </div>
-                   ) : (
-                     <div className="space-y-6 animate-in zoom-in-95">
-                        <div className="bg-white p-4 rounded-2xl w-48 h-48 mx-auto shadow-2xl">
-                           <img src={onchainData.qr_code} alt="Onchain QR" className="w-full h-full" />
-                        </div>
-                        <div className="p-4 bg-black/40 border border-white/10 rounded-xl text-left">
-                           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mb-1">L1 Bitcoin Address</p>
-                           <p className="text-[10px] font-mono break-all text-white/90">{onchainData.bitcoin_address}</p>
-                        </div>
-                     </div>
-                   )}
-                </TabsContent>
-              </Tabs>
             )}
           </div>
         </DialogContent>
