@@ -5,7 +5,7 @@
  * Handles JWT authentication, Bearer tokens, and standardized unwrapping of { success, data } envelopes.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || ' https://family-doug-fruit-behavioral.trycloudflare.com/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://161.97.104.176:9000/api';
 
 export type ApiResponse<T> = {
   data: T | null;
